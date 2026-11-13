@@ -1,0 +1,24 @@
+// ===== FILE: backend/internal/domain/stock.go =====
+package domain
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type Stock struct {
+	ID             uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	ProductID      uuid.UUID  `json:"product_id" gorm:"type:uuid;not null;uniqueIndex:idx_stock_product_warehouse"`
+	Product        *Product   `json:"product,omitempty" gorm:"foreignKey:ProductID"`
+	WarehouseID    uuid.UUID  `json:"warehouse_id" gorm:"type:uuid;not null;uniqueIndex:idx_stock_product_warehouse"`
+	Warehouse      *Warehouse `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
+	QuantitySystem int        `json:"quantity_system" gorm:"not null;default:0"`
+	Version        int        `json:"version" gorm:"not null;default:0"` // optimistic locking
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+func (Stock) TableName() string {
+	return "stock"
+}
+// ===== END FILE =====

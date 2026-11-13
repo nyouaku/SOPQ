@@ -1,0 +1,290 @@
+package route
+
+import (
+	"context"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/nyouaku/SOPQ/backend/internal/config"
+	"github.com/nyouaku/SOPQ/backend/internal/delivery/http/handler"
+	"github.com/nyouaku/SOPQ/backend/internal/delivery/websocket"
+	"github.com/nyouaku/SOPQ/backend/internal/infrastructure/postgres"
+	"github.com/nyouaku/SOPQ/backend/internal/infrastructure/redis"
+	"github.com/nyouaku/SOPQ/backend/internal/middleware"
+	"github.com/nyouaku/SOPQ/backend/internal/repository"
+	"github.com/nyouaku/SOPQ/backend/internal/usecase"
+)
+
+// canAccessSession membatasi langganan WebSocket: admin & supervisor boleh
+// melihat sesi mana pun, staf hanya sesi yang ia mulai atau yang warehouse-nya
+// sama dengan sesi yang ia buat.
+func canAccessSession(uc usecase.StockOpnameUsecase) func(context.Context, uuid.UUID, string, uuid.UUID) (bool, error) {
+	return func(ctx context.Context, userID uuid.UUID, roleName string, sessionID uuid.UUID) (bool, error) {
+		if roleName == "admin" || roleName == "supervisor" {
+			return true, nil
+		}
+		session, err := uc.GetSessionByID(ctx, sessionID)
+		if err != nil {
+			return false, err
+		}
+		if session == nil {
+			return false, nil
+		}
+		return session.StartedBy == userID, nil
+	}
+}
+
+type RouterConfig struct {
+	DB                 *postgres.Database
+	RedisClient        *redis.RedisClient
+	Config             *config.Config
+	CORSAllowedOrigins string
+}
+
+// SetupRoutes mengatur semua routes aplikasi
+func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
+	// Middleware global
+	router.Use(middleware.RequestID())
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recovery())
+	router.Use(middleware.CORS(cfg.CORSAllowedOrigins))
+
+	// Health endpoint (tanpa prefix)
+	healthHandler := handler.NewHealthHandler(cfg.DB, cfg.RedisClient)
+	router.GET("/health", healthHandler.Health)
+	// Metrik Prometheus. Jangan diekspos ke publik: nginx sebaiknya memblokir /metrics.
+	router.GET("/metrics", middleware.MetricsHandler())
+
+	// Initialize repositories
+	userRepo := repository.NewUserRepository(cfg.DB.DB)
+	sessionRepo := repository.NewSessionRepository(cfg.DB.DB)
+	categoryRepo := repository.NewCategoryRepository(cfg.DB.DB)
+	supplierRepo := repository.NewSupplierRepository(cfg.DB.DB)
+	warehouseRepo := repository.NewWarehouseRepository(cfg.DB.DB)
+	locationRepo := repository.NewLocationRepository(cfg.DB.DB)
+	boxRepo := repository.NewBoxRepository(cfg.DB.DB)
+	productRepo := repository.NewProductRepository(cfg.DB.DB)
+	stockOpnameRepo := repository.NewStockOpnameRepository(cfg.DB.DB)
+	stockOpnameDetailRepo := repository.NewStockOpnameDetailRepository(cfg.DB.DB)
+	stockRepo := repository.NewStockRepository(cfg.DB.DB)
+	activityLogRepo := repository.NewActivityLogRepository(cfg.DB.DB)
+	notificationRepo := repository.NewNotificationRepository(cfg.DB.DB)
+
+	// Initialize usecases
+	authUsecase := usecase.NewAuthUsecase(userRepo, sessionRepo, activityLogRepo, cfg.Config)
+	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
+	supplierUsecase := usecase.NewSupplierUsecase(supplierRepo)
+	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, locationRepo, boxRepo)
+	productUsecase := usecase.NewProductUsecase(productRepo)
+	stockOpnameUsecase := usecase.NewStockOpnameUsecase(stockOpnameRepo, stockOpnameDetailRepo, stockRepo, productRepo, activityLogRepo, websocket.NewPublisher())
+	reportUsecase := usecase.NewReportUsecase(stockOpnameDetailRepo, activityLogRepo, repository.NewReportRepository(cfg.DB.DB))
+	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
+	dashboardUsecase := usecase.NewDashboardUsecase(repository.NewDashboardRepository(cfg.DB.DB), activityLogRepo)
+	exportUsecase := usecase.NewExportUsecase(stockOpnameDetailRepo, productRepo, repository.NewReportRepository(cfg.DB.DB))
+	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo)
+
+	// Initialize handlers
+	authHandler := handler.NewAuthHandler(authUsecase)
+	categoryHandler := handler.NewCategoryHandler(categoryUsecase)
+	supplierHandler := handler.NewSupplierHandler(supplierUsecase)
+	warehouseHandler := handler.NewWarehouseHandler(warehouseUsecase)
+	productHandler := handler.NewProductHandler(productUsecase)
+	stockOpnameHandler := handler.NewStockOpnameHandler(stockOpnameUsecase)
+	reportHandler := handler.NewReportHandler(reportUsecase, notificationUsecase)
+	dashboardHandler := handler.NewDashboardHandler(dashboardUsecase)
+	exportHandler := handler.NewExportHandler(exportUsecase)
+	importHandler := handler.NewImportHandler(importUsecase)
+
+	// API v1 group
+	v1 := router.Group("/api/v1")
+	{
+		// Auth routes (public)
+		auth := v1.Group("/auth")
+		{
+			// Limiter dipasang sebelum handler: 10 login / 15 menit per IP,
+			// 5 / 15 menit per username; refresh 30 / 15 menit per IP.
+			auth.POST("/login", middleware.LoginLimiter(cfg.RedisClient, 10, 15*time.Minute), authHandler.Login)
+			auth.POST("/refresh", middleware.RateLimiterByKey(cfg.RedisClient, "refresh_ip", 30, 15*time.Minute, func(c *gin.Context) string { return c.ClientIP() }), authHandler.RefreshToken)
+
+			// Protected auth routes
+			authProtected := auth.Group("")
+			authProtected.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+			{
+				authProtected.GET("/me", authHandler.GetProfile)
+				authProtected.POST("/logout", authHandler.Logout)
+			}
+
+			// Admin only
+			authAdmin := auth.Group("")
+			authAdmin.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+			authAdmin.Use(middleware.RequireRole("admin"))
+			{
+				authAdmin.POST("/register", authHandler.Register)
+				authAdmin.GET("/users", authHandler.ListUsers)
+				authAdmin.GET("/roles", authHandler.ListRoles)
+			}
+		}
+
+		// Products routes (PHASE 3)
+		products := v1.Group("/products")
+		products.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			products.GET("", productHandler.ListProducts)
+			products.GET("/code/:code", productHandler.GetProductByCode) // Kritikal untuk scan (QR = product_code)
+			products.GET("/:id", productHandler.GetProduct)
+
+			// Admin only
+			productsAdmin := products.Group("")
+			productsAdmin.Use(middleware.RequireRole("admin"))
+			{
+				productsAdmin.POST("", productHandler.CreateProduct)
+				productsAdmin.PUT("/:id", productHandler.UpdateProduct)
+				productsAdmin.DELETE("/:id", productHandler.DeleteProduct)
+			}
+		}
+
+		// Categories routes
+		categories := v1.Group("/categories")
+		categories.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			categories.GET("", categoryHandler.ListCategories)
+
+			// Admin only
+			categoriesAdmin := categories.Group("")
+			categoriesAdmin.Use(middleware.RequireRole("admin"))
+			{
+				categoriesAdmin.POST("", categoryHandler.CreateCategory)
+			}
+		}
+
+		// Suppliers routes
+		suppliers := v1.Group("/suppliers")
+		suppliers.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			suppliers.GET("", supplierHandler.ListSuppliers)
+
+			// Admin only
+			suppliersAdmin := suppliers.Group("")
+			suppliersAdmin.Use(middleware.RequireRole("admin"))
+			{
+				suppliersAdmin.POST("", supplierHandler.CreateSupplier)
+			}
+		}
+
+		// Warehouses routes
+		warehouses := v1.Group("/warehouses")
+		warehouses.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			warehouses.GET("", warehouseHandler.ListWarehouses)
+			warehouses.GET("/:id/locations", warehouseHandler.GetLocations)
+
+			// Admin only
+			warehousesAdmin := warehouses.Group("")
+			warehousesAdmin.Use(middleware.RequireRole("admin"))
+			{
+				warehousesAdmin.POST("", warehouseHandler.CreateWarehouse)
+				warehousesAdmin.POST("/:id/locations", warehouseHandler.CreateLocation)
+			}
+		}
+
+		// Locations routes
+		locations := v1.Group("/locations")
+		locations.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			locations.GET("/:id/boxes", warehouseHandler.GetBoxes)
+
+			// Admin only
+			locationsAdmin := locations.Group("")
+			locationsAdmin.Use(middleware.RequireRole("admin"))
+			{
+				locationsAdmin.POST("/:id/boxes", warehouseHandler.CreateBox)
+			}
+		}
+
+		// Stock opname routes (PHASE 4)
+		stockOpname := v1.Group("/stock-opname")
+		stockOpname.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			stockOpname.GET("/sessions", stockOpnameHandler.ListSessions)
+			stockOpname.POST("/sessions", stockOpnameHandler.StartSession)
+			stockOpname.GET("/sessions/:id", stockOpnameHandler.GetSession)
+			stockOpname.GET("/sessions/:id/details", stockOpnameHandler.GetSessionDetails)
+			stockOpname.POST("/sessions/:id/scan", stockOpnameHandler.SubmitScan)
+			stockOpname.POST("/sessions/:id/complete", stockOpnameHandler.CompleteSession)
+
+			// Supervisor only
+			stockOpnameSupervisor := stockOpname.Group("")
+			stockOpnameSupervisor.Use(middleware.RequireRole("supervisor", "admin"))
+			{
+				stockOpnameSupervisor.POST("/sessions/:id/approve", stockOpnameHandler.ApproveSession)
+			}
+		}
+
+		// WebSocket for real-time progress (PHASE 4).
+		// Token dikirim lewat sub-protokol handshake, bukan query string, dan
+		// keanggotaan sesi diperiksa sebelum upgrade.
+		v1.GET("/ws/stock-opname/sessions/:id", websocket.HandleStockOpnameWS(&websocket.WSConfig{
+			JWTSecret:         cfg.Config.JWT.AccessSecret,
+			AllowedOrigins:    strings.Split(cfg.CORSAllowedOrigins, ","),
+			CanAccessSession:  canAccessSession(stockOpnameUsecase),
+		}))
+
+		// Dashboard routes (PHASE 4)
+		dashboard := v1.Group("/dashboard")
+		dashboard.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			dashboard.GET("/summary", dashboardHandler.GetSummary)
+		}
+
+		// Reports routes (PHASE 5) - Supervisor/Admin only
+		reports := v1.Group("/reports")
+		reports.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		reports.Use(middleware.RequireRole("supervisor", "admin"))
+		{
+			reports.GET("/stock-opname", reportHandler.GetStockOpnameReport)
+			reports.GET("/stock-opname/export", reportHandler.ExportStockOpnameReport)
+		}
+
+		// Activity logs routes (PHASE 5) - Supervisor/Admin only
+		activityLogs := v1.Group("/activity-logs")
+		activityLogs.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		activityLogs.Use(middleware.RequireRole("supervisor", "admin"))
+		{
+			activityLogs.GET("", reportHandler.GetActivityLogs)
+		}
+
+		// Notifications routes (PHASE 5) - All authenticated users
+		notifications := v1.Group("/notifications")
+		notifications.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			notifications.GET("", reportHandler.GetNotifications)
+			notifications.PATCH("/:id/read", reportHandler.MarkNotificationAsRead)
+		}
+
+		// Export routes - Supervisor/Admin only (data seluruh gudang)
+		export := v1.Group("/export")
+		export.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		export.Use(middleware.RequireRole("supervisor", "admin"))
+		{
+			export.GET("/stock-opname", exportHandler.ExportStockOpnameExcel)
+			export.GET("/products", exportHandler.ExportProductsExcel)
+		}
+
+		// Import routes (produk via template Excel) - Admin only
+		imports := v1.Group("/import")
+		imports.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		imports.Use(middleware.RequireRole("admin"))
+		{
+			imports.GET("/products/template", importHandler.DownloadProductTemplate)
+			imports.POST("/products", importHandler.ImportProducts)
+		}
+
+		// Placeholder untuk memastikan /api/v1 dapat diakses
+		v1.GET("/ping", func(c *gin.Context) {
+			c.JSON(200, gin.H{"message": "pong"})
+		})
+	}
+}
+// ===== END FILE =====

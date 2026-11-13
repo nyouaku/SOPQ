@@ -1,0 +1,58 @@
+/* ===== STOCK OPNAME DASHBOARD — BASE & RESET ===== */
+/* DaisyUI data-theme adalah sumber token warna tunggal.
+   File ini TIDAK mendefinisikan --color-* / --radius lagi agar
+   tak bertabrakan dengan token DaisyUI (lihat Phase 4, Batch A).
+   Cakupan: font, reset ringan, tabular-nums, scrollbar, focus ring. */
+
+/* Reset ringan */
+body {
+	margin: 0;
+	padding: 0;
+	font-family: 'Inter', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+	background-color: hsl(var(--b2));
+	color: hsl(var(--bc));
+}
+
+/* Angka & metrik: monospace + tabular agar kolom sejajar */
+.metric,
+.value,
+.counter,
+code,
+pre {
+	font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Consolas', monospace;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar tipis, mengikuti token DaisyUI */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: hsl(var(--bc) / 0.25) transparent;
+}
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+	background-color: hsl(var(--bc) / 0.25);
+	border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+/* Focus ring terlihat (WCAG 2.2 AA, kontras ≥ 3:1).
+   Jangan pakai `outline: none` tanpa pengganti. */
+:focus-visible {
+	outline: 2px solid hsl(var(--p));
+	outline-offset: 2px;
+}
+
+/* Hormati preferensi pengguna soal animasi */
+@media (prefers-reduced-motion: reduce) {
+	* {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

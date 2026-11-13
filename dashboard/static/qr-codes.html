@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Codes - Produk Listrik</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #34d399;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #10b981;
+            transform: translateY(-2px);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            page-break-inside: avoid;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.2);
+        }
+        .qr-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed #e5e7eb;
+        }
+        .qr-container canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        .product-name {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .product-code {
+            font-size: 0.9em;
+            color: #6b7280;
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .product-barcode {
+            font-size: 1em;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            background: #f3f4f6;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .product-brand {
+            font-size: 0.85em;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .controls {
+                display: none;
+            }
+            h1, .subtitle {
+                color: black;
+                text-shadow: none;
+            }
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .card {
+                box-shadow: none;
+                border: 1px solid #e5e7eb;
+            }
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin: 50px 0;
+        }
+        .stats {
+            background: rgba(255,255,255,0.95);
+            padding: 15px 25px;
+            border-radius: 12px;
+            display: inline-block;
+            font-weight: 600;
+            color: #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 QR Codes - Produk Listrik</h1>
+        <p class="subtitle">Scan QR code ini untuk testing Stock Opname App</p>
+
+        <div class="controls">
+            <div class="stats">Total: <span id="total">0</span> Produk</div>
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Print Semua QR</button>
+            <button class="btn btn-secondary" onclick="downloadAll()">💾 Download Semua</button>
+            <button class="btn btn-primary" onclick="generateQR()">🔄 Refresh QR Codes</button>
+        </div>
+
+        <div id="loading" class="loading">⏳ Generating QR Codes...</div>
+        <div id="grid" class="grid" style="display: none;"></div>
+    </div>
+
+    <script>
+        const products = [
+            { code: 'EL-001', name: 'Kabel NYA 2.5mm - Hitam', barcode: '8991234567001', brand: 'Supreme' },
+            { code: 'EL-002', name: 'Kabel NYA 2.5mm - Merah', barcode: '8991234567002', brand: 'Supreme' },
+            { code: 'EL-003', name: 'Kabel NYM 3x2.5mm', barcode: '8991234567003', brand: 'Kabel Metal' },
+            { code: 'EL-004', name: 'Saklar Tunggal - Putih', barcode: '8991234567004', brand: 'Broco' },
+            { code: 'EL-005', name: 'Saklar Ganda - Putih', barcode: '8991234567005', brand: 'Broco' },
+            { code: 'EL-006', name: 'Stop Kontak - Putih', barcode: '8991234567006', brand: 'Broco' },
+            { code: 'EL-007', name: 'Lampu LED 5W - Putih', barcode: '8991234567007', brand: 'Philips' },
+            { code: 'EL-008', name: 'Lampu LED 9W - Putih', barcode: '8991234567008', brand: 'Philips' },
+            { code: 'EL-009', name: 'Lampu LED 12W - Putih', barcode: '8991234567009', brand: 'Philips' },
+            { code: 'EL-010', name: 'Lampu LED 18W - Putih', barcode: '8991234567010', brand: 'Philips' },
+            { code: 'EL-011', name: 'Fitting Lampu E27', barcode: '8991234567011', brand: 'Generic' },
+            { code: 'EL-012', name: 'MCB 1 Phase 2A', barcode: '8991234567012', brand: 'Schneider' },
+            { code: 'EL-013', name: 'MCB 1 Phase 4A', barcode: '8991234567013', brand: 'Schneider' },
+            { code: 'EL-014', name: 'MCB 1 Phase 6A', barcode: '8991234567014', brand: 'Schneider' },
+            { code: 'EL-015', name: 'MCB 1 Phase 10A', barcode: '8991234567015', brand: 'Schneider' },
+            { code: 'EL-016', name: 'Pipa PVC 1/2 inch - 4 meter', barcode: '8991234567016', brand: 'Rucika' },
+            { code: 'EL-017', name: 'Pipa PVC 3/4 inch - 4 meter', barcode: '8991234567017', brand: 'Rucika' },
+            { code: 'EL-018', name: 'Pipa PVC 1 inch - 4 meter', barcode: '8991234567018', brand: 'Rucika' },
+            { code: 'EL-019', name: 'Klem Pipa 1/2 inch', barcode: '8991234567019', brand: 'Generic' },
+            { code: 'EL-020', name: 'Klem Pipa 3/4 inch', barcode: '8991234567020', brand: 'Generic' },
+            { code: 'EL-021', name: 'Box MCB 4 Group', barcode: '8991234567021', brand: 'Schneider' },
+            { code: 'EL-022', name: 'Box MCB 8 Group', barcode: '8991234567022', brand: 'Schneider' },
+            { code: 'EL-023', name: 'Isolasi Listrik - Hitam', barcode: '8991234567023', brand: '3M' },
+            { code: 'EL-024', name: 'Isolasi Listrik - Merah', barcode: '8991234567024', brand: '3M' },
+            { code: 'EL-025', name: 'Isolasi Listrik - Kuning', barcode: '8991234567025', brand: '3M' },
+            { code: 'EL-026', name: 'Terminal Kabel 2.5mm - 10pcs', barcode: '8991234567026', brand: 'Generic' },
+            { code: 'EL-027', name: 'Colokan T - Putih', barcode: '8991234567027', brand: 'Uticon' },
+            { code: 'EL-028', name: 'Colokan T - Hitam', barcode: '8991234567028', brand: 'Uticon' },
+            { code: 'EL-029', name: 'Kabel Roll 3x1.5mm - 20 meter', barcode: '8991234567029', brand: 'Kabel Metal' },
+            { code: 'EL-030', name: 'Kabel Roll 3x2.5mm - 20 meter', barcode: '8991234567030', brand: 'Kabel Metal' }
+        ];
+
+        document.getElementById('total').textContent = products.length;
+
+        async function generateQR() {
+            const grid = document.getElementById('grid');
+            const loading = document.getElementById('loading');
+
+            loading.style.display = 'block';
+            grid.style.display = 'none';
+            grid.innerHTML = '';
+
+            for (let i = 0; i < products.length; i++) {
+                const product = products[i];
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="qr-container">
+                        <canvas id="qr-${i}"></canvas>
+                    </div>
+                    <div class="product-barcode">${product.barcode}</div>
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-code">Kode: ${product.code}</div>
+                    <div class="product-brand">Brand: ${product.brand}</div>
+                `;
+                grid.appendChild(card);
+
+                // Generate QR Code
+                await new Promise(resolve => {
+                    setTimeout(() => {
+                        QRCode.toCanvas(
+                            document.getElementById(`qr-${i}`),
+                            product.barcode,
+                            {
+                                width: 200,
+                                margin: 2,
+                                color: {
+                                    dark: '#667eea',
+                                    light: '#ffffff'
+                                }
+                            },
+                            (error) => {
+                                if (error) console.error(error);
+                                resolve();
+                            }
+                        );
+                    }, 50);
+                });
+            }
+
+            loading.style.display = 'none';
+            grid.style.display = 'grid';
+        }
+
+        function downloadAll() {
+            products.forEach((product, i) => {
+                const canvas = document.getElementById(`qr-${i}`);
+                if (canvas) {
+                    const link = document.createElement('a');
+                    link.download = `QR-${product.code}-${product.barcode}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                }
+            });
+            alert('✅ Semua QR code sedang di-download!');
+        }
+
+        // Auto generate on load
+        window.onload = generateQR;
+    </script>
+</body>
+</html>

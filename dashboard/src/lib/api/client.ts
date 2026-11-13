@@ -1,0 +1,145 @@
+// ===== FILE: dashboard/src/lib/api/client.ts =====
+import { goto } from '$app/navigation';
+import { API_BASE_URL } from './config';
+
+interface ApiResponse<T> {
+	success: boolean;
+	data?: T;
+	message?: string;
+	error?: {
+		code: string;
+		message: string;
+	};
+}
+
+class ApiClient {
+	private baseUrl: string;
+
+	constructor(baseUrl: string) {
+		this.baseUrl = baseUrl;
+	}
+
+	private async getAccessToken(): Promise<string | null> {
+		if (typeof window === 'undefined') return null;
+		return localStorage.getItem('access_token');
+	}
+
+	private async setAccessToken(token: string): Promise<void> {
+		if (typeof window === 'undefined') return;
+		localStorage.setItem('access_token', token);
+	}
+
+	private async getRefreshToken(): Promise<string | null> {
+		if (typeof window === 'undefined') return null;
+		return localStorage.getItem('refresh_token');
+	}
+
+	private async refreshAccessToken(): Promise<boolean> {
+		const refreshToken = await this.getRefreshToken();
+		if (!refreshToken) return false;
+
+		try {
+			const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ refresh_token: refreshToken })
+			});
+
+			if (response.ok) {
+				const data: ApiResponse<{ access_token: string; refresh_token?: string }> =
+					await response.json();
+				if (data.success && data.data) {
+					await this.setAccessToken(data.data.access_token);
+					if (data.data.refresh_token) {
+						localStorage.setItem('refresh_token', data.data.refresh_token);
+					}
+					return true;
+				}
+			}
+			return false;
+		} catch {
+			return false;
+		}
+	}
+
+	async request<T>(
+		endpoint: string,
+		options: RequestInit = {}
+	): Promise<ApiResponse<T>> {
+		const token = await this.getAccessToken();
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			...((options.headers as Record<string, string>) || {})
+		};
+
+		if (token) {
+			headers['Authorization'] = `Bearer ${token}`;
+		}
+
+		try {
+			let response = await fetch(`${this.baseUrl}${endpoint}`, {
+				...options,
+				headers
+			});
+
+			// Retry with refresh token on 401
+			if (response.status === 401) {
+				const refreshed = await this.refreshAccessToken();
+				if (refreshed) {
+					const newToken = await this.getAccessToken();
+					if (newToken) {
+						headers['Authorization'] = `Bearer ${newToken}`;
+						response = await fetch(`${this.baseUrl}${endpoint}`, {
+							...options,
+							headers
+						});
+					}
+				} else {
+					// Refresh failed, redirect to login
+					if (typeof window !== 'undefined') {
+						localStorage.clear();
+						goto('/login');
+					}
+					throw new Error('Unauthorized');
+				}
+			}
+
+			const data: ApiResponse<T> = await response.json();
+			return data;
+		} catch (error) {
+			throw error;
+		}
+	}
+
+	async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+		return this.request<T>(endpoint, { method: 'GET' });
+	}
+
+	async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+		return this.request<T>(endpoint, {
+			method: 'POST',
+			body: body ? JSON.stringify(body) : undefined
+		});
+	}
+
+	async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+		return this.request<T>(endpoint, {
+			method: 'PUT',
+			body: body ? JSON.stringify(body) : undefined
+		});
+	}
+
+	async patch<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+		return this.request<T>(endpoint, {
+			method: 'PATCH',
+			body: body ? JSON.stringify(body) : undefined
+		});
+	}
+
+	async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+		return this.request<T>(endpoint, { method: 'DELETE' });
+	}
+}
+
+export const apiClient = new ApiClient(API_BASE_URL);
+// ===== END FILE =====
