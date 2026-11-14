@@ -1,11 +1,11 @@
+/* Import custom themes - MUST be first */
+@import './lib/styles/themes.css';
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import custom themes */
-@import './lib/styles/themes.css';
 
 @layer base {
   * {

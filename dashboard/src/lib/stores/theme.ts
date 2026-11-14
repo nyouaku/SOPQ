@@ -12,8 +12,8 @@ export interface Theme {
 const THEME_KEY = 'stock-opname-theme';
 
 const defaultTheme: Theme = {
-	layout: 'bottom',
-	color: 'rack-room'
+	layout: 'command',
+	color: 'saweria'
 };
 
 function createThemeStore() {

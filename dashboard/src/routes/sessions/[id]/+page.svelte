@@ -4,6 +4,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import SaveNotificationToast from '$lib/components/SaveNotificationToast.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { WS_BASE_URL } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
@@ -17,6 +18,9 @@
 	};
 	let total = 0;
 	let ws: WebSocket | null = null;
+	let showNotification = false;
+	let notificationMessage = 'Data tersimpan';
+	let scannedCount = 0;
 
 	$: sessionId = $page.params.id;
 	$: totalPages = Math.ceil(total / filter.limit);
@@ -73,6 +77,11 @@
 				// Prepend new scan to list
 				details = [data.detail, ...details];
 				total++;
+
+				// Show notification
+				scannedCount = total;
+				showNotification = true;
+				notificationMessage = `${data.detail?.product?.name || 'Produk'} disimpan`;
 			} else if (data.type === 'session_update') {
 				session = { ...session, ...data.session };
 			}
@@ -164,6 +173,14 @@
 <svelte:head>
 	<title>Session Details - Stock Opname</title>
 </svelte:head>
+
+{#if showNotification}
+	<SaveNotificationToast
+		message={notificationMessage}
+		scannedCount={scannedCount}
+		totalProducts={session?.total_products || 0}
+	/>
+{/if}
 
 <LayoutWrapper>
 	<div class="page">

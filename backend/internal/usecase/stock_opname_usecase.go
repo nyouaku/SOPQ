@@ -20,6 +20,7 @@ type StockOpnameUsecase interface {
 	ApproveSession(ctx context.Context, sessionID, approverID uuid.UUID) error
 	GetSessionByID(ctx context.Context, sessionID uuid.UUID) (*domain.StockOpname, error)
 	GetSessionDetails(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
+	GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error)
 	ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error)
 }
 
@@ -294,6 +295,56 @@ func (u *stockOpnameUsecase) GetSessionByID(ctx context.Context, sessionID uuid.
 
 func (u *stockOpnameUsecase) GetSessionDetails(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error) {
 	return u.stockOpnameDetailRepo.FindByStockOpnameID(ctx, sessionID, limit, offset)
+}
+
+func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error) {
+	// Get session
+	session, err := u.stockOpnameRepo.FindByID(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	if session == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	// Get all details (no limit, just for counting)
+	details, _, err := u.stockOpnameDetailRepo.FindByStockOpnameID(ctx, sessionID, 10000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count matched vs unmatched
+	matched := 0
+	unmatched := 0
+	for _, detail := range details {
+		if detail.Difference == 0 {
+			matched++
+		} else {
+			unmatched++
+		}
+	}
+
+	// Calculate duration
+	var completedAt time.Time
+	if session.CompletedAt != nil {
+		completedAt = *session.CompletedAt
+	} else {
+		completedAt = time.Now()
+	}
+	duration := completedAt.Sub(session.StartedAt).Seconds()
+
+	return &domain.SessionSummary{
+		SessionID:       session.ID,
+		Code:            session.Code,
+		TotalScanned:    len(details),
+		TotalProducts:   len(details), // Assume all scanned for now
+		MatchedCount:    matched,
+		UnmatchedCount:  unmatched,
+		Status:          session.Status,
+		StartedAt:       session.StartedAt,
+		CompletedAt:     session.CompletedAt,
+		DurationSeconds: int64(duration),
+	}, nil
 }
 
 func (u *stockOpnameUsecase) ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error) {

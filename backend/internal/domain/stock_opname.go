@@ -57,4 +57,18 @@ func (StockOpnameDetail) TableName() string {
 	return "stock_opname_detail"
 }
 
+// SessionSummary untuk completion status
+type SessionSummary struct {
+	SessionID      uuid.UUID  `json:"session_id"`
+	Code           string     `json:"code"`
+	TotalScanned   int        `json:"total_scanned"`
+	TotalProducts  int        `json:"total_products"`
+	MatchedCount   int        `json:"matched_count"`
+	UnmatchedCount int        `json:"unmatched_count"`
+	Status         string     `json:"status"`
+	StartedAt      time.Time  `json:"started_at"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	DurationSeconds int64     `json:"duration_seconds"`
+}
+
 // ===== END FILE =====

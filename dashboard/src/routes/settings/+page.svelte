@@ -7,6 +7,7 @@
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import ThemeSelector from '$lib/components/ThemeSelector.svelte';
 	import LoaderSettings from '$lib/components/LoaderSettings.svelte';
+	import SoundSettingsPanel from '$lib/components/SoundSettingsPanel.svelte';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 

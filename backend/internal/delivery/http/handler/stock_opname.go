@@ -281,6 +281,31 @@ func (h *StockOpnameHandler) GetSessionDetails(c *gin.Context) {
 	})
 }
 
+// GetSessionSummary godoc
+// @Summary Get session completion summary
+// @Description Get session summary: total scanned, matched/unmatched, duration
+// @Tags stock-opname
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Session ID"
+// @Success 200 {object} utils.SuccessResponse{data=domain.SessionSummary}
+// @Router /api/v1/stock-opname/sessions/{id}/summary [get]
+func (h *StockOpnameHandler) GetSessionSummary(c *gin.Context) {
+	sessionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid session ID")
+		return
+	}
+
+	summary, err := h.stockOpnameUsecase.GetSessionSummary(c.Request.Context(), sessionID)
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, summary)
+}
+
 // ListSessions godoc
 // @Summary List stock opname sessions
 // @Description List sessions with filters

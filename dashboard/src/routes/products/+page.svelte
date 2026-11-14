@@ -535,100 +535,47 @@
 <!-- Modal placeholder - simplified for PHASE 7 -->
 {#if showModal}
 	<div class="modal modal-open">
-		<div class="modal-box max-w-2xl">
-			<h3 class="font-bold text-lg mb-4">{editingProduct ? 'Edit' : 'Tambah'} Produk</h3>
+		<div class="modal-box w-full max-w-sm sm:max-w-lg p-4 sm:p-6">
+			<h3 class="font-bold text-lg">{editingProduct ? 'Edit' : 'Tambah'} Produk</h3>
 
-			<form on:submit|preventDefault={handleSubmit}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<!-- Kode Produk -->
-					<div class="form-control">
-						<label class="label" for="p-code">
-							<span class="label-text">Kode Produk <span class="text-error">*</span></span>
-						</label>
-						<input
-							id="p-code"
-							type="text"
-							class="input input-bordered"
-							bind:value={formData.product_code}
-							placeholder="Contoh: EL-001"
-							required
-						/>
-					</div>
+			<form on:submit|preventDefault={handleSubmit} class="mt-6 space-y-3 sm:space-y-4">
+				<!-- Kode Produk -->
+				<div class="form-control">
+					<label class="label" for="p-code">
+						<span class="label-text font-medium text-sm sm:text-base">Kode Produk <span class="text-error">*</span></span>
+					</label>
+					<input
+						id="p-code"
+						type="text"
+						class="input input-bordered input-sm sm:input-md"
+						bind:value={formData.product_code}
+						placeholder="EL-001"
+						required
+					/>
+				</div>
 
-					<!-- Nama Produk -->
-					<div class="form-control md:col-span-2">
-						<label class="label" for="p-name">
-							<span class="label-text">Nama Produk <span class="text-error">*</span></span>
-						</label>
-						<input
-							id="p-name"
-							type="text"
-							class="input input-bordered"
-							bind:value={formData.name}
-							placeholder="Contoh: Kabel NYA 2.5mm"
-							required
-						/>
-					</div>
+				<!-- Nama Produk -->
+				<div class="form-control">
+					<label class="label" for="p-name">
+						<span class="label-text font-medium text-sm sm:text-base">Nama Produk <span class="text-error">*</span></span>
+					</label>
+					<input
+						id="p-name"
+						type="text"
+						class="input input-bordered input-sm sm:input-md"
+						bind:value={formData.name}
+						placeholder="Kabel NYA 2.5mm"
+						required
+					/>
+				</div>
 
-					<!-- Gudang → Lokasi → Box (menentukan box_id produk) -->
-					<div class="form-control">
-						<label class="label" for="p-warehouse">
-							<span class="label-text">Gudang</span>
-						</label>
-						<select
-							id="p-warehouse"
-							class="select select-bordered"
-							bind:value={formWarehouseId}
-							on:change={onWarehouseChange}
-						>
-							<option value="">-</option>
-							{#each warehouses as wh}
-								<option value={wh.id}>{wh.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<div class="form-control">
-						<label class="label" for="p-location">
-							<span class="label-text">Lokasi / area</span>
-						</label>
-						<select
-							id="p-location"
-							class="select select-bordered"
-							bind:value={formLocationId}
-							on:change={onLocationChange}
-							disabled={!formWarehouseId}
-						>
-							<option value="">-</option>
-							{#each formLocations as loc}
-								<option value={loc.id}>{loc.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<div class="form-control md:col-span-2">
-						<label class="label" for="p-box">
-							<span class="label-text">Rak / box</span>
-						</label>
-						<select
-							id="p-box"
-							class="select select-bordered"
-							bind:value={formData.box_id}
-							disabled={!formLocationId}
-						>
-							<option value="">-</option>
-							{#each formBoxes as box}
-								<option value={box.id}>{box.code}{box.name ? ` — ${box.name}` : ''}</option>
-							{/each}
-						</select>
-					</div>
-
-					<!-- Unit -->
+				<!-- Satuan & Minimum Stock (stack di mobile, side by side di tablet) -->
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
 					<div class="form-control">
 						<label class="label" for="p-unit">
-							<span class="label-text">Satuan</span>
+							<span class="label-text font-medium text-sm sm:text-base">Satuan</span>
 						</label>
-						<select id="p-unit" class="select select-bordered" bind:value={formData.unit}>
+						<select id="p-unit" class="select select-bordered select-xs sm:select-sm" bind:value={formData.unit}>
 							<option value="pcs">pcs</option>
 							<option value="box">box</option>
 							<option value="meter">meter</option>
@@ -637,72 +584,118 @@
 							<option value="unit">unit</option>
 						</select>
 					</div>
-
-					<!-- Minimum Stock -->
 					<div class="form-control">
 						<label class="label" for="p-min">
-							<span class="label-text">Minimum Stok</span>
+							<span class="label-text font-medium text-sm sm:text-base">Min Stok</span>
 						</label>
 						<input
 							id="p-min"
 							type="number"
-							class="input input-bordered"
+							class="input input-bordered input-xs sm:input-sm"
 							bind:value={formData.minimum_stock}
 							min="0"
+							placeholder="0"
 						/>
 					</div>
-
-					<!-- Stok sistem: read-only. Backend mengabaikan field ini saat
-					     simpan; nilai sebenarnya dihitung dari stock opname. -->
-					{#if editingProduct}
-						<div class="form-control">
-							<label class="label" for="p-stock">
-								<span class="label-text">Stok Sistem</span>
-							</label>
-							<input
-								id="p-stock"
-								type="text"
-								class="input input-bordered"
-								value={productStock(editingProduct)}
-								readonly
-								tabindex="-1"
-							/>
-							<label class="label py-0" for="p-stock">
-								<span class="label-text-alt text-base-content/50">
-									Dihitung dari stok opname, tidak bisa diubah di sini
-								</span>
-							</label>
-						</div>
-					{/if}
 				</div>
 
-				<div class="modal-action">
+				<!-- Divider -->
+				<div class="divider my-2"></div>
+
+				<!-- Gudang -->
+				<div class="form-control">
+					<label class="label" for="p-warehouse">
+						<span class="label-text font-medium text-sm sm:text-base">Gudang</span>
+					</label>
+					<select
+						id="p-warehouse"
+						class="select select-bordered select-xs sm:select-sm"
+						bind:value={formWarehouseId}
+						on:change={onWarehouseChange}
+					>
+						<option value="">-- Pilih gudang --</option>
+						{#each warehouses as wh}
+							<option value={wh.id}>{wh.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Lokasi -->
+				<div class="form-control">
+					<label class="label" for="p-location">
+						<span class="label-text font-medium text-sm sm:text-base">Lokasi / Area</span>
+					</label>
+					<select
+						id="p-location"
+						class="select select-bordered select-xs sm:select-sm"
+						bind:value={formLocationId}
+						on:change={onLocationChange}
+						disabled={!formWarehouseId}
+					>
+						<option value="">-- {formWarehouseId ? 'Pilih lokasi' : 'Pilih gudang dulu'} --</option>
+						{#each formLocations as loc}
+							<option value={loc.id}>{loc.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Rak / Box -->
+				<div class="form-control">
+					<label class="label" for="p-box">
+						<span class="label-text font-medium text-sm sm:text-base">Rak / Box</span>
+					</label>
+					<select
+						id="p-box"
+						class="select select-bordered select-xs sm:select-sm"
+						bind:value={formData.box_id}
+						disabled={!formLocationId}
+					>
+						<option value="">-- {formLocationId ? 'Pilih rak' : 'Pilih lokasi dulu'} --</option>
+						{#each formBoxes as box}
+							<option value={box.id}>{box.code}{box.name ? ` — ${box.name}` : ''}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Stok Sistem (read-only) -->
+				{#if editingProduct}
+					<div class="form-control">
+						<label class="label" for="p-stock">
+							<span class="label-text font-medium text-sm sm:text-base">Stok Sistem</span>
+						</label>
+						<input
+							id="p-stock"
+							type="text"
+							class="input input-bordered input-xs sm:input-sm bg-base-300"
+							value={productStock(editingProduct)}
+							readonly
+							tabindex="-1"
+						/>
+						<label class="label py-1" for="p-stock">
+							<span class="label-text-alt text-xs">Otomatis dari stock opname</span>
+						</label>
+					</div>
+				{/if}
+
+				<!-- Action Buttons -->
+				<div class="modal-action mt-6 gap-2">
 					<button
 						type="button"
-						class="btn btn-sm btn-square"
-						title="Batal"
-						aria-label="Batal"
+						class="btn btn-ghost btn-sm"
 						on:click={closeModal}
 						disabled={isSaving}
 					>
-						<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
-						</svg>
+						Batal
 					</button>
 					<button
 						type="submit"
-						class="btn btn-primary btn-sm btn-square"
-						title={editingProduct ? 'Update' : 'Simpan'}
-						aria-label={editingProduct ? 'Update produk' : 'Simpan produk'}
+						class="btn btn-primary btn-sm"
 						disabled={isSaving}
 					>
 						{#if isSaving}
-							<Loader size={18} />
-						{:else}
-							<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-								<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
-							</svg>
+							<span class="loading loading-spinner loading-sm"></span>
 						{/if}
+						{editingProduct ? 'Update' : 'Simpan'}
 					</button>
 				</div>
 			</form>

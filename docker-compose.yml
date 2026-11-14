@@ -78,6 +78,11 @@ services:
       backend:
         condition: service_healthy
     # Tidak ada `ports:`: dashboard hanya diakses nginx.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     deploy:
       resources:
         limits: { cpus: "0.5", memory: 256M }

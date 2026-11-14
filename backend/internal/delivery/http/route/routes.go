@@ -185,6 +185,8 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			warehousesAdmin.Use(middleware.RequireRole("admin"))
 			{
 				warehousesAdmin.POST("", warehouseHandler.CreateWarehouse)
+				warehousesAdmin.PUT("/:id", warehouseHandler.UpdateWarehouse)
+				warehousesAdmin.DELETE("/:id", warehouseHandler.DeleteWarehouse)
 				warehousesAdmin.POST("/:id/locations", warehouseHandler.CreateLocation)
 			}
 		}
@@ -200,6 +202,21 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			locationsAdmin.Use(middleware.RequireRole("admin"))
 			{
 				locationsAdmin.POST("/:id/boxes", warehouseHandler.CreateBox)
+				locationsAdmin.PUT("/:id", warehouseHandler.UpdateLocation)
+				locationsAdmin.DELETE("/:id", warehouseHandler.DeleteLocation)
+			}
+		}
+
+		// Boxes routes (for direct update/delete)
+		boxes := v1.Group("/boxes")
+		boxes.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			// Admin only
+			boxesAdmin := boxes.Group("")
+			boxesAdmin.Use(middleware.RequireRole("admin"))
+			{
+				boxesAdmin.PUT("/:id", warehouseHandler.UpdateBox)
+				boxesAdmin.DELETE("/:id", warehouseHandler.DeleteBox)
 			}
 		}
 
@@ -211,6 +228,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stockOpname.POST("/sessions", stockOpnameHandler.StartSession)
 			stockOpname.GET("/sessions/:id", stockOpnameHandler.GetSession)
 			stockOpname.GET("/sessions/:id/details", stockOpnameHandler.GetSessionDetails)
+			stockOpname.GET("/sessions/:id/summary", stockOpnameHandler.GetSessionSummary)
 			stockOpname.POST("/sessions/:id/scan", stockOpnameHandler.SubmitScan)
 			stockOpname.POST("/sessions/:id/complete", stockOpnameHandler.CompleteSession)
 

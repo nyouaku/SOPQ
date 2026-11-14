@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../providers/scanner_provider.dart';
-import '../widgets/quantity_input_dialog.dart';
+import '../widgets/save_notification.dart';
+import '../widgets/session_completion_dialog.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   final String sessionId;
@@ -19,13 +20,22 @@ class ScannerScreen extends ConsumerStatefulWidget {
 class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   final MobileScannerController _scannerController = MobileScannerController();
   final FlutterTts _tts = FlutterTts();
+  final TextEditingController _quantityController = TextEditingController();
   bool _isProcessing = false;
+  bool _isCameraActive = false;
 
   @override
   void initState() {
     super.initState();
     _initTts();
     ref.read(scannerProvider.notifier).setSessionId(widget.sessionId);
+
+    // Auto-open camera jika ada session
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.sessionId.isNotEmpty) {
+        _openCamera();
+      }
+    });
   }
 
   Future<void> _initTts() async {
@@ -39,6 +49,18 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     await _tts.speak(text);
   }
 
+  Future<void> _openCamera() async {
+    if (_isCameraActive) return;
+    setState(() => _isCameraActive = true);
+    await _scannerController.start();
+  }
+
+  Future<void> _closeCamera() async {
+    if (!_isCameraActive) return;
+    await _scannerController.stop();
+    setState(() => _isCameraActive = false);
+  }
+
   void _onCodeDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
 
@@ -46,33 +68,36 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     if (code == null || code.isEmpty) return;
 
     setState(() => _isProcessing = true);
-
-    // Pause scanner while processing
     await _scannerController.stop();
 
-    // Scan kode produk (QR) via provider
+    // Scan kode produk via provider
     await ref.read(scannerProvider.notifier).scanCode(code);
 
     setState(() => _isProcessing = false);
+    _quantityController.clear();
   }
 
-  void _showQuantityInput(String productName, int stockSystem) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => QuantityInputDialog(
-        productName: productName,
-        stockSystem: stockSystem,
-        onSubmit: (quantity, inputMethod) async {
-          await ref.read(scannerProvider.notifier).submitQuantity(quantity, inputMethod);
-        },
-      ),
-    );
+  Future<void> _submitQuantity() async {
+    final quantity = int.tryParse(_quantityController.text);
+    if (quantity == null || quantity < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan jumlah yang valid'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    await ref.read(scannerProvider.notifier).submitQuantity(quantity, 'manual');
+
+    // Clear dan auto-start next scan (tidak perlu dialog)
+    _quantityController.clear();
+    ref.read(scannerProvider.notifier).clearMessages();
+    await _scannerController.start();
   }
 
   @override
   void dispose() {
     _scannerController.dispose();
+    _quantityController.dispose();
     _tts.stop();
     super.dispose();
   }
@@ -83,46 +108,14 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     final theme = Theme.of(context);
 
     ref.listen<ScannerState>(scannerProvider, (previous, next) async {
-      // Handle scanned product - speak info and show input dialog
+      // Speak product info when scanned
       if (next.scannedProduct != null && previous?.scannedProduct != next.scannedProduct) {
         final product = next.scannedProduct!;
-
-        // Speak product info
-        final announcement =
-            '${product.name}. Stok sistem ${product.stockSystem ?? 0}';
+        final announcement = '${product.name}. Stok sistem ${product.stockSystem ?? 0}';
         await _speak(announcement);
 
-        // Show quantity input dialog
-        _showQuantityInput(product.name, product.stockSystem ?? 0);
-      }
-
-      // Handle success - restart scanner
-      if (next.successMessage != null) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.successMessage!),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
-        // Clear and restart scanner
-        ref.read(scannerProvider.notifier).clearMessages();
-        await _scannerController.start();
-      }
-
-      // Handle error
-      if (next.errorMessage != null) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: theme.colorScheme.error,
-          ),
-        );
-        ref.read(scannerProvider.notifier).clearMessages();
-        await _scannerController.start();
+        // Close camera untuk fokus input
+        await _closeCamera();
       }
     });
 
@@ -187,74 +180,196 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Scanner view
-          MobileScanner(
-            controller: _scannerController,
-            onDetect: _onCodeDetect,
-          ),
-
-          // Scanner overlay
-          CustomPaint(
-            painter: ScannerOverlay(),
-            child: Container(),
-          ),
-
-          // Loading indicator
-          if (scannerState.isLoading || _isProcessing)
+          // ===== TOP: Product Info Card + Quantity Input =====
+          if (scannerState.scannedProduct != null)
             Container(
-              color: Colors.black54,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product info
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      border: Border.all(color: Colors.green, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '✓ Produk Ditemukan',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          scannerState.scannedProduct!.name,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Stok Sistem: ${scannerState.scannedProduct!.stockSystem ?? 0}',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quantity input
+                  Text(
+                    'Jumlah Fisik',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _quantityController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Masukkan jumlah',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Save button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isProcessing ? null : _submitQuantity,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        disabledBackgroundColor: Colors.grey,
+                      ),
+                      child: Text(
+                        _isProcessing ? 'Menyimpan...' : 'Simpan Data',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              color: Colors.blue.withOpacity(0.1),
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Siap Scan',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.blue),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _isCameraActive ? 'Arahkan kamera ke QR Code' : 'Aktifkan kamera untuk mulai',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!_isCameraActive)
+                    ElevatedButton.icon(
+                      onPressed: _openCamera,
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Aktifkan Kamera'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                ],
               ),
             ),
 
-          // Instructions
-          Positioned(
-            bottom: 80,
-            left: 0,
-            right: 0,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(12),
+          // ===== BOTTOM: Camera Preview =====
+          if (_isCameraActive)
+            Expanded(
+              child: Stack(
+                children: [
+                  MobileScanner(
+                    controller: _scannerController,
+                    onDetect: _onCodeDetect,
+                  ),
+
+                  // Overlay dengan scan area
+                  CustomPaint(
+                    painter: ScannerOverlay(),
+                    child: Container(),
+                  ),
+
+                  // Loading indicator
+                  if (scannerState.isLoading || _isProcessing)
+                    Container(
+                      color: Colors.black54,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              child: const Text(
-                'Arahkan kamera ke QR Code produk',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+            )
+          else
+            Expanded(
+              child: Container(
+                color: Colors.grey[200],
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.videocam_off, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Kamera tidak aktif',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
-          ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Toggle flash
-          FloatingActionButton(
-            heroTag: 'flash',
-            onPressed: () => _scannerController.toggleTorch(),
-            child: const Icon(Icons.flash_on),
-          ),
-          const SizedBox(height: 12),
-          // Switch camera
-          FloatingActionButton(
-            heroTag: 'camera',
-            onPressed: () => _scannerController.switchCamera(),
-            child: const Icon(Icons.flip_camera_ios),
-          ),
-        ],
-      ),
+      floatingActionButton: _isCameraActive
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'flash',
+                  onPressed: () => _scannerController.toggleTorch(),
+                  child: const Icon(Icons.flash_on),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton(
+                  heroTag: 'camera',
+                  onPressed: () => _scannerController.switchCamera(),
+                  child: const Icon(Icons.flip_camera_ios),
+                ),
+              ],
+            )
+          : null,
     );
   }
 }
@@ -272,7 +387,6 @@ class ScannerOverlay extends CustomPainter {
       height: 250,
     );
 
-    // Draw overlay with transparent scan area
     canvas.drawPath(
       Path()
         ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -281,7 +395,6 @@ class ScannerOverlay extends CustomPainter {
       paint,
     );
 
-    // Draw scan area border
     final borderPaint = Paint()
       ..color = Colors.green
       ..style = PaintingStyle.stroke
@@ -290,62 +403,6 @@ class ScannerOverlay extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(scanArea, const Radius.circular(12)),
       borderPaint,
-    );
-
-    // Draw corner indicators
-    final cornerPaint = Paint()
-      ..color = Colors.green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6;
-
-    const cornerLength = 30.0;
-
-    // Top-left corner
-    canvas.drawLine(
-      Offset(scanArea.left, scanArea.top),
-      Offset(scanArea.left + cornerLength, scanArea.top),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanArea.left, scanArea.top),
-      Offset(scanArea.left, scanArea.top + cornerLength),
-      cornerPaint,
-    );
-
-    // Top-right corner
-    canvas.drawLine(
-      Offset(scanArea.right, scanArea.top),
-      Offset(scanArea.right - cornerLength, scanArea.top),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanArea.right, scanArea.top),
-      Offset(scanArea.right, scanArea.top + cornerLength),
-      cornerPaint,
-    );
-
-    // Bottom-left corner
-    canvas.drawLine(
-      Offset(scanArea.left, scanArea.bottom),
-      Offset(scanArea.left + cornerLength, scanArea.bottom),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanArea.left, scanArea.bottom),
-      Offset(scanArea.left, scanArea.bottom - cornerLength),
-      cornerPaint,
-    );
-
-    // Bottom-right corner
-    canvas.drawLine(
-      Offset(scanArea.right, scanArea.bottom),
-      Offset(scanArea.right - cornerLength, scanArea.bottom),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(scanArea.right, scanArea.bottom),
-      Offset(scanArea.right, scanArea.bottom - cornerLength),
-      cornerPaint,
     );
   }
 

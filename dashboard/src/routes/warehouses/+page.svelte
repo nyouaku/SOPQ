@@ -28,6 +28,8 @@
 	let isSaving = false;
 	let formError = '';
 	let form = { code: '', name: '', address: '' };
+	let editingId: string | null = null; // untuk edit mode
+	let deleteConfirm: { kind: 'warehouse' | 'location' | 'box'; id: string; name: string } | null = null;
 
 	// Reaktif: user baru terisi setelah checkAuth selesai (penting di mobile).
 	$: isAdmin = $authStore.user?.role?.name === 'admin';
@@ -84,8 +86,49 @@
 
 	function openCreate(kind: 'warehouse' | 'location' | 'box') {
 		modal = kind;
+		editingId = null;
 		formError = '';
 		form = { code: '', name: '', address: '' };
+	}
+
+	function openEdit(kind: 'warehouse' | 'location' | 'box', id: string, item: any) {
+		modal = kind;
+		editingId = id;
+		formError = '';
+		form = { code: item.code, name: item.name, address: item.address || '' };
+	}
+
+	function openDelete(kind: 'warehouse' | 'location' | 'box', id: string, name: string) {
+		deleteConfirm = { kind, id, name };
+	}
+
+	async function confirmDelete() {
+		if (!deleteConfirm) return;
+		const { kind, id } = deleteConfirm;
+		isSaving = true;
+
+		try {
+			let endpoint = `${API_ENDPOINTS.warehouses}/${id}`;
+			if (kind === 'location') endpoint = `${API_ENDPOINTS.warehouseLocations(openWarehouse)}/${id}`;
+			if (kind === 'box') endpoint = `${API_ENDPOINTS.locationBoxes(openLocation)}/${id}`;
+
+			const res = await apiClient.delete(endpoint);
+			if (!res.success) {
+				toastStore.error(res.error?.message || 'Gagal hapus');
+				return;
+			}
+
+			if (kind === 'warehouse') await loadWarehouses();
+			if (kind === 'location') await fetchLocations(openWarehouse);
+			if (kind === 'box') await fetchBoxes(openLocation);
+
+			toastStore.success('Dihapus');
+			deleteConfirm = null;
+		} catch (e: any) {
+			toastStore.error(e.message || 'Gagal hapus');
+		} finally {
+			isSaving = false;
+		}
 	}
 
 	async function submit() {
@@ -105,7 +148,16 @@
 			const body: any = { code: form.code.trim(), name: form.name.trim() };
 			if (modal === 'warehouse') body.address = form.address.trim();
 
-			const res = await apiClient.post(endpoint, body);
+			let res;
+			if (editingId) {
+				// Edit: PUT
+				endpoint = `${endpoint}/${editingId}`;
+				res = await apiClient.put(endpoint, body);
+			} else {
+				// Create: POST
+				res = await apiClient.post(endpoint, body);
+			}
+
 			if (!res.success) {
 				formError = res.error?.message || 'Gagal menyimpan';
 				return;
@@ -117,7 +169,17 @@
 			if (modal === 'box') await fetchBoxes(openLocation);
 
 			toastStore.success(
-				modal === 'warehouse' ? 'Gudang ditambahkan' : modal === 'location' ? 'Lokasi ditambahkan' : 'Box ditambahkan'
+				editingId
+					? modal === 'warehouse'
+						? 'Gudang diperbarui'
+						: modal === 'location'
+						? 'Lokasi diperbarui'
+						: 'Box diperbarui'
+					: modal === 'warehouse'
+					? 'Gudang ditambahkan'
+					: modal === 'location'
+					? 'Lokasi ditambahkan'
+					: 'Box ditambahkan'
 			);
 			modal = null;
 		} catch (e: any) {
@@ -205,6 +267,30 @@
 							{#if wh.is_active === false}
 								<span class="badge badge-ghost badge-sm shrink-0">nonaktif</span>
 							{/if}
+							{#if isAdmin}
+								<div class="flex shrink-0 gap-1">
+									<button
+										class="btn btn-ghost btn-xs btn-square"
+										title="Edit"
+										aria-label="Edit gudang"
+										on:click|stopPropagation={() => openEdit('warehouse', wh.id, wh)}
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z" />
+										</svg>
+									</button>
+									<button
+										class="btn btn-ghost btn-xs btn-square text-error"
+										title="Hapus"
+										aria-label="Hapus gudang"
+										on:click|stopPropagation={() => openDelete('warehouse', wh.id, wh.name)}
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+										</svg>
+									</button>
+								</div>
+							{/if}
 						</button>
 
 						{#if isOpen}
@@ -251,6 +337,30 @@
 													</svg>
 													<span class="metric text-xs text-base-content/50">{loc.code}</span>
 													<span class="truncate">{loc.name}</span>
+													{#if isAdmin}
+														<div class="ml-auto flex shrink-0 gap-1">
+															<button
+																class="btn btn-ghost btn-xs btn-square"
+																title="Edit"
+																aria-label="Edit lokasi"
+																on:click|stopPropagation={() => openEdit('location', loc.id, loc)}
+															>
+																<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+																	<path stroke-linecap="round" stroke-linejoin="round" d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z" />
+																</svg>
+															</button>
+															<button
+																class="btn btn-ghost btn-xs btn-square text-error"
+																title="Hapus"
+																aria-label="Hapus lokasi"
+																on:click|stopPropagation={() => openDelete('location', loc.id, loc.name)}
+															>
+																<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+																	<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+																</svg>
+															</button>
+														</div>
+													{/if}
 												</button>
 
 												{#if locOpen}
@@ -276,11 +386,37 @@
 														{:else if boxes[loc.id].length === 0}
 															<p class="text-xs text-base-content/50">Belum ada rak.</p>
 														{:else}
-															<ul class="flex flex-wrap gap-2">
+															<ul class="space-y-1">
 																{#each boxes[loc.id] as box}
-																	<li class="rounded-lg border border-base-300 px-2 py-1 text-xs">
-																		<span class="metric text-base-content/50">{box.code}</span>
-																		{#if box.name}<span class="ml-1">{box.name}</span>{/if}
+																	<li class="flex items-center justify-between gap-2 rounded-lg border border-base-300 px-2 py-1.5 text-xs">
+																		<span>
+																			<span class="metric text-base-content/50">{box.code}</span>
+																			{#if box.name}<span class="ml-1">{box.name}</span>{/if}
+																		</span>
+																		{#if isAdmin}
+																			<div class="flex shrink-0 gap-1">
+																				<button
+																					class="btn btn-ghost btn-xs btn-square"
+																					title="Edit"
+																					aria-label="Edit box"
+																					on:click={() => openEdit('box', box.id, box)}
+																				>
+																					<svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+																						<path stroke-linecap="round" stroke-linejoin="round" d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z" />
+																					</svg>
+																				</button>
+																				<button
+																					class="btn btn-ghost btn-xs btn-square text-error"
+																					title="Hapus"
+																					aria-label="Hapus box"
+																					on:click={() => openDelete('box', box.id, box.code)}
+																				>
+																					<svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+																						<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+																					</svg>
+																				</button>
+																			</div>
+																		{/if}
 																	</li>
 																{/each}
 															</ul>
@@ -300,12 +436,13 @@
 	</div>
 </LayoutWrapper>
 
-<!-- Modal tambah -->
+<!-- Modal tambah/edit -->
 {#if modal}
 	<div class="modal modal-open" role="dialog" aria-modal="true">
 		<div class="modal-box max-w-md">
 			<h3 class="text-lg font-semibold">
-				{modal === 'warehouse' ? 'Gudang baru' : modal === 'location' ? 'Lokasi baru' : 'Rak / box baru'}
+				{editingId ? 'Edit' : 'Tambah'}
+				{modal === 'warehouse' ? 'Gudang' : modal === 'location' ? 'Lokasi' : 'Rak / Box'}
 			</h3>
 
 			<form class="mt-4 space-y-3" on:submit|preventDefault={submit}>
@@ -358,33 +495,66 @@
 				<div class="modal-action">
 					<button
 						type="button"
-						class="btn btn-sm btn-square"
+						class="btn btn-ghost btn-sm"
 						title="Batal"
 						aria-label="Batal"
 						on:click={() => (modal = null)}
 					>
-						<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
-						</svg>
+						Batal
 					</button>
 					<button
 						type="submit"
-						class="btn btn-primary btn-sm btn-square"
-						title="Simpan"
-						aria-label="Simpan"
+						class="btn btn-primary btn-sm"
+						title={editingId ? 'Update' : 'Simpan'}
+						aria-label={editingId ? 'Update' : 'Simpan'}
 						disabled={isSaving}
 					>
 						{#if isSaving}
-							<Loader size={18} />
-						{:else}
-							<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-								<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
-							</svg>
+							<span class="loading loading-spinner loading-sm"></span>
 						{/if}
+						{editingId ? 'Update' : 'Simpan'}
 					</button>
 				</div>
 			</form>
 		</div>
 	</div>
 	<button class="modal-backdrop" aria-label="Tutup" on:click={() => (modal = null)}></button>
+{/if}
+
+<!-- Delete confirmation dialog -->
+{#if deleteConfirm}
+	<div class="modal modal-open" role="dialog" aria-modal="true">
+		<div class="modal-box max-w-sm">
+			<h3 class="text-lg font-semibold">Hapus?</h3>
+			<p class="mt-3 text-sm">
+				Yakin ingin menghapus <strong>{deleteConfirm.name}</strong>?
+			</p>
+			{#if deleteConfirm.kind === 'warehouse'}
+				<p class="mt-1 text-xs text-base-content/60">Semua lokasi dan rak di gudang ini juga akan dihapus.</p>
+			{:else if deleteConfirm.kind === 'location'}
+				<p class="mt-1 text-xs text-base-content/60">Semua rak di lokasi ini juga akan dihapus.</p>
+			{/if}
+
+			<div class="modal-action mt-6">
+				<button
+					class="btn btn-ghost btn-sm"
+					on:click={() => (deleteConfirm = null)}
+					disabled={isSaving}
+				>
+					Batal
+				</button>
+				<button
+					class="btn btn-error btn-sm"
+					on:click={confirmDelete}
+					disabled={isSaving}
+				>
+					{#if isSaving}
+						<span class="loading loading-spinner loading-sm"></span>
+					{/if}
+					Hapus
+				</button>
+			</div>
+		</div>
+	</div>
+	<button class="modal-backdrop" aria-label="Tutup" on:click={() => (deleteConfirm = null)}></button>
 {/if}
