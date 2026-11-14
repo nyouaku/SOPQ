@@ -9,6 +9,8 @@
 	import { enqueue, flushQueue, hasQueue, listQueue } from '$lib/offline/queue';
 	import { productStock } from '$lib/utils/stock';
 	import { MultiFormatReader, RGBLuminanceSource, HybridBinarizer, BinaryBitmap, NotFoundException } from '@zxing/library';
+	import { soundSettingsStore } from '$lib/stores/soundSettings';
+	import { playSound } from '$lib/stores/soundSettings';
 
 	/** Decode piksel canvas dengan ZXing core (0.21.3 tidak punya decodeFromImageData). Kosong jika tidak ada kode. */
 	function zxingDecode(ctx: CanvasRenderingContext2D, w: number, h: number): string {
@@ -40,6 +42,7 @@
 	let sessions: any[] = [];
 	let selectedSession = '';
 	let pendingScans = 0;
+	let scanSuccessPlayed = false; // prevent multiple sounds per scan
 
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
