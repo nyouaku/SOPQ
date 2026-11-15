@@ -95,6 +95,8 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	reportHandler := handler.NewReportHandler(reportUsecase, notificationUsecase)
 	dashboardHandler := handler.NewDashboardHandler(dashboardUsecase)
 	exportHandler := handler.NewExportHandler(exportUsecase)
+
+	snapshotHandler := handler.NewSnapshotHandler(cfg.DB.DB)
 	importHandler := handler.NewImportHandler(importUsecase)
 	reconciliationHandler := handler.NewReconciliationHandler(stockOpnameUsecase)
 
@@ -252,6 +254,13 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			{
 				reconciliationSupervisor.POST("", reconciliationHandler.ReconcileWarehouses)
 			}
+		}
+
+		// Stock snapshot comparison
+		snapshots := v1.Group("/snapshots")
+		snapshots.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			snapshots.GET("/compare", snapshotHandler.GetSnapshotComparison)
 		}
 
 		// WebSocket for real-time progress (PHASE 4).
