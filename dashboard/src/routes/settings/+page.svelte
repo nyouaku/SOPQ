@@ -237,6 +237,7 @@
 											<button
 												class="btn btn-ghost btn-xs btn-square"
 												title={user.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+												aria-label={user.is_active ? `Nonaktifkan ${user.full_name || user.username}` : `Aktifkan ${user.full_name || user.username}`}
 												on:click={() => toggleUserStatus(user)}
 											>
 												{#if user.is_active}
@@ -252,6 +253,7 @@
 											<button
 												class="btn btn-ghost btn-xs btn-square"
 												title="Reset password"
+												aria-label={`Reset password ${user.full_name || user.username}`}
 												on:click={() => resetPassword(user)}
 											>
 												<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
