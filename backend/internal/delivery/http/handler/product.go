@@ -300,4 +300,67 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 
 	utils.RespondOK(c, response)
 }
+
+// TransferProducts godoc
+// @Summary Transfer products to a different box/rack
+// @Description Move multiple products to a new storage box in one operation
+// @Tags products
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body object true "Transfer request"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/products/transfer [post]
+func (h *ProductHandler) TransferProducts(c *gin.Context) {
+	var req struct {
+		ProductIDs []string `json:"product_ids" validate:"required,min=1"`
+		ToBoxID    string   `json:"to_box_id" validate:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondBadRequest(c, "Invalid request body")
+		return
+	}
+	if err := validator.Validate(req); err != nil {
+		utils.RespondValidationError(c, validator.FormatValidationError(err))
+		return
+	}
+
+	// Ambil user ID dari context (JWT)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+	userUUID, ok := userID.(uuid.UUID)
+	if !ok {
+		utils.RespondUnauthorized(c, "Invalid user ID")
+		return
+	}
+
+	toBoxID, err := uuid.Parse(req.ToBoxID)
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid target box ID")
+		return
+	}
+
+	productIDs := make([]uuid.UUID, 0, len(req.ProductIDs))
+	for _, raw := range req.ProductIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			utils.RespondBadRequest(c, "Invalid product ID: "+raw)
+			return
+		}
+		productIDs = append(productIDs, id)
+	}
+
+	affected, err := h.productUsecase.TransferProducts(c.Request.Context(), productIDs, toBoxID, userUUID)
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, gin.H{
+		"transferred": affected,
+	})
+}
 // ===== END FILE =====

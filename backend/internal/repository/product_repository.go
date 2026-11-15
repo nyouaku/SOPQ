@@ -17,6 +17,9 @@ type ProductRepository interface {
 	Update(ctx context.Context, product *domain.Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, filter ProductFilter) ([]domain.Product, int64, error)
+	// BulkUpdateBoxID memindahkan beberapa produk ke box tujuan sekaligus.
+	// Mengembalikan jumlah baris yang terpengaruh.
+	BulkUpdateBoxID(ctx context.Context, productIDs []uuid.UUID, boxID *uuid.UUID) (int64, error)
 }
 
 type ProductFilter struct {
@@ -134,5 +137,19 @@ func (r *productRepository) List(ctx context.Context, filter ProductFilter) ([]d
 	}
 
 	return products, total, nil
+}
+
+func (r *productRepository) BulkUpdateBoxID(ctx context.Context, productIDs []uuid.UUID, boxID *uuid.UUID) (int64, error) {
+	if len(productIDs) == 0 {
+		return 0, nil
+	}
+	result := r.db.WithContext(ctx).
+		Model(&domain.Product{}).
+		Where("id IN ?", productIDs).
+		Update("box_id", boxID)
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to bulk update box_id: %w", result.Error)
+	}
+	return result.RowsAffected, nil
 }
 // ===== END FILE =====

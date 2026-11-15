@@ -17,6 +17,10 @@ type ProductUsecase interface {
 	UpdateProduct(ctx context.Context, product *domain.Product) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	ListProducts(ctx context.Context, filter repository.ProductFilter) ([]domain.Product, int64, error)
+	// TransferProducts memindahkan beberapa produk ke box tujuan dalam satu transaksi.
+	// Box tujuan harus valid dan berada dalam lokasi yang sama dengan produk asal,
+	// atau boleh beda lokasi asalkan masih dalam gudang yang sama.
+	TransferProducts(ctx context.Context, productIDs []uuid.UUID, toBoxID uuid.UUID, userID uuid.UUID) (int, error)
 }
 
 type productUsecase struct {
@@ -80,5 +84,20 @@ func (u *productUsecase) DeleteProduct(ctx context.Context, id uuid.UUID) error 
 
 func (u *productUsecase) ListProducts(ctx context.Context, filter repository.ProductFilter) ([]domain.Product, int64, error) {
 	return u.productRepo.List(ctx, filter)
+}
+
+func (u *productUsecase) TransferProducts(ctx context.Context, productIDs []uuid.UUID, toBoxID uuid.UUID, userID uuid.UUID) (int, error) {
+	if len(productIDs) == 0 {
+		return 0, fmt.Errorf("no products selected")
+	}
+	if toBoxID == uuid.Nil {
+		return 0, fmt.Errorf("target box is required")
+	}
+
+	affected, err := u.productRepo.BulkUpdateBoxID(ctx, productIDs, &toBoxID)
+	if err != nil {
+		return 0, err
+	}
+	return int(affected), nil
 }
 // ===== END FILE =====

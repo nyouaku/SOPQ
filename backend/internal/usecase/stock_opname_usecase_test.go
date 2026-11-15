@@ -206,6 +206,10 @@ func (m *mockProductRepository) List(ctx context.Context, filter repository.Prod
 	return nil, 0, nil
 }
 
+func (m *mockProductRepository) BulkUpdateBoxID(ctx context.Context, productIDs []uuid.UUID, boxID *uuid.UUID) (int64, error) {
+	return int64(len(productIDs)), nil
+}
+
 type mockActivityLogRepository struct{}
 
 func (m *mockActivityLogRepository) Create(ctx context.Context, log *domain.ActivityLog) error {

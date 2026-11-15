@@ -39,6 +39,9 @@ func (f *fakeProductUsecase) DeleteProduct(context.Context, uuid.UUID) error { r
 func (f *fakeProductUsecase) ListProducts(context.Context, repository.ProductFilter) ([]domain.Product, int64, error) {
 	return nil, 0, nil
 }
+func (f *fakeProductUsecase) TransferProducts(_ context.Context, _ []uuid.UUID, _ uuid.UUID, _ uuid.UUID) (int, error) {
+	return 0, nil
+}
 
 // Regresi: edit produk tanpa mengirim barcode/product_code tidak boleh mengosongkannya
 // (sebelumnya Save() menulis barcode = '' lalu bentrok products_barcode_key).

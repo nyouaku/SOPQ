@@ -144,6 +144,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				productsAdmin.POST("", productHandler.CreateProduct)
 				productsAdmin.PUT("/:id", productHandler.UpdateProduct)
 				productsAdmin.DELETE("/:id", productHandler.DeleteProduct)
+				productsAdmin.POST("/transfer", productHandler.TransferProducts)
 			}
 		}
 
