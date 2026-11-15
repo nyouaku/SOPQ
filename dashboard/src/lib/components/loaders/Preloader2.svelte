@@ -24,9 +24,7 @@
 		z-index: 9999;
 	}
 
-	.container {
-		text-align: center;
-	}
+	.container { text-align: center; }
 
 	.spinner {
 		width: 60px;
@@ -46,22 +44,11 @@
 		animation: dash 1.5s ease-in-out infinite;
 	}
 
-	@keyframes rotate {
-		100% {
-			transform: rotate(360deg);
-		}
-	}
-
+	@keyframes rotate { 100% { transform: rotate(360deg); } }
 	@keyframes dash {
-		0% {
-			stroke-dashoffset: 125.6;
-		}
-		50% {
-			stroke-dashoffset: 31.4;
-		}
-		100% {
-			stroke-dashoffset: 125.6;
-		}
+		0% { stroke-dashoffset: 125.6; }
+		50% { stroke-dashoffset: 31.4; }
+		100% { stroke-dashoffset: 125.6; }
 	}
 
 	.label {
@@ -69,6 +56,5 @@
 		color: #ff6b35;
 		font-weight: 500;
 		margin: 0;
-		letter-spacing: 0.5px;
 	}
 </style>

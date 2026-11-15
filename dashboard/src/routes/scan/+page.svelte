@@ -11,6 +11,7 @@
 	import { MultiFormatReader, RGBLuminanceSource, HybridBinarizer, BinaryBitmap, NotFoundException } from '@zxing/library';
 	import { soundSettingsStore } from '$lib/stores/soundSettings';
 	import { playSound } from '$lib/stores/soundSettings';
+	import SaveNotificationToast from '$lib/components/SaveNotificationToast.svelte';
 
 	/** Decode piksel canvas dengan ZXing core (0.21.3 tidak punya decodeFromImageData). Kosong jika tidak ada kode. */
 	function zxingDecode(ctx: CanvasRenderingContext2D, w: number, h: number): string {
@@ -43,6 +44,7 @@
 	let selectedSession = '';
 	let pendingScans = 0;
 	let scanSuccessPlayed = false; // prevent multiple sounds per scan
+	let showSaveNotification = false;
 
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
@@ -201,6 +203,8 @@
 				scannedCode = code;
 				stopCamera();
 				showMessage('Kode terdeteksi!', 'success');
+				playSound('success');
+				scanSuccessPlayed = true;
 				await handleCodeInput();
 			} finally {
 				scanBusy = false;
@@ -270,6 +274,8 @@
 							if (barcodes.length > 0) {
 								scannedCode = barcodes[0].rawValue;
 								showMessage('Kode terdeteksi!', 'success');
+								playSound('success');
+								scanSuccessPlayed = true;
 								await handleCodeInput();
 								isLoading = false;
 								return;
@@ -285,6 +291,8 @@
 							if (text) {
 								scannedCode = text;
 								showMessage('Kode terdeteksi dengan ZXing!', 'success');
+								playSound('success');
+								scanSuccessPlayed = true;
 								await handleCodeInput();
 								isLoading = false;
 								return;
@@ -361,6 +369,8 @@
 
 			if (response.success) {
 				showMessage('Data berhasil disimpan', 'success');
+				playSound('success');
+				showSaveToast();
 				resetForm();
 			} else {
 				showMessage(response.error?.message || 'Gagal menyimpan data', 'error');
@@ -390,7 +400,10 @@
 	}
 
 	function resetForm() {
+		const wasCameraMode = scanMode === 'camera';
 		resetScanData();
+		// Auto-restart kamera agar siap scan berikutnya tanpa klik apa pun.
+		if (wasCameraMode) startCamera();
 	}
 
 	function showMessage(msg: string, type: 'success' | 'error' | 'info') {
@@ -400,12 +413,22 @@
 			message = '';
 		}, 5000);
 	}
+
+	function showSaveToast() {
+		showSaveNotification = false;
+		setTimeout(() => (showSaveNotification = true), 0);
+		setTimeout(() => (showSaveNotification = false), 2500);
+	}
 </script>
 
 <svelte:head>
 	<title>Scan - Stock Opname</title>
 	<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 </svelte:head>
+
+{#if showSaveNotification}
+	<SaveNotificationToast message="Scan berhasil disimpan" scannedCount={1} totalProducts={0} />
+{/if}
 
 <LayoutWrapper>
 	<div class="page">
@@ -502,8 +525,9 @@
 			</button>
 		</div>
 
-		<!-- Scanner Area -->
-		<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-4">
+		<!-- Scanner Area (hidden when product found, to keep form in front) -->
+		{#if !product}
+			<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-4">
 				{#if scanMode === 'manual'}
 					<!-- Manual Input -->
 					<div class="space-y-3">
@@ -542,10 +566,10 @@
 				{:else if scanMode === 'camera'}
 					<!-- Camera Scanner -->
 					{#if isCameraActive}
-						<div class="relative overflow-hidden rounded-xl bg-black">
+						<div class="relative mx-auto w-full max-w-sm overflow-hidden rounded-xl bg-black">
 							<video
 								bind:this={videoElement}
-								class="max-h-[60vh] w-full object-cover"
+								class="aspect-[3/4] h-auto w-full object-cover"
 								autoplay
 								playsinline
 								muted
@@ -629,6 +653,7 @@
 
 				<canvas bind:this={canvasElement} class="hidden"></canvas>
 		</div>
+		{/if}
 
 		<!-- Message Alert -->
 		{#if message}

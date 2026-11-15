@@ -5,9 +5,11 @@
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 	import SaveNotificationToast from '$lib/components/SaveNotificationToast.svelte';
+	import SessionCompletionDialog from '$lib/components/SessionCompletionDialog.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { WS_BASE_URL } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
+	import { playSound } from '$lib/stores/soundSettings';
 
 	let isLoading = true;
 	let session: any = null;
@@ -21,6 +23,9 @@
 	let showNotification = false;
 	let notificationMessage = 'Data tersimpan';
 	let scannedCount = 0;
+	let showCompletionDialog = false;
+	let summary: any = null;
+	let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 	$: sessionId = $page.params.id;
 	$: totalPages = Math.ceil(total / filter.limit);
@@ -78,12 +83,26 @@
 				details = [data.detail, ...details];
 				total++;
 
-				// Show notification
+				// Show notification toast dengan auto-dismiss
 				scannedCount = total;
-				showNotification = true;
 				notificationMessage = `${data.detail?.product?.name || 'Produk'} disimpan`;
+				playSound('scan');
+				showNotification = true;
+				if (toastTimer) clearTimeout(toastTimer);
+				toastTimer = setTimeout(() => {
+					showNotification = false;
+				}, 2000);
 			} else if (data.type === 'session_update') {
+				const prevStatus = session?.status;
 				session = { ...session, ...data.session };
+				// Auto-show completion dialog ketika session baru selesai
+				if (
+					prevStatus === 'in_progress' &&
+					(data.session.status === 'completed' || data.session.status === 'approved')
+				) {
+					playSound('success');
+					loadSummaryAndShowDialog();
+				}
 			}
 		};
 
@@ -157,6 +176,24 @@
 		}
 	}
 
+	async function loadSummaryAndShowDialog() {
+		try {
+			const response = await apiClient.get(`/stock-opname/sessions/${sessionId}/summary`);
+			if (response.success && response.data) {
+				summary = response.data;
+				showCompletionDialog = true;
+			}
+		} catch (error) {
+			console.error('Failed to load summary:', error);
+		}
+	}
+
+	function handleViewReport() {
+		showCompletionDialog = false;
+		// Redirect ke halaman report dengan filter session ini
+		window.location.href = `/reports?session_id=${sessionId}`;
+	}
+
 	function changePage(newPage: number) {
 		if (newPage < 1 || newPage > totalPages) return;
 		filter.page = newPage;
@@ -167,6 +204,7 @@
 		if (ws) {
 			ws.close();
 		}
+		if (toastTimer) clearTimeout(toastTimer);
 	});
 </script>
 
@@ -179,6 +217,19 @@
 		message={notificationMessage}
 		scannedCount={scannedCount}
 		totalProducts={session?.total_products || 0}
+	/>
+{/if}
+
+{#if showCompletionDialog && summary}
+	<SessionCompletionDialog
+		isOpen={showCompletionDialog}
+		totalScanned={summary.total_scanned}
+		totalProducts={summary.total_products}
+		matched={summary.matched_count}
+		unmatched={summary.unmatched_count}
+		startedAt={new Date(summary.started_at)}
+		onClose={() => (showCompletionDialog = false)}
+		onViewReport={handleViewReport}
 	/>
 {/if}
 

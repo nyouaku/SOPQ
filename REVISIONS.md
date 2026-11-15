@@ -217,6 +217,14 @@
 6. **routes/settings/+page.svelte**
    - Imported SoundSettingsPanel component
 
+7. **routes/scan/+page.svelte** (MODIFIED)
+   - Added sound settings integration
+   - Added scanSuccessPlayed flag to prevent duplicate sounds
+   - Camera area smaller (max-h-[60vh])
+   - "Aktifkan kamera" button only shown when camera not active
+   - Success sound plays after scan detected
+   - Product info + quantity form in clear sections below camera
+
 ### Mobile Changes
 
 1. **features/scanner/screens/scanner_screen.dart** (REDESIGNED)
@@ -286,3 +294,42 @@
 4. **Mobile: Report redirect**
    - Integration with report/history screen
    - Pass sessionId to report page
+
+---
+
+## Session: Dashboard Scan UX & Sound (2026-11-14 05:20 UTC)
+
+### Dashboard Changes (scan/+page.svelte)
+
+1. **Sound Integration** - Play sound on:
+   - ✅ QR code detected (success beep)
+   - ✅ Data successfully saved (success beep)
+
+2. **Camera Behavior**:
+   - ✅ "Aktifkan kamera" button only shows when not active
+   - ✅ Camera stops after QR detected
+   - ✅ Camera max-height: 60vh (smaller, not taking full screen)
+
+3. **Layout Order**:
+   - Session selection (top)
+   - Mode tabs (Manual, Camera, Upload)
+   - Camera/Manual/Upload area (middle)
+   - Product info + Quantity input (bottom)
+
+4. **Add to all pages**: Refresh button in navbar
+   - Products page
+   - Warehouse page  
+   - Scan page
+   - Reports page
+   - Activity page
+
+### Mobile Scanner - Widgets (Already in Session 3)
+- SaveNotification
+- SessionCompletionDialog
+
+### Status: ✅ READY FOR DEPLOYMENT
+
+**Dashboard:**
+- ✅ Sound system working (playSound utility)
+- ✅ Scan UX optimized (camera smaller, form in front)
+- ✅ All pages have refresh button
