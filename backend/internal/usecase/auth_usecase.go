@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/nyouaku/SOPQ/backend/internal/repository"
 	"github.com/nyouaku/SOPQ/backend/pkg/logger"
 	"github.com/nyouaku/SOPQ/backend/pkg/utils"
+	"gorm.io/datatypes"
 )
 
 type AuthUsecase interface {
@@ -23,6 +25,10 @@ type AuthUsecase interface {
 	GetProfile(ctx context.Context, userID uuid.UUID) (*domain.User, error)
 	ListUsers(ctx context.Context) ([]domain.User, error)
 	ListRoles(ctx context.Context) ([]domain.Role, error)
+	// ToggleUserStatus aktif/nonaktifkan user. Return status baru.
+	ToggleUserStatus(ctx context.Context, userID uuid.UUID, isActive bool, adminID uuid.UUID) error
+	// ResetUserPassword mengganti password user. Return password baru yang di-generate.
+	ResetUserPassword(ctx context.Context, userID uuid.UUID, adminID uuid.UUID) (string, error)
 }
 
 type authUsecase struct {
@@ -341,6 +347,71 @@ func (u *authUsecase) ListUsers(ctx context.Context) ([]domain.User, error) {
 
 func (u *authUsecase) ListRoles(ctx context.Context) ([]domain.Role, error) {
 	return u.userRepo.ListRoles(ctx)
+}
+
+func (u *authUsecase) ToggleUserStatus(ctx context.Context, userID uuid.UUID, isActive bool, adminID uuid.UUID) error {
+	if userID == adminID {
+		return fmt.Errorf("tidak bisa menonaktifkan akun sendiri")
+	}
+	user, err := u.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("user tidak ditemukan")
+	}
+	user.IsActive = isActive
+	if err := u.userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
+		UserID:     &adminID,
+		Action:     "update_user_status",
+		EntityType: "user",
+		EntityID:   &userID,
+		NewValue:   datatypes.JSON(fmt.Sprintf(`{"is_active":%v}`, isActive)),
+	})
+	return nil
+}
+
+func (u *authUsecase) ResetUserPassword(ctx context.Context, userID uuid.UUID, adminID uuid.UUID) (string, error) {
+	user, err := u.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	if user == nil {
+		return "", fmt.Errorf("user tidak ditemukan")
+	}
+	// Generate password acak 12 karakter alfanumerik
+	newPassword := generateRandomPassword(12)
+	hashed, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash password: %w", err)
+	}
+	user.PasswordHash = hashed
+	if err := u.userRepo.Update(ctx, user); err != nil {
+		return "", err
+	}
+	// Revoke semua refresh token user agar sesi lama invalid
+	_ = u.sessionRepo.RevokeByUserID(ctx, userID)
+	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
+		UserID:     &adminID,
+		Action:     "reset_user_password",
+		EntityType: "user",
+		EntityID:   &userID,
+	})
+	return newPassword, nil
+}
+
+// generateRandomPassword menghasilkan password acak sepanjang n karakter.
+func generateRandomPassword(n int) string {
+	const charset = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	buf := make([]byte, n)
+	_, _ = rand.Read(buf)
+	for i, b := range buf {
+		buf[i] = charset[int(b)%len(charset)]
+	}
+	return string(buf)
 }
 
 // ===== END FILE =====

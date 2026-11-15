@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/nyouaku/SOPQ/backend/internal/domain"
 	"github.com/nyouaku/SOPQ/backend/internal/middleware"
 	"github.com/nyouaku/SOPQ/backend/internal/usecase"
@@ -260,6 +261,75 @@ func (h *AuthHandler) ListRoles(c *gin.Context) {
 		return
 	}
 	utils.RespondOK(c, gin.H{"roles": roles})
+}
+
+// ToggleUserStatus godoc
+// @Summary Toggle user active status
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Param body body object true "Status"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/auth/users/{id}/toggle-status [patch]
+func (h *AuthHandler) ToggleUserStatus(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid user ID")
+		return
+	}
+
+	var req struct {
+		IsActive bool `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondBadRequest(c, "Invalid request body")
+		return
+	}
+
+	adminUUID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+
+	if err := h.authUsecase.ToggleUserStatus(c.Request.Context(), userID, req.IsActive, adminUUID); err != nil {
+		utils.RespondBadRequest(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, gin.H{"is_active": req.IsActive})
+}
+
+// ResetUserPassword godoc
+// @Summary Reset user password
+// @Description Generates a random password for the user, revokes all sessions
+// @Tags auth
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/auth/users/{id}/reset-password [post]
+func (h *AuthHandler) ResetUserPassword(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid user ID")
+		return
+	}
+
+	adminUUID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+
+	newPassword, err := h.authUsecase.ResetUserPassword(c.Request.Context(), userID, adminUUID)
+	if err != nil {
+		utils.RespondBadRequest(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, gin.H{"new_password": newPassword})
 }
 
 // ===== END FILE =====

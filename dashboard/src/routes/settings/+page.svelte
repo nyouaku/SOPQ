@@ -97,6 +97,49 @@
 			isSavingStaff = false;
 		}
 	}
+
+	async function toggleUserStatus(user: any) {
+		const action = user.is_active ? 'menonaktifkan' : 'mengaktifkan';
+		if (!confirm(`Yakin ingin ${action} user ${user.full_name || user.username}?`)) return;
+		try {
+			const res = await apiClient.patch(`${API_ENDPOINTS.users}/${user.id}/toggle-status`, {
+				is_active: !user.is_active
+			});
+			if (res.success) {
+				toastStore.success(`User berhasil ${user.is_active ? 'dinonaktifkan' : 'diaktifkan'}`);
+				await loadStaff();
+			} else {
+				toastStore.error(res.error?.message || 'Gagal mengubah status');
+			}
+		} catch (e: any) {
+			toastStore.error(e.message || 'Gagal mengubah status');
+		}
+	}
+
+	async function resetPassword(user: any) {
+		if (!confirm(`Yakin ingin reset password ${user.full_name || user.username}? Semua sesi aktif akan dicabut.`)) return;
+		try {
+			const res = await apiClient.post(`${API_ENDPOINTS.users}/${user.id}/reset-password`, {});
+			if (res.success && res.data?.new_password) {
+				// Tampilkan password baru
+				const newPassword = res.data.new_password;
+				showResetPasswordModal(newPassword);
+				await loadStaff();
+			} else {
+				toastStore.error(res.error?.message || 'Gagal reset password');
+			}
+		} catch (e: any) {
+			toastStore.error(e.message || 'Gagal reset password');
+		}
+	}
+
+	let newPasswordDisplay = '';
+	let showNewPassword = false;
+
+	function showResetPasswordModal(password: string) {
+		newPasswordDisplay = password;
+		showNewPassword = true;
+	}
 </script>
 
 <svelte:head>
@@ -185,6 +228,37 @@
 										<span class="badge badge-ghost badge-sm capitalize">
 											{user.role?.name || '-'}
 										</span>
+										<!-- Status badge -->
+										<span class="badge badge-sm {user.is_active ? 'badge-success' : 'badge-error'}">
+											{user.is_active ? 'Aktif' : 'Nonaktif'}
+										</span>
+										<!-- Actions -->
+										<div class="flex shrink-0 gap-1">
+											<button
+												class="btn btn-ghost btn-xs btn-square"
+												title={user.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+												on:click={() => toggleUserStatus(user)}
+											>
+												{#if user.is_active}
+													<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" />
+													</svg>
+												{:else}
+													<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+													</svg>
+												{/if}
+											</button>
+											<button
+												class="btn btn-ghost btn-xs btn-square"
+												title="Reset password"
+												on:click={() => resetPassword(user)}
+											>
+												<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+												</svg>
+											</button>
+										</div>
 									</li>
 								{/each}
 							</ul>
@@ -336,4 +410,32 @@
 		</div>
 	</div>
 	<button class="modal-backdrop" aria-label="Tutup tambah staff" on:click={() => (showAddStaff = false)}></button>
+{/if}
+
+<!-- Modal tampilkan password baru -->
+{#if showNewPassword}
+	<div class="modal modal-open">
+		<div class="modal-box max-w-md">
+			<h3 class="text-lg font-bold">Password Baru</h3>
+			<p class="mt-2 text-sm text-base-content/70">
+				Simpan password ini. Sesi lama user sudah dicabut, user harus login ulang dengan password ini.
+			</p>
+			<div class="mt-4 rounded-xl border-2 border-dashed border-primary bg-primary/5 p-4 text-center">
+				<p class="metric text-2xl font-bold tracking-wider select-all">{newPasswordDisplay}</p>
+			</div>
+			<div class="modal-action">
+				<button
+					class="btn btn-primary"
+					on:click={() => {
+						navigator.clipboard.writeText(newPasswordDisplay);
+						toastStore.success('Password disalin ke clipboard');
+					}}
+				>
+					Salin
+				</button>
+				<button class="btn btn-ghost" on:click={() => (showNewPassword = false)}>Tutup</button>
+			</div>
+		</div>
+	</div>
+	<button class="modal-backdrop" aria-label="Tutup" on:click={() => (showNewPassword = false)}></button>
 {/if}

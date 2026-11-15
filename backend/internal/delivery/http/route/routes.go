@@ -127,6 +127,8 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				authAdmin.POST("/register", authHandler.Register)
 				authAdmin.GET("/users", authHandler.ListUsers)
 				authAdmin.GET("/roles", authHandler.ListRoles)
+				authAdmin.PATCH("/users/:id/toggle-status", authHandler.ToggleUserStatus)
+				authAdmin.POST("/users/:id/reset-password", authHandler.ResetUserPassword)
 			}
 		}
 
