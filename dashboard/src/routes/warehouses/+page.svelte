@@ -269,6 +269,16 @@
 							{/if}
 							{#if isAdmin}
 								<div class="flex shrink-0 gap-1">
+									<a
+										href="/warehouses/{wh.id}/layout"
+										class="btn btn-ghost btn-xs btn-square"
+										title="Layout Editor"
+										aria-label="Edit layout gudang"
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+										</svg>
+									</a>
 									<button
 										class="btn btn-ghost btn-xs btn-square"
 										title="Edit"

@@ -5,16 +5,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 )
 
 type Warehouse struct {
-	ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	Code      string    `json:"code" gorm:"uniqueIndex;not null"`
-	Name      string    `json:"name" gorm:"not null"`
-	Address   string    `json:"address"`
-	IsActive  bool      `json:"is_active" gorm:"default:true"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	Code       string         `json:"code" gorm:"uniqueIndex;not null"`
+	Name       string         `json:"name" gorm:"not null"`
+	Address    string         `json:"address"`
+	IsActive   bool           `json:"is_active" gorm:"default:true"`
+	LayoutJSON datatypes.JSON `json:"layout_json,omitempty" gorm:"type:jsonb"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 func (Warehouse) TableName() string {

@@ -184,6 +184,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		{
 			warehouses.GET("", warehouseHandler.ListWarehouses)
 			warehouses.GET("/:id/locations", warehouseHandler.GetLocations)
+			warehouses.GET("/:id/layout", warehouseHandler.GetLayout(cfg.DB.DB))
 
 			// Admin only
 			warehousesAdmin := warehouses.Group("")
@@ -193,6 +194,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				warehousesAdmin.PUT("/:id", warehouseHandler.UpdateWarehouse)
 				warehousesAdmin.DELETE("/:id", warehouseHandler.DeleteWarehouse)
 				warehousesAdmin.POST("/:id/locations", warehouseHandler.CreateLocation)
+				warehousesAdmin.PUT("/:id/layout", warehouseHandler.UpdateLayout(cfg.DB.DB))
 			}
 		}
 
