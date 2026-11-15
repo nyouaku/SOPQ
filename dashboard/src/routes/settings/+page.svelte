@@ -133,6 +133,17 @@
 				</div>
 			</section>
 
+			<!-- Suara & Notifikasi -->
+			<section class="rounded-2xl border border-base-300 bg-base-200">
+				<header class="border-b border-base-300 px-4 py-3 md:px-5">
+					<h2 class="font-semibold">Suara & Notifikasi</h2>
+					<p class="text-xs text-base-content/60">Atur efek suara scan, simpan, error</p>
+				</header>
+				<div class="p-4 md:p-5">
+					<SoundSettingsPanel />
+				</div>
+			</section>
+
 			<!-- Staff (admin only) -->
 			{#if isAdmin}
 				<section class="rounded-2xl border border-base-300 bg-base-200">
