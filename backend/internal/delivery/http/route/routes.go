@@ -134,6 +134,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			products.GET("", productHandler.ListProducts)
 			products.GET("/code/:code", productHandler.GetProductByCode) // Kritikal untuk scan (QR = product_code)
 			products.GET("/:id", productHandler.GetProduct)
+			products.GET("/:id/stock-history", stockOpnameHandler.GetProductTrend)
 
 			// Admin only
 			productsAdmin := products.Group("")

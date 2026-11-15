@@ -71,4 +71,13 @@ type SessionSummary struct {
 	DurationSeconds int64     `json:"duration_seconds"`
 }
 
+// ProductStockTrend — satu titik riwayat stok fisik produk dari hasil opname.
+type ProductStockTrend struct {
+	ScannedAt     time.Time `json:"scanned_at"`
+	StockSystem   int       `json:"stock_system"`
+	StockPhysical int       `json:"stock_physical"`
+	Difference    int       `json:"difference"`
+	SessionCode   string    `json:"session_code"`
+}
+
 // ===== END FILE =====

@@ -128,6 +128,10 @@ func (m *mockStockOpnameDetailRepository) CountByStockOpnameID(ctx context.Conte
 	return n, nil
 }
 
+func (m *mockStockOpnameDetailRepository) FindProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error) {
+	return nil, nil
+}
+
 type mockStockRepository struct {
 	stocks map[uuid.UUID]*domain.Stock
 }

@@ -22,6 +22,9 @@ type StockOpnameUsecase interface {
 	GetSessionDetails(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
 	GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error)
 	ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error)
+	// GetProductTrend mengembalikan riwayat stok fisik satu produk untuk grafik tren.
+	// from/to opsional (nil = tanpa batas awal/akhir). limit default 100, max 500.
+	GetProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error)
 }
 
 // ScanBroadcaster menerima update real-time. Dideklarasikan di sini (bukan
@@ -372,6 +375,10 @@ func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uu
 
 func (u *stockOpnameUsecase) ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error) {
 	return u.stockOpnameRepo.List(ctx, filter)
+}
+
+func (u *stockOpnameUsecase) GetProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error) {
+	return u.stockOpnameDetailRepo.FindProductTrend(ctx, productID, from, to, limit)
 }
 
 // ===== END FILE =====

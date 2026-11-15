@@ -203,6 +203,9 @@ type StockOpnameDetailRepository interface {
 	FindByIdempotencyKey(ctx context.Context, sessionID uuid.UUID, key string) (*domain.StockOpnameDetail, error)
 	FindByStockOpnameID(ctx context.Context, stockOpnameID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
 	CountByStockOpnameID(ctx context.Context, stockOpnameID uuid.UUID) (int64, error)
+	// FindProductTrend mengembalikan riwayat stok fisik satu produk di seluruh
+	// sesi (dalam rentang waktu opsional). Dipakai untuk grafik tren stok.
+	FindProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error)
 }
 
 type stockOpnameDetailRepository struct {
@@ -375,6 +378,30 @@ func (r *stockRepository) CreateOrUpdate(ctx context.Context, stock *domain.Stoc
 	stock.ID = existing.ID
 	stock.Version = existing.Version
 	return r.UpdateWithOptimisticLock(ctx, stock)
+}
+
+func (r *stockOpnameDetailRepository) FindProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	q := r.db.WithContext(ctx).
+		Table("stock_opname_detail AS d").
+		Select(`d.scanned_at, d.stock_system, d.stock_physical, d.difference, so.code AS session_code`).
+		Joins("JOIN stock_opname so ON so.id = d.stock_opname_id").
+		Where("d.product_id = ?", productID).
+		Order("d.scanned_at ASC").
+		Limit(limit)
+	if from != nil {
+		q = q.Where("d.scanned_at >= ?", *from)
+	}
+	if to != nil {
+		q = q.Where("d.scanned_at <= ?", *to)
+	}
+	var rows []domain.ProductStockTrend
+	if err := q.Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch product trend: %w", err)
+	}
+	return rows, nil
 }
 
 // ===== END FILE =====

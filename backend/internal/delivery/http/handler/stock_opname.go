@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -356,6 +357,57 @@ func (h *StockOpnameHandler) ListSessions(c *gin.Context) {
 		"page":     page,
 		"limit":    limit,
 	})
+}
+
+// GetProductTrend godoc
+// @Summary Get historical stock trend for product
+// @Description Returns stock opname history for product, used by trend charts
+// @Tags products
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Product ID"
+// @Param from query string false "Start date (RFC3339)"
+// @Param to query string false "End date (RFC3339)"
+// @Param limit query int false "Max data points (max 500)" default(100)
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/products/{id}/stock-history [get]
+func (h *StockOpnameHandler) GetProductTrend(c *gin.Context) {
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid product ID")
+		return
+	}
+
+	var from, to *time.Time
+	if raw := c.Query("from"); raw != "" {
+		parsed, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			utils.RespondBadRequest(c, "Invalid from date; use RFC3339")
+			return
+		}
+		from = &parsed
+	}
+	if raw := c.Query("to"); raw != "" {
+		parsed, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			utils.RespondBadRequest(c, "Invalid to date; use RFC3339")
+			return
+		}
+		to = &parsed
+	}
+	if from != nil && to != nil && from.After(*to) {
+		utils.RespondBadRequest(c, "from date must be before to date")
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	trend, err := h.stockOpnameUsecase.GetProductTrend(c.Request.Context(), productID, from, to, limit)
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, gin.H{"product_id": productID, "trend": trend})
 }
 
 // ===== END FILE =====
