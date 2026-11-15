@@ -36,4 +36,14 @@ type WarehouseReconciliation struct {
 	MissingFrom     []string  `json:"missing_from"` // nama gudang di mana produk tidak ada
 }
 
+// StockAdjustmentReason — kategori alasan penyesuaian stok.
+const (
+	AdjustReasonDamaged   = "damaged"    // rusak
+	AdjustReasonLost      = "lost"       // hilang
+	AdjustReasonExpired   = "expired"    // kedaluwarsa
+	AdjustReasonFound     = "found"      // stok tambahan ditemukan
+	AdjustReasonTypoFix   = "typo_fix"   // koreksi salah input sistem
+	AdjustReasonOther     = "other"      // lainnya (wajib isi note)
+)
+
 // ===== END FILE =====

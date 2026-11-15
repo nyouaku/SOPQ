@@ -316,6 +316,9 @@ type StockRepository interface {
 	// ReconcileWarehouses menghitung rekap stok setiap produk di seluruh gudang
 	// yang dipilih. Hanya mengembalikan produk yang setidaknya ada di 1 gudang.
 	ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error)
+	// AdjustStock mengubah quantity_system dan mengembalikan nilai sebelum & sesudah.
+	// Menggunakan optimistic locking untuk keamanan.
+	AdjustStock(ctx context.Context, productID, warehouseID uuid.UUID, delta int, version int) (oldVal, newVal int, err error)
 }
 
 type stockRepository struct {
@@ -405,6 +408,31 @@ func (r *stockOpnameDetailRepository) FindProductTrend(ctx context.Context, prod
 		return nil, fmt.Errorf("failed to fetch product trend: %w", err)
 	}
 	return rows, nil
+}
+
+// AdjustStock mengubah quantity_system dengan delta (bisa negatif) menggunakan
+// optimistic locking. Mengembalikan nilai sebelum & sesudah untuk audit log.
+func (r *stockRepository) AdjustStock(ctx context.Context, productID, warehouseID uuid.UUID, delta int, version int) (oldVal, newVal int, err error) {
+	stock, err := r.FindByProductAndWarehouse(ctx, productID, warehouseID)
+	if err != nil {
+		return 0, 0, err
+	}
+	if stock == nil {
+		return 0, 0, fmt.Errorf("stock not found for product in this warehouse")
+	}
+
+	oldVal = stock.QuantitySystem
+	newVal = oldVal + delta
+	if newVal < 0 {
+		return 0, 0, fmt.Errorf("adjustment would make stock negative (current %d, delta %d)", oldVal, delta)
+	}
+
+	stock.QuantitySystem = newVal
+	stock.Version = version
+	if err := r.UpdateWithOptimisticLock(ctx, stock); err != nil {
+		return 0, 0, err
+	}
+	return oldVal, newVal, nil
 }
 
 // ReconcileWarehouses menghitung rekap stok per produk di seluruh gudang yang

@@ -27,6 +27,19 @@ type StockOpnameUsecase interface {
 	GetProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error)
 	// ReconcileWarehouses merekap stok produk di seluruh gudang yang dipilih.
 	ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error)
+	// AdjustStock menyesuaikan stok sistem secara manual dengan alasan wajib.
+	AdjustStock(ctx context.Context, input AdjustStockInput) (*domain.Stock, error)
+}
+
+// AdjustStockInput untuk penyesuaian stok manual.
+type AdjustStockInput struct {
+	ProductID   uuid.UUID
+	WarehouseID uuid.UUID
+	Delta       int    // bisa negatif atau positif
+	Reason      string // damaged, lost, expired, found, typo_fix, other
+	Note        string // wajib jika reason = other
+	UserID      uuid.UUID
+	IPAddress   string
 }
 
 // ScanBroadcaster menerima update real-time. Dideklarasikan di sini (bukan
@@ -385,6 +398,58 @@ func (u *stockOpnameUsecase) GetProductTrend(ctx context.Context, productID uuid
 
 func (u *stockOpnameUsecase) ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error) {
 	return u.stockRepo.ReconcileWarehouses(ctx, warehouseIDs)
+}
+
+func (u *stockOpnameUsecase) AdjustStock(ctx context.Context, input AdjustStockInput) (*domain.Stock, error) {
+	// Validasi alasan
+	validReasons := map[string]bool{
+		domain.AdjustReasonDamaged: true,
+		domain.AdjustReasonLost:    true,
+		domain.AdjustReasonExpired: true,
+		domain.AdjustReasonFound:   true,
+		domain.AdjustReasonTypoFix: true,
+		domain.AdjustReasonOther:   true,
+	}
+	if !validReasons[input.Reason] {
+		return nil, fmt.Errorf("alasan tidak valid: %s", input.Reason)
+	}
+	if input.Reason == domain.AdjustReasonOther && input.Note == "" {
+		return nil, fmt.Errorf("catatan wajib diisi jika alasan 'other'")
+	}
+	if input.Delta == 0 {
+		return nil, fmt.Errorf("delta tidak boleh nol")
+	}
+
+	stock, err := u.stockRepo.FindByProductAndWarehouse(ctx, input.ProductID, input.WarehouseID)
+	if err != nil {
+		return nil, err
+	}
+	if stock == nil {
+		return nil, fmt.Errorf("stok tidak ditemukan untuk produk di gudang ini")
+	}
+
+	oldVal, newVal, err := u.stockRepo.AdjustStock(ctx, input.ProductID, input.WarehouseID, input.Delta, stock.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	// Activity log untuk audit trail
+	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
+		UserID:     &input.UserID,
+		Action:     "stock_adjustment",
+		EntityType: "stock",
+		EntityID:   &stock.ID,
+		OldValue:   datatypes.JSON(fmt.Sprintf(`{"quantity_system":%d}`, oldVal)),
+		NewValue:   datatypes.JSON(fmt.Sprintf(`{"quantity_system":%d,"delta":%d,"reason":"%s","note":"%s"}`, newVal, input.Delta, input.Reason, input.Note)),
+		IPAddress:  input.IPAddress,
+	})
+
+	// Refresh stok dari DB
+	updated, err := u.stockRepo.FindByProductAndWarehouse(ctx, input.ProductID, input.WarehouseID)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 // ===== END FILE =====

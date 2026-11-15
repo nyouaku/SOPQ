@@ -171,6 +171,10 @@ func (m *mockStockRepository) ReconcileWarehouses(ctx context.Context, warehouse
 	return nil, nil
 }
 
+func (m *mockStockRepository) AdjustStock(ctx context.Context, productID, warehouseID uuid.UUID, delta int, version int) (oldVal, newVal int, err error) {
+	return 0, 0, nil
+}
+
 type mockProductRepository struct {
 	products map[string]*domain.Product // key: barcode
 }
