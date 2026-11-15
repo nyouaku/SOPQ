@@ -29,6 +29,7 @@ type StockOpnameUsecase interface {
 type ScanBroadcaster interface {
 	BroadcastNewScan(sessionID uuid.UUID, detail *domain.StockOpnameDetail)
 	BroadcastSessionUpdate(sessionID uuid.UUID, session *domain.StockOpname)
+	BroadcastDiscrepancyAlert(sessionID uuid.UUID, productName string, difference int, percent float64)
 }
 
 type stockOpnameUsecase struct {
@@ -225,6 +226,28 @@ func (u *stockOpnameUsecase) SubmitScan(ctx context.Context, input SubmitScanInp
 
 	if u.broadcaster != nil {
 		u.broadcaster.BroadcastNewScan(input.SessionID, created)
+
+		// Real-time discrepancy alert: selisih > 10% dari stok sistem.
+		// Threshold konsisten dengan DIFF_WARNING_THRESHOLD_PERCENT di .env.
+		productName := product.Name
+		if created.Product != nil {
+			productName = created.Product.Name
+		}
+
+		if stockSystem > 0 {
+			diff := input.StockPhysical - stockSystem
+			absDiff := diff
+			if absDiff < 0 {
+				absDiff = -absDiff
+			}
+			percent := float64(absDiff) / float64(stockSystem) * 100.0
+			if percent > 10.0 {
+				u.broadcaster.BroadcastDiscrepancyAlert(input.SessionID, productName, diff, percent)
+			}
+		} else if input.StockPhysical > 10 {
+			// Stok sistem 0 tapi fisik banyak — produk "misterius".
+			u.broadcaster.BroadcastDiscrepancyAlert(input.SessionID, productName, input.StockPhysical, 100.0)
+		}
 	}
 
 	return created, nil

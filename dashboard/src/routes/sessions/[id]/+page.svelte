@@ -92,6 +92,14 @@
 				toastTimer = setTimeout(() => {
 					showNotification = false;
 				}, 2000);
+			} else if (data.type === 'discrepancy_alert') {
+				// Alert selisih besar — toast merah, auto-dismiss 4 detik
+				notificationMessage = `⚠️ ${data.product}: selisih ${data.difference} (${data.percent.toFixed(0)}%)`;
+				showNotification = true;
+				if (toastTimer) clearTimeout(toastTimer);
+				toastTimer = setTimeout(() => {
+					showNotification = false;
+				}, 4000);
 			} else if (data.type === 'session_update') {
 				const prevStatus = session?.status;
 				session = { ...session, ...data.session };

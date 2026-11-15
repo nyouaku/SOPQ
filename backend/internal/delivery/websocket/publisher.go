@@ -28,3 +28,24 @@ func (p *Publisher) BroadcastSessionUpdate(sessionID uuid.UUID, session *domain.
 	}
 	BroadcastSessionUpdate(sessionID, body)
 }
+
+// BroadcastDiscrepancyAlert mengirim peringatan selisih besar ke klien yang
+// berlangganan sesi. Payload: {"type":"discrepancy_alert","product":"...","difference":N,"percent":F}
+func (p *Publisher) BroadcastDiscrepancyAlert(
+	sessionID uuid.UUID,
+	productName string,
+	difference int,
+	percent float64,
+) {
+	payload := map[string]any{
+		"type":      "discrepancy_alert",
+		"product":   productName,
+		"difference": difference,
+		"percent":   percent,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	BroadcastProgress(sessionID, body)
+}
