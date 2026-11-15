@@ -5,6 +5,7 @@
 	import { replaceState } from '$app/navigation';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { stockOpnameReportQuery, warehousesQuery, suppliersQuery } from '$lib/api/queries';
 	import { API_ENDPOINTS } from '$lib/api/config';
@@ -293,7 +294,7 @@
 		<!-- Hasil -->
 		<section class="overflow-hidden rounded-2xl border border-base-300 bg-base-200">
 			{#if $report.isLoading}
-				<div class="flex justify-center py-16"><Loader size={48} /></div>
+				<TableSkeleton rows={6} columns={6} />
 			{:else if $report.isError}
 				<div class="p-6 text-center">
 					<p class="text-sm text-error">{$report.error?.message || 'Gagal memuat laporan'}</p>

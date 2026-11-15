@@ -6,6 +6,7 @@
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import ProductQr from '$lib/components/ProductQr.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { productStock } from '$lib/utils/stock';
 
@@ -411,9 +412,7 @@
 		<div class="card bg-base-200 shadow-xl">
 			<div class="card-body">
 				{#if isLoading}
-					<div class="flex justify-center items-center h-64">
-						<Loader size={48} />
-					</div>
+					<TableSkeleton rows={8} columns={6} />
 				{:else}
 					<div class="overflow-x-auto">
 						<table class="table">

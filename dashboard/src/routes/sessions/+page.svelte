@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
 	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib/api/client';
 
@@ -174,9 +175,7 @@
 
 		<!-- Sessions Table -->
 		{#if isLoading}
-			<div class="flex justify-center items-center h-64">
-				<Loader size={48} />
-			</div>
+			<TableSkeleton rows={6} columns={7} />
 		{:else if sessions.length === 0}
 			<div class="card bg-base-200 shadow-xl">
 				<div class="card-body items-center text-center">

@@ -2,6 +2,7 @@
 	import { writable } from 'svelte/store';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import ListSkeleton from '$lib/components/skeletons/ListSkeleton.svelte';
 	import { activityLogsQuery } from '$lib/api/queries';
 
 	let action = '';
@@ -128,7 +129,7 @@
 		<!-- Daftar -->
 		<section class="overflow-hidden rounded-2xl border border-base-300 bg-base-200">
 			{#if $query.isLoading}
-				<div class="flex justify-center py-16"><Loader size={40} /></div>
+				<ListSkeleton count={6} />
 			{:else if $query.isError}
 				<div class="p-6 text-center">
 					<p class="text-sm text-error">{$query.error?.message || 'Gagal memuat log'}</p>

@@ -5,6 +5,7 @@
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import ListSkeleton from '$lib/components/skeletons/ListSkeleton.svelte';
 	import { toastStore } from '$lib/stores/toast';
 
 	// Tiga tingkat: gudang -> lokasi/area -> box/rak.
@@ -218,9 +219,7 @@
 		</div>
 
 		{#if isLoading}
-			<div class="flex h-48 items-center justify-center">
-				<Loader size={48} />
-			</div>
+			<ListSkeleton count={4} />
 		{:else if loadError}
 			<div class="rounded-2xl border border-error/40 bg-error/10 p-4 text-sm text-error">
 				{loadError}
