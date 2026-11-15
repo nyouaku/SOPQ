@@ -456,6 +456,16 @@
 											<td class="metric">{productStock(product)}</td>
 											<td>
 												<div class="flex justify-end gap-1">
+													<a
+														href="/products/{product.id}"
+														class="btn btn-ghost btn-sm btn-square"
+														title="Riwayat stok & grafik"
+														aria-label="Riwayat stok produk"
+													>
+														<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+															<path stroke-linecap="round" stroke-linejoin="round" d="M3 13h2v5H3zM8 8h2v10H8zM13 4h2v14h-2zM18 10h2v8h-2z" />
+														</svg>
+													</a>
 													<button
 														class="btn btn-ghost btn-sm btn-square"
 														title="Detail"
