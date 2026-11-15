@@ -3,18 +3,43 @@ import { browser } from '$app/environment';
 
 export type ThemeLayout = 'sidebar' | 'topnav' | 'command' | 'bottom';
 export type ThemeColor = 'rack-room' | 'noc-console' | 'daylight-ops' | 'saweria' | 'modern-list';
+export type ThemeMode = 'manual' | 'auto';
 
 export interface Theme {
 	layout: ThemeLayout;
 	color: ThemeColor;
+	mode: ThemeMode;
+	// Untuk auto mode: warna saat siang & malam
+	dayColor?: ThemeColor;
+	nightColor?: ThemeColor;
+	// Jam mulai malam (0-23), default 18
+	nightStartHour?: number;
+	// Jam mulai siang (0-23), default 6
+	dayStartHour?: number;
 }
 
 const THEME_KEY = 'stock-opname-theme';
 
 const defaultTheme: Theme = {
 	layout: 'command',
-	color: 'saweria'
+	color: 'saweria',
+	mode: 'manual',
+	nightStartHour: 18,
+	dayStartHour: 6
 };
+
+function getHourBasedColor(theme: Theme): ThemeColor {
+	const hour = new Date().getHours();
+	const nightStart = theme.nightStartHour ?? 18;
+	const dayStart = theme.dayStartHour ?? 6;
+
+	// Jika nightStart > dayStart (misal 18 > 6), malam = hour >= nightStart || hour < dayStart
+	if (nightStart > dayStart) {
+		return hour >= nightStart || hour < dayStart ? (theme.nightColor ?? 'rack-room') : (theme.dayColor ?? 'daylight-ops');
+	}
+	// Kasus edge: nightStart < dayStart (misal 0 > 12 tidak masuk akal, tapi handle)
+	return hour >= nightStart && hour < dayStart ? (theme.nightColor ?? 'rack-room') : (theme.dayColor ?? 'daylight-ops');
+}
 
 function createThemeStore() {
 	// Load theme from localStorage or use default
@@ -22,7 +47,12 @@ function createThemeStore() {
 		? (() => {
 				try {
 					const saved = localStorage.getItem(THEME_KEY);
-					return saved ? JSON.parse(saved) : defaultTheme;
+					const theme = saved ? { ...defaultTheme, ...JSON.parse(saved) } : defaultTheme;
+					// Jika auto mode, resolve warna berdasarkan jam
+					if (theme.mode === 'auto') {
+						theme.color = getHourBasedColor(theme);
+					}
+					return theme;
 				} catch {
 					return defaultTheme;
 				}
@@ -30,6 +60,32 @@ function createThemeStore() {
 		: defaultTheme;
 
 	const { subscribe, set, update } = writable<Theme>(initialTheme);
+
+	// Interval untuk auto mode (check tiap menit)
+	let autoInterval: ReturnType<typeof setInterval> | null = null;
+
+	function startAutoInterval() {
+		if (!browser || autoInterval) return;
+		autoInterval = setInterval(() => {
+			update((theme) => {
+				if (theme.mode !== 'auto') return theme;
+				const newColor = getHourBasedColor(theme);
+				if (newColor !== theme.color) {
+					const newTheme = { ...theme, color: newColor };
+					applyTheme(newTheme);
+					return newTheme;
+				}
+				return theme;
+			});
+		}, 60000); // Check tiap 1 menit
+	}
+
+	function stopAutoInterval() {
+		if (autoInterval) {
+			clearInterval(autoInterval);
+			autoInterval = null;
+		}
+	}
 
 	return {
 		subscribe,
@@ -53,6 +109,48 @@ function createThemeStore() {
 				return newTheme;
 			});
 		},
+		setMode: (mode: ThemeMode) => {
+			update((theme) => {
+				const newTheme = { ...theme, mode };
+				if (mode === 'auto') {
+					newTheme.color = getHourBasedColor(newTheme);
+					startAutoInterval();
+				} else {
+					stopAutoInterval();
+				}
+				if (browser) {
+					localStorage.setItem(THEME_KEY, JSON.stringify(newTheme));
+					applyTheme(newTheme);
+				}
+				return newTheme;
+			});
+		},
+		setDayNightColors: (dayColor: ThemeColor, nightColor: ThemeColor) => {
+			update((theme) => {
+				const newTheme = { ...theme, dayColor, nightColor };
+				if (theme.mode === 'auto') {
+					newTheme.color = getHourBasedColor(newTheme);
+				}
+				if (browser) {
+					localStorage.setItem(THEME_KEY, JSON.stringify(newTheme));
+					applyTheme(newTheme);
+				}
+				return newTheme;
+			});
+		},
+		setNightHours: (nightStartHour: number, dayStartHour: number) => {
+			update((theme) => {
+				const newTheme = { ...theme, nightStartHour, dayStartHour };
+				if (theme.mode === 'auto') {
+					newTheme.color = getHourBasedColor(newTheme);
+				}
+				if (browser) {
+					localStorage.setItem(THEME_KEY, JSON.stringify(newTheme));
+					applyTheme(newTheme);
+				}
+				return newTheme;
+			});
+		},
 		setTheme: (theme: Theme) => {
 			set(theme);
 			if (browser) {
@@ -64,7 +162,11 @@ function createThemeStore() {
 			if (browser) {
 				try {
 					const saved = localStorage.getItem(THEME_KEY);
-					const theme = saved ? JSON.parse(saved) : defaultTheme;
+					const theme = saved ? { ...defaultTheme, ...JSON.parse(saved) } : defaultTheme;
+					if (theme.mode === 'auto') {
+						theme.color = getHourBasedColor(theme);
+						startAutoInterval();
+					}
 					applyTheme(theme);
 					set(theme);
 				} catch {
