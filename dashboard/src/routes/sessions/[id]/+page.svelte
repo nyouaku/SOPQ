@@ -6,6 +6,7 @@
 	import Loader from '$lib/components/Loader.svelte';
 	import SaveNotificationToast from '$lib/components/SaveNotificationToast.svelte';
 	import SessionCompletionDialog from '$lib/components/SessionCompletionDialog.svelte';
+	import ScanTimeline from '$lib/components/ScanTimeline.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { WS_BASE_URL } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
@@ -26,6 +27,7 @@
 	let showCompletionDialog = false;
 	let summary: any = null;
 	let toastTimer: ReturnType<typeof setTimeout> | null = null;
+	let detailView: 'table' | 'timeline' = 'table';
 
 	$: sessionId = $page.params.id;
 	$: totalPages = Math.ceil(total / filter.limit);
@@ -355,20 +357,43 @@
 		<!-- Details Table -->
 		<div class="card bg-base-200 shadow-xl">
 			<div class="card-body p-0">
-				<div class="flex justify-between items-center p-4">
+				<div class="flex flex-wrap items-center justify-between gap-3 p-4">
 					<h3 class="text-xl font-bold">Scan Details</h3>
-					<select
-						class="select select-bordered select-sm"
-						bind:value={filter.limit}
-						on:change={() => {
-							filter.page = 1;
-							loadDetails();
-						}}
-					>
-						<option value={20}>20 per page</option>
-						<option value={50}>50 per page</option>
-						<option value={100}>100 per page</option>
-					</select>
+					<div class="flex items-center gap-2">
+						<!-- View Toggle -->
+						<div class="btn-group">
+							<button
+								class="btn btn-sm {detailView === 'table' ? 'btn-active' : ''}"
+								on:click={() => (detailView = 'table')}
+							>
+								<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+								</svg>
+								Tabel
+							</button>
+							<button
+								class="btn btn-sm {detailView === 'timeline' ? 'btn-active' : ''}"
+								on:click={() => (detailView = 'timeline')}
+							>
+								<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								Timeline
+							</button>
+						</div>
+						<select
+							class="select select-bordered select-sm"
+							bind:value={filter.limit}
+							on:change={() => {
+								filter.page = 1;
+								loadDetails();
+							}}
+						>
+							<option value={20}>20 per page</option>
+							<option value={50}>50 per page</option>
+							<option value={100}>100 per page</option>
+						</select>
+					</div>
 				</div>
 
 				{#if isLoading}
@@ -377,6 +402,10 @@
 					</div>
 				{:else if details.length === 0}
 					<div class="p-8 text-center text-base-content/50">No scans yet</div>
+				{:else if detailView === 'timeline'}
+					<div class="p-4">
+						<ScanTimeline details={details} view="timeline" />
+					</div>
 				{:else}
 					<div class="overflow-x-auto">
 						<table class="table table-zebra table-sm">
