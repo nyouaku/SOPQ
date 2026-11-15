@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import ThermalPrintPanel from '$lib/components/ThermalPrintPanel.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import QRCode from 'qrcode';
@@ -12,6 +13,9 @@
 	let selected = new Set<string>();
 	let isLoading = true;
 	let isGenerating = false;
+
+	// Derived array dari produk yang dipilih, untuk dikirim ke ThermalPrintPanel
+	$: selectedProducts = products.filter((p) => selected.has(p.id));
 
 	// Ukuran label (dalam mm)
 	let labelWidth = 50;
@@ -234,6 +238,14 @@
 							</label>
 						{/each}
 					</div>
+				</div>
+			{/if}
+
+			<!-- Thermal Print Option -->
+			{#if selected.size > 0}
+				<div class="mt-4 border-t border-base-300 pt-4">
+					<h3 class="mb-2 text-sm font-semibold">Atau Cetak Langsung ke Printer Thermal</h3>
+					<ThermalPrintPanel products={selectedProducts} />
 				</div>
 			{/if}
 
