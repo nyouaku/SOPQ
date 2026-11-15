@@ -313,6 +313,9 @@ type StockRepository interface {
 	FindByProductAndWarehouse(ctx context.Context, productID, warehouseID uuid.UUID) (*domain.Stock, error)
 	UpdateWithOptimisticLock(ctx context.Context, stock *domain.Stock) error
 	CreateOrUpdate(ctx context.Context, stock *domain.Stock) error
+	// ReconcileWarehouses menghitung rekap stok setiap produk di seluruh gudang
+	// yang dipilih. Hanya mengembalikan produk yang setidaknya ada di 1 gudang.
+	ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error)
 }
 
 type stockRepository struct {
@@ -404,4 +407,106 @@ func (r *stockOpnameDetailRepository) FindProductTrend(ctx context.Context, prod
 	return rows, nil
 }
 
-// ===== END FILE =====
+// ReconcileWarehouses menghitung rekap stok per produk di seluruh gudang yang
+// dipilih. Produk dianggap "hilang" dari gudang jika tidak ada baris di tabel
+// stock untuk kombinasi produk + gudang tersebut.
+func (r *stockRepository) ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error) {
+	if len(warehouseIDs) == 0 {
+		return nil, nil
+	}
+
+	// Nama gudang untuk pelengkap missing_from
+	var whs []struct {
+		ID   uuid.UUID `gorm:"column:id"`
+		Name string    `gorm:"column:name"`
+	}
+	if err := r.db.WithContext(ctx).
+		Table("warehouses").
+		Select("id, name").
+		Where("id IN ?", warehouseIDs).
+		Find(&whs).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch warehouses: %w", err)
+	}
+
+	// Ambil stok semua produk di gudang-gudang terpilih.
+	var rows []struct {
+		ProductID      uuid.UUID `gorm:"column:product_id"`
+		ProductCode    string    `gorm:"column:product_code"`
+		ProductName    string    `gorm:"column:product_name"`
+		WarehouseID    uuid.UUID `gorm:"column:warehouse_id"`
+		WarehouseName  string    `gorm:"column:warehouse_name"`
+		QuantitySystem int       `gorm:"column:quantity_system"`
+	}
+	if err := r.db.WithContext(ctx).
+		Table("stock AS s").
+		Select(`s.product_id, p.product_code, p.name AS product_name,
+			s.warehouse_id, w.name AS warehouse_name, s.quantity_system`).
+		Joins("JOIN products p ON p.id = s.product_id").
+		Joins("JOIN warehouses w ON w.id = s.warehouse_id").
+		Where("s.warehouse_id IN ?", warehouseIDs).
+		Order("p.product_code ASC").
+		Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch reconciliation rows: %w", err)
+	}
+
+	whNameByID := make(map[uuid.UUID]string, len(whs))
+	for _, w := range whs {
+		whNameByID[w.ID] = w.Name
+	}
+	whIDList := make([]uuid.UUID, 0, len(whs))
+	whNameList := make([]string, 0, len(whs))
+	for _, w := range whs {
+		whIDList = append(whIDList, w.ID)
+		whNameList = append(whNameList, w.Name)
+	}
+
+	// Group by product.
+	type acc struct {
+		code     string
+		name     string
+		total    int
+		present  int
+		perWH    map[uuid.UUID]bool
+	}
+	accMap := make(map[uuid.UUID]*acc)
+	for _, row := range rows {
+		a, ok := accMap[row.ProductID]
+		if !ok {
+			a = &acc{
+				code:  row.ProductCode,
+				name:  row.ProductName,
+				perWH: make(map[uuid.UUID]bool),
+			}
+			accMap[row.ProductID] = a
+		}
+		a.total += row.QuantitySystem
+		if _, exists := a.perWH[row.WarehouseID]; !exists {
+			a.perWH[row.WarehouseID] = true
+			a.present++
+		}
+	}
+
+	results := make([]domain.WarehouseReconciliation, 0, len(accMap))
+	for productID, a := range accMap {
+		missing := make([]string, 0)
+		for i, wid := range whIDList {
+			if _, ok := a.perWH[wid]; !ok {
+				missing = append(missing, whNameByID[wid])
+			}
+			_ = i
+			_ = whNameList
+		}
+		results = append(results, domain.WarehouseReconciliation{
+			ProductID:       productID,
+			ProductCode:     a.code,
+			ProductName:     a.name,
+			QuantitySystem:  a.total,
+			TotalAll:        a.total,
+			PresentInCount:  a.present,
+			TotalWarehouses: len(whIDList),
+			MissingFrom:     missing,
+		})
+	}
+
+	return results, nil
+}

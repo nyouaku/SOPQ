@@ -21,4 +21,19 @@ type Stock struct {
 func (Stock) TableName() string {
 	return "stock"
 }
+
+// WarehouseReconciliation — hasil rekonsiliasi antar gudang untuk satu produk.
+type WarehouseReconciliation struct {
+	ProductID       uuid.UUID `json:"product_id"`
+	ProductCode     string    `json:"product_code"`
+	ProductName     string    `json:"product_name"`
+	WarehouseID     uuid.UUID `json:"warehouse_id"`
+	WarehouseName   string    `json:"warehouse_name"`
+	QuantitySystem  int       `json:"quantity_system"`
+	TotalAll        int       `json:"total_all"`
+	PresentInCount  int       `json:"present_in_count"`
+	TotalWarehouses int       `json:"total_warehouses"`
+	MissingFrom     []string  `json:"missing_from"` // nama gudang di mana produk tidak ada
+}
+
 // ===== END FILE =====

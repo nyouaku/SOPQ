@@ -25,6 +25,8 @@ type StockOpnameUsecase interface {
 	// GetProductTrend mengembalikan riwayat stok fisik satu produk untuk grafik tren.
 	// from/to opsional (nil = tanpa batas awal/akhir). limit default 100, max 500.
 	GetProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error)
+	// ReconcileWarehouses merekap stok produk di seluruh gudang yang dipilih.
+	ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error)
 }
 
 // ScanBroadcaster menerima update real-time. Dideklarasikan di sini (bukan
@@ -379,6 +381,10 @@ func (u *stockOpnameUsecase) ListSessions(ctx context.Context, filter repository
 
 func (u *stockOpnameUsecase) GetProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error) {
 	return u.stockOpnameDetailRepo.FindProductTrend(ctx, productID, from, to, limit)
+}
+
+func (u *stockOpnameUsecase) ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error) {
+	return u.stockRepo.ReconcileWarehouses(ctx, warehouseIDs)
 }
 
 // ===== END FILE =====

@@ -96,6 +96,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	dashboardHandler := handler.NewDashboardHandler(dashboardUsecase)
 	exportHandler := handler.NewExportHandler(exportUsecase)
 	importHandler := handler.NewImportHandler(importUsecase)
+	reconciliationHandler := handler.NewReconciliationHandler(stockOpnameUsecase)
 
 	// API v1 group
 	v1 := router.Group("/api/v1")
@@ -238,6 +239,17 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stockOpnameSupervisor.Use(middleware.RequireRole("supervisor", "admin"))
 			{
 				stockOpnameSupervisor.POST("/sessions/:id/approve", stockOpnameHandler.ApproveSession)
+			}
+		}
+
+		// Multi-warehouse reconciliation (admin & supervisor)
+		reconciliation := v1.Group("/reconciliation")
+		reconciliation.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			reconciliationSupervisor := reconciliation.Group("")
+			reconciliationSupervisor.Use(middleware.RequireRole("supervisor", "admin"))
+			{
+				reconciliationSupervisor.POST("", reconciliationHandler.ReconcileWarehouses)
 			}
 		}
 
