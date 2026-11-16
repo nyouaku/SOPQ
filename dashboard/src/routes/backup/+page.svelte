@@ -161,7 +161,7 @@
 					<li>Buka terminal di server VPS.</li>
 					<li>Jalankan perintah berikut:
 						<code class="ml-2 rounded bg-base-300 px-2 py-0.5 font-mono text-xs">
-							docker exec -i stock-opname-app-postgres-1 psql -U stockopname stockopname_db < backup.sql
+							docker exec -i stock-opname-app-postgres-1 psql -U stockopname stockopname_db &lt; backup.sql
 						</code>
 					</li>
 					<li>Restart backend: <code class="rounded bg-base-300 px-2 py-0.5 font-mono text-xs">docker compose restart backend</code></li>

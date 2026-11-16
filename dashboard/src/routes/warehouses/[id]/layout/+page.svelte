@@ -211,6 +211,8 @@
 				>
 					{#each layoutBoxes as box (box.id)}
 						<g
+							role="button"
+							tabindex="0"
 							on:mousedown={(e) => handleMouseDown(e, box)}
 							class="cursor-grab active:cursor-grabbing"
 						>
@@ -240,6 +242,9 @@
 								font-size="10"
 								fill="white"
 								style="cursor: pointer;"
+								role="button"
+								tabindex="0"
+								aria-label="Hapus rak"
 								on:click|stopPropagation={() => removeBox(box.id)}
 							>
 								×
