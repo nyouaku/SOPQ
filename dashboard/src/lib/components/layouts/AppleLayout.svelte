@@ -12,8 +12,9 @@
 
 	// Aplikasi aktif ditentukan dari path: /inventory* = Inventory, lainnya = Stock Opname.
 	// Inilah pemisahan fitur: sidebar hanya menampilkan item milik aplikasi aktif.
+	let activeApp: AppId = 'opname';
 	const MANAGER = ['admin', 'supervisor'];
-	$: activeApp: AppId = currentPath.startsWith('/inventory') ? 'inventory' : 'opname';
+	$: activeApp = currentPath.startsWith('/inventory') ? ('inventory' as AppId) : ('opname' as AppId);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
 		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
