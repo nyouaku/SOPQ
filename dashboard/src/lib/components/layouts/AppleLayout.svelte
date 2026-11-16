@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForRole } from './menu';
+	import { MENU_ITEMS, menuForApp, type AppId } from './menu';
 	import { iconFor } from './icons';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import BottomBar from './BottomBar.svelte';
@@ -10,10 +10,20 @@
 
 	export let currentPath: string = '';
 
-	$: visible = menuForRole(MENU_ITEMS, $authStore.user?.role?.name);
+	// Aplikasi aktif ditentukan dari path: /inventory* = Inventory, lainnya = Stock Opname.
+	// Inilah pemisahan fitur: sidebar hanya menampilkan item milik aplikasi aktif.
+	const MANAGER = ['admin', 'supervisor'];
+	$: activeApp: AppId = currentPath.startsWith('/inventory') ? 'inventory' : 'opname';
+	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
 		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
-			?.label ?? 'Stock Opname';
+			?.label ?? (activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname');
+
+	// Aplikasi lain untuk tombol pindah (hanya manager; staff tak punya akses inventory).
+	$: isManager = MANAGER.includes($authStore.user?.role?.name ?? '');
+	$: otherApp = activeApp === 'inventory'
+		? { href: '/', label: 'Stock Opname' }
+		: { href: '/inventory', label: 'Inventory' };
 
 	let drawerOpen = false;
 	let lastPath = '';
@@ -72,7 +82,18 @@
 	<aside class="sidebar glass" class:sidebar--open={drawerOpen} aria-label="Navigasi utama">
 		<div class="sidebar__brand hairline-b">
 			<div class="brandmark">SOPQ</div>
-			<div class="brandsub">Warehouse Suite</div>
+			<div class="brandsub">
+				{activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname'}
+			</div>
+			{#if isManager}
+				<a href={otherApp.href} class="switchapp press" title="Buka {otherApp.label}">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+						stroke-linecap="round" stroke-linejoin="round">
+						<path d="M4 7h13m0 0l-4-4m4 4l-4 4M20 17H7m0 0l4 4m-4-4l4-4" />
+					</svg>
+					<span>{otherApp.label}</span>
+				</a>
+			{/if}
 		</div>
 
 		<nav class="sidebar__nav">
@@ -240,6 +261,27 @@
 		font-size: 0.72rem;
 		color: hsl(var(--bc) / 0.55);
 		margin-top: 0.1rem;
+	}
+	.switchapp {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-top: 0.7rem;
+		padding: 0.4rem 0.6rem;
+		border-radius: 0.6rem;
+		font-size: 0.76rem;
+		font-weight: 500;
+		background: hsl(var(--p) / 0.1);
+		color: hsl(var(--p));
+		transition: background var(--dur-hover) var(--ease-apple);
+	}
+	.switchapp:hover {
+		background: hsl(var(--p) / 0.18);
+	}
+	.switchapp svg {
+		width: 0.95rem;
+		height: 0.95rem;
+		flex-shrink: 0;
 	}
 	.sidebar__nav {
 		flex: 1;
