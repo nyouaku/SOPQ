@@ -17,11 +17,12 @@
 	let selectedLocation = '';
 	let submitting = false;
 	let errorMessage = '';
+	let isBlindCount = false;
 
 	// Query lokasi mengikuti store — berubah saat gudang diganti, tanpa remount.
 	const locations = locationsQuery(derived(warehouseId, ($id) => $id));
 
-	type CreatePayload = { warehouse_id: string; location_id?: string };
+	type CreatePayload = { warehouse_id: string; location_id?: string; is_blind_count: boolean };
 
 	const createSession = createMutation<{ id: string }, Error, CreatePayload>({
 		mutationFn: async (payload) => {
@@ -57,7 +58,8 @@
 		submitting = true;
 		$createSession.mutate({
 			warehouse_id: selectedWarehouse,
-			...(selectedLocation ? { location_id: selectedLocation } : {})
+			...(selectedLocation ? { location_id: selectedLocation } : {}),
+			is_blind_count: isBlindCount
 		});
 	}
 
@@ -131,6 +133,24 @@
 							<span>{errorMessage}</span>
 						</div>
 					{/if}
+
+					<!-- Blind Count Toggle -->
+					<div class="form-control">
+						<label class="label cursor-pointer">
+							<div>
+								<span class="label-text font-medium">Blind Count Mode</span>
+								<p class="text-xs text-base-content/60">
+									Sembunyikan stok sistem saat scan. Petugas hanya melihat nama produk.
+								</p>
+							</div>
+							<input
+								type="checkbox"
+								class="toggle toggle-primary"
+								checked={isBlindCount}
+								on:change={(e) => (isBlindCount = e.target.checked)}
+							/>
+						</label>
+					</div>
 
 					<div class="card-actions justify-end mt-2">
 						<button class="btn btn-ghost" on:click={() => goto('/sessions')}>Batal</button>

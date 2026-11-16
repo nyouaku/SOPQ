@@ -21,7 +21,12 @@ export const MENU_ITEMS: MenuItem[] = [
 	{ href: '/products', label: 'Products', icon: '📦', shortcut: 'P' },
 	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER },
 	{ href: '/reports', label: 'Reports', icon: '📈', shortcut: 'R', roles: MANAGER },
+	{ href: '/stock-ledger', label: 'Stock Ledger', icon: '📒', shortcut: 'L', roles: MANAGER },
+	{ href: '/reconciliation', label: 'Rekonsiliasi', icon: '🔄', shortcut: 'N', roles: MANAGER },
+	{ href: '/snapshots', label: 'Snapshots', icon: '📸', shortcut: 'H', roles: MANAGER },
+	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER },
 	{ href: '/activity', label: 'Activity', icon: '🧾', shortcut: 'A', roles: MANAGER },
+	{ href: '/backup', label: 'Backup', icon: '💾', shortcut: 'B', roles: ['admin'] },
 	{ href: '/settings', label: 'Settings', icon: '⚙️', shortcut: 'T' }
 ];
 
