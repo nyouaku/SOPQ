@@ -47,6 +47,10 @@
 	let showSaveNotification = false;
 	let selectedSessionData: any = null;
 
+	// Ringkasan scan untuk sesi aktif (total_scanned / total_products) — ditampilkan
+	// sebagai panel "hasil scan" di bawah tombol simpan.
+	let sessionSummary: { total_scanned: number; total_products: number } | null = null;
+
 	// Update selectedSessionData saat session berubah
 	$: selectedSessionData = sessions.find((s: any) => s.id === selectedSession);
 
@@ -68,6 +72,7 @@
 		}
 
 		await loadSessions();
+		await loadSessionSummary();
 		initBarcodeDetector();
 		pendingScans = listQueue().length;
 		// Kirim ulang scan yang tertunda begitu jaringan kembali.
@@ -119,6 +124,12 @@
 		} catch (error) {
 			console.error('Failed to load sessions:', error);
 		}
+	}
+
+	// Ganti sesi -> muat ulang ringkasan scan sesi tsb.
+	async function onSessionChange() {
+		sessionSummary = null;
+		await loadSessionSummary();
 	}
 
 	function switchMode(mode: ScanMode) {
@@ -374,6 +385,8 @@
 				showMessage('Data berhasil disimpan', 'success');
 				playSound('success');
 				showSaveToast();
+				// Ambil ringkasan terbaru untuk panel hasil (dan deteksi "scan selesai").
+				await loadSessionSummary();
 				resetForm();
 			} else {
 				showMessage(response.error?.message || 'Gagal menyimpan data', 'error');
@@ -392,6 +405,28 @@
 		} finally {
 			isSaving = false;
 			pendingScans = listQueue().length;
+		}
+	}
+
+	/** Ambil ringkasan sesi aktif: total ter-scan vs total produk. */
+	async function loadSessionSummary() {
+		if (!selectedSession) {
+			sessionSummary = null;
+			return;
+		}
+		try {
+			const res = await apiClient.get<{ total_scanned: number; total_products: number }>(
+				`${API_ENDPOINTS.stockOpnameSession(selectedSession)}/summary`
+			);
+			if (res.success && res.data) {
+				sessionSummary = {
+					total_scanned: res.data.total_scanned ?? 0,
+					total_products: res.data.total_products ?? 0
+				};
+			}
+		} catch {
+			// Summary gagal dimuat bukan fatal — panel hasil saja yang tak muncul.
+			sessionSummary = null;
 		}
 	}
 
@@ -433,7 +468,7 @@
 {/if}
 
 <LayoutWrapper>
-	<div class="page">
+	<div class="page pb-24 md:pb-28">
 		<div class="page-header">
 			<div>
 				<h1 class="page-title">Scan</h1>
@@ -441,7 +476,9 @@
 			</div>
 		</div>
 
-		<!-- Session Selection -->
+		<!-- Session Selection — disembunyikan saat produk sudah ter-scan agar
+		     tombol simpan tak terdorong ke bawah & tertutup bottom navbar. -->
+		{#if !product}
 		<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-4">
 			<label class="label py-0" for="session-select">
 				<span class="label-text text-xs font-medium text-base-content/60">Sesi stock opname</span>
@@ -450,6 +487,7 @@
 				id="session-select"
 				class="select select-bordered mt-1 w-full"
 				bind:value={selectedSession}
+				on:change={onSessionChange}
 			>
 				{#if sessions.length === 0}
 					<option value="">Tidak ada sesi aktif</option>
@@ -482,6 +520,8 @@
 				</div>
 			{/if}
 		</div>
+		{/if}
+		<!-- akhir blok sesi (disembunyikan saat produk ter-scan) -->
 
 		<!-- Scan Mode: segmented control -->
 		<div
@@ -757,6 +797,48 @@
 					Reset &amp; scan lagi
 				</button>
 			</div>
+
+			<!-- Hasil scan sesi: progress ter-scan + indikator selesai -->
+			{#if sessionSummary && sessionSummary.total_products > 0}
+				{@const scanned = sessionSummary.total_scanned}
+				{@const total = sessionSummary.total_products}
+				{@const done = scanned >= total}
+				<div
+					class="mt-4 rounded-2xl border p-4 {done
+						? 'border-success/50 bg-success/10'
+						: 'border-base-300 bg-base-200'}"
+					role="status"
+				>
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<div class="text-xs text-base-content/60">Progress sesi ini</div>
+							<div class="metric text-lg font-semibold">
+								{scanned} / {total}
+								{#if done}
+									<span class="ml-1 text-sm font-normal text-success">— selesai ✓</span>
+								{/if}
+							</div>
+						</div>
+						{#if done}
+							<span class="badge badge-success badge-lg">Semua produk ter-scan</span>
+						{/if}
+					</div>
+					{#if !done}
+						<progress
+							class="progress progress-primary mt-2"
+							value={scanned}
+							max={total}
+						></progress>
+					{:else}
+						<a
+							href="/sessions/{selectedSession}"
+							class="btn btn-outline btn-sm mt-2 w-full"
+						>
+							Lihat ringkasan sesi
+						</a>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 </LayoutWrapper>
