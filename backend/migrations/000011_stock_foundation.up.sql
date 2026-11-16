@@ -22,11 +22,11 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_stock_ledger_product ON stock_ledger(product_id);
-CREATE INDEX idx_stock_ledger_warehouse ON stock_ledger(warehouse_id);
-CREATE INDEX idx_stock_ledger_created ON stock_ledger(created_at);
-CREATE INDEX idx_stock_ledger_product_warehouse ON stock_ledger(product_id, warehouse_id);
-CREATE INDEX idx_stock_ledger_reference ON stock_ledger(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_product ON stock_ledger(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_warehouse ON stock_ledger(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_created ON stock_ledger(created_at);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_product_warehouse ON stock_ledger(product_id, warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_reference ON stock_ledger(reference_type, reference_id);
 
 -- 2. OPNAME SNAPSHOT + CUT-OFF
 -- Simpan snapshot stok sistem saat sesi dimulai, dan waktu cut-off.
@@ -74,9 +74,9 @@ CREATE TABLE IF NOT EXISTS stock_adjustment_journal (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_adj_journal_product ON stock_adjustment_journal(product_id);
-CREATE INDEX idx_adj_journal_warehouse ON stock_adjustment_journal(warehouse_id);
-CREATE INDEX idx_adj_journal_created ON stock_adjustment_journal(created_at);
+CREATE INDEX IF NOT EXISTS idx_adj_journal_product ON stock_adjustment_journal(product_id);
+CREATE INDEX IF NOT EXISTS idx_adj_journal_warehouse ON stock_adjustment_journal(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_adj_journal_created ON stock_adjustment_journal(created_at);
 
 -- ============================================================
 -- DOWN MIGRATION
