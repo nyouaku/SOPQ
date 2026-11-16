@@ -8,22 +8,58 @@ import (
 )
 
 type StockOpname struct {
-	ID           uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	Code         string     `json:"code" gorm:"uniqueIndex;not null"` // SO-20260801-0001
-	WarehouseID  uuid.UUID  `json:"warehouse_id" gorm:"type:uuid;not null;index:idx_stock_opname_warehouse"`
-	Warehouse    *Warehouse `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
-	LocationID   *uuid.UUID `json:"location_id,omitempty" gorm:"type:uuid"`
-	Location     *Location  `json:"location,omitempty" gorm:"foreignKey:LocationID"`
-	Status       string     `json:"status" gorm:"not null;default:'in_progress';index:idx_stock_opname_status"` // in_progress, completed, approved, cancelled
-	StartedBy    uuid.UUID  `json:"started_by" gorm:"type:uuid;not null"`
-	StartedUser  *User      `json:"started_user,omitempty" gorm:"foreignKey:StartedBy"`
-	StartedAt    time.Time  `json:"started_at"`
-	CompletedAt  *time.Time `json:"completed_at,omitempty"`
-	ApprovedBy   *uuid.UUID `json:"approved_by,omitempty" gorm:"type:uuid"`
-	ApprovedUser *User      `json:"approved_user,omitempty" gorm:"foreignKey:ApprovedBy"`
-	ApprovedAt   *time.Time `json:"approved_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID              uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	Code            string     `json:"code" gorm:"uniqueIndex;not null"`
+	WarehouseID     uuid.UUID  `json:"warehouse_id" gorm:"type:uuid;not null;index:idx_stock_opname_warehouse"`
+	Warehouse       *Warehouse `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
+	LocationID      *uuid.UUID `json:"location_id,omitempty" gorm:"type:uuid"`
+	Location        *Location  `json:"location,omitempty" gorm:"foreignKey:LocationID"`
+	Status          string     `json:"status" gorm:"not null;default:'in_progress';index:idx_stock_opname_status"`
+	StartedBy       uuid.UUID  `json:"started_by" gorm:"type:uuid;not null"`
+	StartedUser     *User      `json:"started_user,omitempty" gorm:"foreignKey:StartedBy"`
+	StartedAt       time.Time  `json:"started_at"`
+	CompletedAt     *time.Time `json:"completed_at,omitempty"`
+	ApprovedBy      *uuid.UUID `json:"approved_by,omitempty" gorm:"type:uuid"`
+	ApprovedUser    *User      `json:"approved_user,omitempty" gorm:"foreignKey:ApprovedBy"`
+	ApprovedAt      *time.Time `json:"approved_at,omitempty"`
+	RejectedBy      *uuid.UUID `json:"rejected_by,omitempty" gorm:"type:uuid"`
+	RejectedAt      *time.Time `json:"rejected_at,omitempty"`
+	RejectionReason string     `json:"rejection_reason,omitempty"`
+	RecountCount    int        `json:"recount_count" gorm:"not null;default:0"`
+	MaxRecount      int        `json:"max_recount" gorm:"not null;default:2"`
+	SnapshotTakenAt *time.Time `json:"snapshot_taken_at,omitempty"`
+	CutOffAt        *time.Time `json:"cut_off_at,omitempty"`
+	IsFrozen        bool       `json:"is_frozen" gorm:"not null;default:false"`
+	IsBlindCount    bool       `json:"is_blind_count" gorm:"not null;default:false"`
+	CreatedAt       time.Time  `json:"created_at"`
 }
+
+// Session status constants
+const (
+	SessionStatusDraft            = "draft"
+	SessionStatusScheduled        = "scheduled"
+	SessionStatusInProgress       = "in_progress"
+	SessionStatusPendingRecount   = "pending_recount"
+	SessionStatusPendingApproval  = "pending_approval"
+	SessionStatusCompleted        = "completed"
+	SessionStatusApproved         = "approved"
+	SessionStatusRejected         = "rejected"
+	SessionStatusCancelled        = "cancelled"
+	SessionStatusReopened         = "reopened"
+)
+
+// Transaction types untuk stock_ledger
+const (
+	LedgerTypeInitial         = "initial"
+	LedgerTypePurchaseIn      = "purchase_in"
+	LedgerTypeSaleOut         = "sale_out"
+	LedgerTypeTransferIn      = "transfer_in"
+	LedgerTypeTransferOut     = "transfer_out"
+	LedgerTypeAdjustment      = "adjustment"
+	LedgerTypeOpnameCorrect   = "opname_correction"
+	LedgerTypeReturnIn        = "return_in"
+	LedgerTypeReturnOut       = "return_out"
+)
 
 func (StockOpname) TableName() string {
 	return "stock_opname"
@@ -78,6 +114,55 @@ type ProductStockTrend struct {
 	StockPhysical int       `json:"stock_physical"`
 	Difference    int       `json:"difference"`
 	SessionCode   string    `json:"session_code"`
+}
+
+// StockLedger — satu baris pergerakan stok (kartu stok).
+type StockLedger struct {
+	ID              uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	ProductID       uuid.UUID  `json:"product_id" gorm:"type:uuid;not null"`
+	Product         *Product   `json:"product,omitempty" gorm:"foreignKey:ProductID"`
+	WarehouseID     uuid.UUID  `json:"warehouse_id" gorm:"type:uuid;not null"`
+	Warehouse       *Warehouse `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
+	TransactionType string     `json:"transaction_type" gorm:"not null"`
+	ReferenceType   string     `json:"reference_type"`
+	ReferenceID     *uuid.UUID `json:"reference_id,omitempty"`
+	ReferenceCode   string     `json:"reference_code"`
+	QuantityIn      int        `json:"quantity_in"`
+	QuantityOut     int        `json:"quantity_out"`
+	BalanceAfter    int        `json:"balance_after"`
+	UnitCost        float64    `json:"unit_cost"`
+	TotalCost       float64    `json:"total_cost"`
+	Note            string     `json:"note"`
+	CreatedBy       *uuid.UUID `json:"created_by,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+}
+
+func (StockLedger) TableName() string {
+	return "stock_ledger"
+}
+
+// StockAdjustmentJournal — dokumen formal penyesuaian stok.
+type StockAdjustmentJournal struct {
+	ID            uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	ProductID     uuid.UUID `json:"product_id"`
+	Product       *Product  `json:"product,omitempty" gorm:"foreignKey:ProductID"`
+	WarehouseID   uuid.UUID `json:"warehouse_id"`
+	Warehouse     *Warehouse `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
+	SessionID     *uuid.UUID `json:"session_id,omitempty"`
+	Reason        string    `json:"reason"`
+	Note          string    `json:"note"`
+	QuantityBefore int      `json:"quantity_before"`
+	QuantityAfter  int      `json:"quantity_after"`
+	Delta         int       `json:"delta"`
+	AdjustedBy    uuid.UUID `json:"adjusted_by"`
+	ApprovedBy    *uuid.UUID `json:"approved_by,omitempty"`
+	ApprovedAt    *time.Time `json:"approved_at,omitempty"`
+	IPAddress     string    `json:"ip_address"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+func (StockAdjustmentJournal) TableName() string {
+	return "stock_adjustment_journal"
 }
 
 // ===== END FILE =====

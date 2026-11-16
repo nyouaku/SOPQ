@@ -29,8 +29,9 @@ func NewStockOpnameHandler(stockOpnameUsecase usecase.StockOpnameUsecase) *Stock
 
 // DTOs
 type StartSessionRequest struct {
-	WarehouseID uuid.UUID  `json:"warehouse_id" validate:"required"`
-	LocationID  *uuid.UUID `json:"location_id"`
+	WarehouseID  uuid.UUID  `json:"warehouse_id" validate:"required"`
+	LocationID   *uuid.UUID `json:"location_id"`
+	IsBlindCount bool       `json:"is_blind_count"`
 }
 
 type SubmitScanRequest struct {
@@ -73,10 +74,11 @@ func (h *StockOpnameHandler) StartSession(c *gin.Context) {
 	}
 
 	input := usecase.StartSessionInput{
-		WarehouseID: req.WarehouseID,
-		LocationID:  req.LocationID,
-		StartedBy:   userID,
-		IPAddress:   c.ClientIP(),
+		WarehouseID:  req.WarehouseID,
+		LocationID:   req.LocationID,
+		StartedBy:    userID,
+		IPAddress:    c.ClientIP(),
+		IsBlindCount: req.IsBlindCount,
 	}
 
 	session, err := h.stockOpnameUsecase.StartSession(c.Request.Context(), input)
@@ -357,6 +359,80 @@ func (h *StockOpnameHandler) ListSessions(c *gin.Context) {
 		"page":     page,
 		"limit":    limit,
 	})
+}
+
+// RejectSession godoc
+// @Summary Reject a completed stock opname session
+// @Tags stock-opname
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Session ID"
+// @Param body body RejectSessionRequest true "Rejection reason"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/stock-opname/sessions/:id/reject [post]
+func (h *StockOpnameHandler) RejectSession(c *gin.Context) {
+	sessionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid session ID")
+		return
+	}
+
+	var req RejectSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondBadRequest(c, "Invalid request body")
+		return
+	}
+	if req.Reason == "" {
+		utils.RespondBadRequest(c, "Rejection reason is required")
+		return
+	}
+
+	rejectedBy, ok := middleware.GetUserIDFromContext(c)
+	if !ok {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+
+	if err := h.stockOpnameUsecase.RejectSession(c.Request.Context(), sessionID, rejectedBy, req.Reason); err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, gin.H{"message": "Session rejected"})
+}
+
+type RejectSessionRequest struct {
+	Reason string `json:"reason" validate:"required"`
+}
+
+// ReopenSession godoc
+// @Summary Reopen a rejected stock opname session
+// @Tags stock-opname
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Session ID"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/stock-opname/sessions/:id/reopen [post]
+func (h *StockOpnameHandler) ReopenSession(c *gin.Context) {
+	sessionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid session ID")
+		return
+	}
+
+	reopenedBy, ok := middleware.GetUserIDFromContext(c)
+	if !ok {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+
+	if err := h.stockOpnameUsecase.ReopenSession(c.Request.Context(), sessionID, reopenedBy); err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+
+	utils.RespondOK(c, gin.H{"message": "Session reopened"})
 }
 
 // GetProductTrend godoc

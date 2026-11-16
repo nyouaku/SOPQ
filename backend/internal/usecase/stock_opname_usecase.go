@@ -18,6 +18,8 @@ type StockOpnameUsecase interface {
 	SubmitScan(ctx context.Context, input SubmitScanInput) (*domain.StockOpnameDetail, error)
 	CompleteSession(ctx context.Context, sessionID, userID uuid.UUID) error
 	ApproveSession(ctx context.Context, sessionID, approverID uuid.UUID) error
+	RejectSession(ctx context.Context, sessionID, rejectedBy uuid.UUID, reason string) error
+	ReopenSession(ctx context.Context, sessionID, reopenedBy uuid.UUID) error
 	GetSessionByID(ctx context.Context, sessionID uuid.UUID) (*domain.StockOpname, error)
 	GetSessionDetails(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
 	GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error)
@@ -78,10 +80,11 @@ func NewStockOpnameUsecase(
 }
 
 type StartSessionInput struct {
-	WarehouseID uuid.UUID
-	LocationID  *uuid.UUID
-	StartedBy   uuid.UUID
-	IPAddress   string
+	WarehouseID  uuid.UUID
+	LocationID   *uuid.UUID
+	StartedBy    uuid.UUID
+	IPAddress    string
+	IsBlindCount bool
 }
 
 type SubmitScanInput struct {
@@ -102,11 +105,13 @@ func (u *stockOpnameUsecase) StartSession(ctx context.Context, input StartSessio
 	now := time.Now()
 
 	stockOpname := &domain.StockOpname{
-		WarehouseID: input.WarehouseID,
-		LocationID:  input.LocationID,
-		Status:      "in_progress",
-		StartedBy:   input.StartedBy,
-		StartedAt:   now,
+		WarehouseID:     input.WarehouseID,
+		LocationID:      input.LocationID,
+		Status:          "in_progress",
+		StartedBy:       input.StartedBy,
+		StartedAt:       now,
+		SnapshotTakenAt: &now, // snapshot stok sistem saat sesi dimulai
+		IsBlindCount:    input.IsBlindCount,
 	}
 
 	// Kode sesi: SO-YYYYMMDD-NNNN, counter harian atomik di DB. Counter bisa
@@ -167,6 +172,10 @@ func (u *stockOpnameUsecase) SubmitScan(ctx context.Context, input SubmitScanInp
 	}
 	if session.Status != "in_progress" {
 		return nil, fmt.Errorf("session is not active")
+	}
+	// Cut-off / frozen: tolak scan baru jika sesi dibekukan.
+	if session.IsFrozen {
+		return nil, fmt.Errorf("session is frozen; no new scans accepted")
 	}
 
 	// QR berisi product_code.
@@ -286,6 +295,8 @@ func (u *stockOpnameUsecase) CompleteSession(ctx context.Context, sessionID, use
 	now := time.Now()
 	session.Status = "completed"
 	session.CompletedAt = &now
+	session.CutOffAt = &now   // cut-off: stok dibekukan pada titik ini
+	session.IsFrozen = true   // tolak scan baru setelah cut-off
 
 	if err := u.stockOpnameRepo.Update(ctx, session); err != nil {
 		return fmt.Errorf("failed to complete session: %w", err)
@@ -316,6 +327,77 @@ func (u *stockOpnameUsecase) ApproveSession(ctx context.Context, sessionID, appr
 	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
 		UserID:     &approverID,
 		Action:     "approve_stock_opname",
+		EntityType: "stock_opname",
+		EntityID:   &sessionID,
+	})
+
+	return nil
+}
+
+// RejectSession menolak sesi yang sudah complete. Hanya supervisor/admin.
+func (u *stockOpnameUsecase) RejectSession(ctx context.Context, sessionID, rejectedBy uuid.UUID, reason string) error {
+	if reason == "" {
+		return fmt.Errorf("rejection reason is required")
+	}
+	session, err := u.stockOpnameRepo.FindByID(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	if session == nil {
+		return fmt.Errorf("session not found")
+	}
+	if session.Status != "completed" {
+		return fmt.Errorf("only completed sessions can be rejected")
+	}
+
+	now := time.Now()
+	session.Status = "rejected"
+	session.RejectedBy = &rejectedBy
+	session.RejectedAt = &now
+	session.RejectionReason = reason
+
+	if err := u.stockOpnameRepo.Update(ctx, session); err != nil {
+		return fmt.Errorf("failed to reject session: %w", err)
+	}
+
+	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
+		UserID:     &rejectedBy,
+		Action:     "reject_stock_opname",
+		EntityType: "stock_opname",
+		EntityID:   &sessionID,
+		NewValue:   datatypes.JSON(fmt.Sprintf(`{"reason":"%s"}`, reason)),
+	})
+
+	return nil
+}
+
+// ReopenSession membuka kembali sesi yang ditolak. Hanya admin.
+func (u *stockOpnameUsecase) ReopenSession(ctx context.Context, sessionID, reopenedBy uuid.UUID) error {
+	session, err := u.stockOpnameRepo.FindByID(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	if session == nil {
+		return fmt.Errorf("session not found")
+	}
+	if session.Status != "rejected" {
+		return fmt.Errorf("only rejected sessions can be reopened")
+	}
+
+	session.Status = "in_progress"
+	session.IsFrozen = false
+	session.CutOffAt = nil
+	session.RejectedBy = nil
+	session.RejectedAt = nil
+	session.RejectionReason = ""
+
+	if err := u.stockOpnameRepo.Update(ctx, session); err != nil {
+		return fmt.Errorf("failed to reopen session: %w", err)
+	}
+
+	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
+		UserID:     &reopenedBy,
+		Action:     "reopen_stock_opname",
 		EntityType: "stock_opname",
 		EntityID:   &sessionID,
 	})

@@ -71,6 +71,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	stockRepo := repository.NewStockRepository(cfg.DB.DB)
 	activityLogRepo := repository.NewActivityLogRepository(cfg.DB.DB)
 	notificationRepo := repository.NewNotificationRepository(cfg.DB.DB)
+	stockLedgerRepo := repository.NewStockLedgerRepository(cfg.DB.DB)
 
 	// Initialize usecases
 	authUsecase := usecase.NewAuthUsecase(userRepo, sessionRepo, activityLogRepo, cfg.Config)
@@ -84,6 +85,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	dashboardUsecase := usecase.NewDashboardUsecase(repository.NewDashboardRepository(cfg.DB.DB), activityLogRepo)
 	exportUsecase := usecase.NewExportUsecase(stockOpnameDetailRepo, productRepo, repository.NewReportRepository(cfg.DB.DB))
 	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo)
+	stockLedgerUsecase := usecase.NewStockLedgerUsecase(stockLedgerRepo, stockRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authUsecase)
@@ -98,6 +100,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 
 	snapshotHandler := handler.NewSnapshotHandler(cfg.DB.DB)
 	importHandler := handler.NewImportHandler(importUsecase)
+	stockLedgerHandler := handler.NewStockLedgerHandler(stockLedgerUsecase)
 	reconciliationHandler := handler.NewReconciliationHandler(stockOpnameUsecase)
 	stockAdjustmentHandler := handler.NewStockAdjustmentHandler(stockOpnameUsecase)
 
@@ -250,6 +253,14 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stockOpnameSupervisor.Use(middleware.RequireRole("supervisor", "admin"))
 			{
 				stockOpnameSupervisor.POST("/sessions/:id/approve", stockOpnameHandler.ApproveSession)
+				stockOpnameSupervisor.POST("/sessions/:id/reject", stockOpnameHandler.RejectSession)
+			}
+
+			// Admin only: reopen
+			stockOpnameAdmin := stockOpname.Group("")
+			stockOpnameAdmin.Use(middleware.RequireRole("admin"))
+			{
+				stockOpnameAdmin.POST("/sessions/:id/reopen", stockOpnameHandler.ReopenSession)
 			}
 		}
 
@@ -269,6 +280,16 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		snapshots.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
 		{
 			snapshots.GET("/compare", snapshotHandler.GetSnapshotComparison)
+		}
+
+		// Stock Ledger (kartu stok) - supervisor & admin
+		stockLedger := v1.Group("/stock-ledger")
+		stockLedger.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		stockLedger.Use(middleware.RequireRole("supervisor", "admin"))
+		{
+			stockLedger.GET("/product/:product_id/:warehouse_id", stockLedgerHandler.GetProductLedger)
+			stockLedger.GET("/warehouse/:warehouse_id", stockLedgerHandler.GetWarehouseLedger)
+			stockLedger.GET("/range", stockLedgerHandler.GetLedgerByDateRange)
 		}
 
 		// Manual stock adjustment (admin & supervisor)
