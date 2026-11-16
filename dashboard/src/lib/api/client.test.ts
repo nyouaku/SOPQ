@@ -76,4 +76,32 @@ describe('apiClient refresh', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(goto).not.toHaveBeenCalled();
 	});
+
+	it('banyak request 401 paralel: hanya SATU refresh yang dijalankan (single-flight)', async () => {
+		localStorage.setItem('access_token', 'old');
+		localStorage.setItem('refresh_token', 'r1');
+
+		let refreshCalled = 0;
+		const fetchMock = vi.fn((url: string, opts: RequestInit) => {
+			if (url.endsWith('/auth/refresh')) {
+				refreshCalled++;
+				return Promise.resolve(
+					json(200, { success: true, data: { access_token: 'new', refresh_token: 'r2' } })
+				);
+			}
+			// Request data: 401 hanya saat masih pakai token lama.
+			const auth = (opts.headers as Record<string, string>)['Authorization'];
+			if (auth === 'Bearer old') return Promise.resolve(json(401, { success: false }));
+			return Promise.resolve(json(200, { success: true, data: { ok: true } }));
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		// Luncurkan 5 request paralel, semua 401 lalu refresh bersama.
+		const calls = Array.from({ length: 5 }, () =>
+			apiClient.get('/protected').catch(() => null)
+		);
+		await Promise.all(calls);
+
+		expect(refreshCalled).toBe(1);
+	});
 });

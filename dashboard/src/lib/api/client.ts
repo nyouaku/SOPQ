@@ -15,6 +15,12 @@ interface ApiResponse<T> {
 class ApiClient {
 	private baseUrl: string;
 
+	// Single-flight refresh: saat banyak request paralel kena 401, semuanya berbagi
+	// SATU proses refresh. Tanpa ini tiap request me-refresh sendiri; refresh kedua
+	// memakai token lama yang sudah dirotasi, backend menganggapnya token reuse dan
+	// mencabut semua sesi (force-logout). Inilah sebabnya transfer tiba-tiba 401.
+	private refreshPromise: Promise<boolean> | null = null;
+
 	constructor(baseUrl: string) {
 		this.baseUrl = baseUrl;
 	}
@@ -35,6 +41,18 @@ class ApiClient {
 	}
 
 	private async refreshAccessToken(): Promise<boolean> {
+		// Sudah ada refresh berjalan? Gabungkan — jangan trigger ke-dua kali.
+		if (this.refreshPromise) return this.refreshPromise;
+
+		this.refreshPromise = this._doRefresh();
+		try {
+			return await this.refreshPromise;
+		} finally {
+			this.refreshPromise = null;
+		}
+	}
+
+	private async _doRefresh(): Promise<boolean> {
 		const refreshToken = await this.getRefreshToken();
 		if (!refreshToken) return false;
 
@@ -46,8 +64,12 @@ class ApiClient {
 			});
 
 			if (response.ok) {
+				const ct = response.headers.get('content-type') || '';
+				if (!ct.includes('application/json')) return false;
+				const text = await response.text();
+				if (!text) return false;
 				const data: ApiResponse<{ access_token: string; refresh_token?: string }> =
-					await response.json();
+					JSON.parse(text);
 				if (data.success && data.data) {
 					await this.setAccessToken(data.data.access_token);
 					if (data.data.refresh_token) {
