@@ -186,6 +186,41 @@
 		}
 	}
 
+	async function rejectSession() {
+		const reason = prompt('Alasan penolakan sesi (wajib):');
+		if (!reason) return;
+
+		try {
+			const response = await apiClient.post(
+				`/stock-opname/sessions/${sessionId}/reject`,
+				{ reason }
+			);
+			if (response.success) {
+				await loadSession();
+				toastStore.success('Sesi berhasil ditolak');
+			}
+		} catch (error: any) {
+			toastStore.error('Gagal menolak sesi: ' + (error.message || 'Unknown error'));
+		}
+	}
+
+	async function reopenSession() {
+		if (!confirm('Yakin ingin membuka kembali sesi ini?')) return;
+
+		try {
+			const response = await apiClient.post(
+				`/stock-opname/sessions/${sessionId}/reopen`,
+				{}
+			);
+			if (response.success) {
+				await loadSession();
+				toastStore.success('Sesi berhasil dibuka kembali');
+			}
+		} catch (error: any) {
+			toastStore.error('Gagal membuka kembali sesi: ' + (error.message || 'Unknown error'));
+		}
+	}
+
 	async function loadSummaryAndShowDialog() {
 		try {
 			const response = await apiClient.get(`/stock-opname/sessions/${sessionId}/summary`);
@@ -312,6 +347,14 @@
 							{#if session.status === 'completed' && ($authStore.user?.role?.name === 'supervisor' || $authStore.user?.role?.name === 'admin')}
 								<button class="btn btn-primary btn-sm" on:click={approveSession}>
 									Approve Session
+								</button>
+								<button class="btn btn-error btn-sm" on:click={rejectSession}>
+									Reject Session
+								</button>
+							{/if}
+							{#if session.status === 'rejected' && $authStore.user?.role?.name === 'admin'}
+								<button class="btn btn-warning btn-sm" on:click={reopenSession}>
+									Reopen Session
 								</button>
 							{/if}
 						</div>

@@ -54,6 +54,21 @@ export const API_ENDPOINTS = {
 	notifications: '/notifications',
 
 	// WebSocket
-	stockOpnameWS: (sessionId: string) => `/ws/stock-opname/sessions/${sessionId}`
+	stockOpnameWS: (sessionId: string) => `/ws/stock-opname/sessions/${sessionId}`,
+
+	// Stock Ledger (kartu stok)
+	stockLedgerProduct: (productId: string, warehouseId: string) =>
+		`/stock-ledger/product/${productId}/${warehouseId}`,
+	stockLedgerWarehouse: (warehouseId: string) =>
+		`/stock-ledger/warehouse/${warehouseId}`,
+	stockLedgerRange: '/stock-ledger/range',
+
+	// Backup
+	backupStatus: '/backup/status',
+	backupDownload: '/backup/download',
+
+	// Session lifecycle
+	sessionReject: (id: string) => `/stock-opname/sessions/${id}/reject`,
+	sessionReopen: (id: string) => `/stock-opname/sessions/${id}/reopen`,
 };
 // ===== END FILE =====

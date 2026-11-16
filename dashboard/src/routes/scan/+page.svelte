@@ -45,6 +45,10 @@
 	let pendingScans = 0;
 	let scanSuccessPlayed = false; // prevent multiple sounds per scan
 	let showSaveNotification = false;
+	let selectedSessionData: any = null;
+
+	// Update selectedSessionData saat session berubah
+	$: selectedSessionData = sessions.find((s: any) => s.id === selectedSession);
 
 	let videoElement: HTMLVideoElement;
 	let canvasElement: HTMLCanvasElement;
@@ -468,6 +472,17 @@
 					<button class="btn btn-ghost btn-xs" on:click={syncPending}>Kirim</button>
 				</div>
 			{/if}
+
+			<!-- Blind Count Indicator -->
+			{#if selectedSessionData?.is_blind_count}
+				<div class="mt-2 flex items-center gap-2 rounded-lg border border-info/40 bg-info/10 px-3 py-1.5">
+					<svg class="h-4 w-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+						<path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+					</svg>
+					<span class="text-xs font-medium text-info">Blind Count Mode — stok sistem disembunyikan</span>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Scan Mode: segmented control -->
@@ -688,23 +703,29 @@
 					</button>
 				</div>
 
-				<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-					<div>
-						<dt class="text-xs text-base-content/60">Kode</dt>
-						<dd class="metric">{product.product_code || '-'}</dd>
-					</div>
-					<div>
-					{#if product.brand}
+				{#if !selectedSessionData?.is_blind_count}
+					<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
 						<div>
-							<dt class="text-xs text-base-content/60">Brand</dt>
-							<dd class="truncate">{product.brand}</dd>
+							<dt class="text-xs text-base-content/60">Kode</dt>
+							<dd class="metric">{product.product_code || '-'}</dd>
 						</div>
-					{/if}
-					<div>
-						<dt class="text-xs text-base-content/60">Stok sistem</dt>
-						<dd class="metric">{productStock(product)}</dd>
-					</div>
-				</dl>
+						<div>
+						{#if product.brand}
+							<div>
+								<dt class="text-xs text-base-content/60">Brand</dt>
+								<dd class="truncate">{product.brand}</dd>
+							</div>
+						{/if}
+						<div>
+							<dt class="text-xs text-base-content/60">Stok sistem</dt>
+							<dd class="metric">{productStock(product)}</dd>
+						</div>
+					</dl>
+				{:else}
+					<p class="text-xs text-base-content/50">
+						Mode blind count: masukkan jumlah fisik tanpa melihat stok sistem.
+					</p>
+				{/if}
 			</div>
 
 			<!-- Quantity Input -->
