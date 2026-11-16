@@ -31,6 +31,8 @@ type StockOpnameUsecase interface {
 	ReconcileWarehouses(ctx context.Context, warehouseIDs []uuid.UUID) ([]domain.WarehouseReconciliation, error)
 	// AdjustStock menyesuaikan stok sistem secara manual dengan alasan wajib.
 	AdjustStock(ctx context.Context, input AdjustStockInput) (*domain.Stock, error)
+	// SetLedgerRepo menyuntikkan ledger repo agar perubahan stok tercatat di stock_ledger.
+	SetLedgerRepo(r repository.StockLedgerRepository)
 }
 
 // AdjustStockInput untuk penyesuaian stok manual.
@@ -58,7 +60,11 @@ type stockOpnameUsecase struct {
 	stockRepo             repository.StockRepository
 	productRepo           repository.ProductRepository
 	activityLogRepo       repository.ActivityLogRepository
-	broadcaster           ScanBroadcaster
+	// ledgerRepo opsional: bila tersedia, setiap perubahan quantity_system (adjustment
+	// maupun approve SO) juga dicatat ke stock_ledger agar saldo ledger tak menyimpang.
+	// Nil (mis. di sebagian test) berarti ledger dilewati tanpa menggagalkan operasi.
+	ledgerRepo repository.StockLedgerRepository
+	broadcaster ScanBroadcaster
 }
 
 func NewStockOpnameUsecase(
@@ -77,6 +83,12 @@ func NewStockOpnameUsecase(
 		activityLogRepo:       activityLogRepo,
 		broadcaster:           broadcaster,
 	}
+}
+
+// SetLedgerRepo menyuntikkan ledger repo (opsional). Dipanggil dari wiring routes.go.
+// Bila tidak diset, perubahan stok tak mencatat ledger (kontrak lama tetap berlaku).
+func (u *stockOpnameUsecase) SetLedgerRepo(r repository.StockLedgerRepository) {
+	u.ledgerRepo = r
 }
 
 type StartSessionInput struct {
@@ -525,6 +537,29 @@ func (u *stockOpnameUsecase) AdjustStock(ctx context.Context, input AdjustStockI
 	oldVal, newVal, err := u.stockRepo.AdjustStock(ctx, input.ProductID, input.WarehouseID, input.Delta, stock.Version)
 	if err != nil {
 		return nil, err
+	}
+
+	// Catat ke stock_ledger agar saldo ledger tak menyimpang dari quantity_system.
+	// Dilakukan SETELAH stok berhasil diubah; kegagalan ledger tidak menggagalkan
+	// adjustment (stok sudah tersimpan), hanya dicatat sebagai peringatan.
+	if u.ledgerRepo != nil {
+		qtyIn, qtyOut := input.Delta, 0
+		if input.Delta < 0 {
+			qtyIn, qtyOut = 0, -input.Delta
+		}
+		if lerr := u.ledgerRepo.Create(ctx, &domain.StockLedger{
+			ProductID:       input.ProductID,
+			WarehouseID:     input.WarehouseID,
+			TransactionType: domain.LedgerTypeAdjustment,
+			ReferenceType:   "manual",
+			QuantityIn:      qtyIn,
+			QuantityOut:     qtyOut,
+			BalanceAfter:    newVal,
+			Note:            fmt.Sprintf("%s: %s", input.Reason, input.Note),
+			CreatedBy:       &input.UserID,
+		}); lerr != nil {
+			fmt.Printf("warning: gagal mencatat ledger adjustment: %v\n", lerr)
+		}
 	}
 
 	// Activity log untuk audit trail

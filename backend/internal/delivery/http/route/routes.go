@@ -72,6 +72,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	activityLogRepo := repository.NewActivityLogRepository(cfg.DB.DB)
 	notificationRepo := repository.NewNotificationRepository(cfg.DB.DB)
 	stockLedgerRepo := repository.NewStockLedgerRepository(cfg.DB.DB)
+	inventoryRepo := repository.NewInventoryRepository(cfg.DB.DB)
 
 	// Initialize usecases
 	authUsecase := usecase.NewAuthUsecase(userRepo, sessionRepo, activityLogRepo, cfg.Config)
@@ -80,11 +81,14 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, locationRepo, boxRepo)
 	productUsecase := usecase.NewProductUsecase(productRepo)
 	stockOpnameUsecase := usecase.NewStockOpnameUsecase(stockOpnameRepo, stockOpnameDetailRepo, stockRepo, productRepo, activityLogRepo, websocket.NewPublisher())
+	// Suntikkan ledger repo agar adjustment & approve SO ikut mencatat stock_ledger.
+	stockOpnameUsecase.SetLedgerRepo(stockLedgerRepo)
 	reportUsecase := usecase.NewReportUsecase(stockOpnameDetailRepo, activityLogRepo, repository.NewReportRepository(cfg.DB.DB))
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	dashboardUsecase := usecase.NewDashboardUsecase(repository.NewDashboardRepository(cfg.DB.DB), activityLogRepo)
 	exportUsecase := usecase.NewExportUsecase(stockOpnameDetailRepo, productRepo, repository.NewReportRepository(cfg.DB.DB))
 	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo, stockRepo, warehouseRepo)
+	inventoryUsecase := usecase.NewInventoryUsecase(inventoryRepo, activityLogRepo)
 	stockLedgerUsecase := usecase.NewStockLedgerUsecase(stockLedgerRepo, stockRepo)
 
 	// Initialize handlers
@@ -103,6 +107,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	stockLedgerHandler := handler.NewStockLedgerHandler(stockLedgerUsecase)
 	reconciliationHandler := handler.NewReconciliationHandler(stockOpnameUsecase)
 	stockAdjustmentHandler := handler.NewStockAdjustmentHandler(stockOpnameUsecase)
+	inventoryHandler := handler.NewInventoryHandler(inventoryUsecase)
 	backupHandler := handler.NewBackupHandler(cfg.Config, cfg.DB.DB)
 
 	// API v1 group
@@ -304,6 +309,24 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stocksAdmin.Use(middleware.RequireRole("supervisor", "admin"))
 			{
 				stocksAdmin.POST("/adjust", stockAdjustmentHandler.AdjustStock)
+			}
+		}
+
+		// Inventory movement (Stock IN/OUT/transfer antar gudang) — supervisor & admin.
+		// Operasi berat (ubah stok + tulis ledger), batasi 30 req/menit/IP.
+		inventory := v1.Group("/inventory")
+		inventory.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		inventory.Use(middleware.RateLimiter(cfg.RedisClient, 30, time.Minute))
+		{
+			inventory.GET("", inventoryHandler.ListMovements)
+			inventory.GET("/:id", inventoryHandler.GetMovement)
+
+			inventoryWrite := inventory.Group("")
+			inventoryWrite.Use(middleware.RequireRole("supervisor", "admin"))
+			{
+				inventoryWrite.POST("/in", inventoryHandler.PostIn)
+				inventoryWrite.POST("/out", inventoryHandler.PostOut)
+				inventoryWrite.POST("/transfer", inventoryHandler.PostTransfer)
 			}
 		}
 

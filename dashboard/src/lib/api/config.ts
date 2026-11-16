@@ -70,5 +70,12 @@ export const API_ENDPOINTS = {
 	// Session lifecycle
 	sessionReject: (id: string) => `/stock-opname/sessions/${id}/reject`,
 	sessionReopen: (id: string) => `/stock-opname/sessions/${id}/reopen`,
+
+	// Inventory movement (Stock IN/OUT/transfer antar gudang)
+	inventory: '/inventory',
+	inventoryById: (id: string) => `/inventory/${id}`,
+	inventoryIn: '/inventory/in',
+	inventoryOut: '/inventory/out',
+	inventoryTransfer: '/inventory/transfer',
 };
 // ===== END FILE =====

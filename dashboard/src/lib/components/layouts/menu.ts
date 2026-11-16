@@ -22,6 +22,7 @@ export const MENU_ITEMS: MenuItem[] = [
 	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER },
 	{ href: '/reports', label: 'Reports', icon: '📈', shortcut: 'R', roles: MANAGER },
 	{ href: '/stock-ledger', label: 'Stock Ledger', icon: '📒', shortcut: 'L', roles: MANAGER },
+	{ href: '/inventory', label: 'Inventory', icon: '📥', shortcut: 'I', roles: MANAGER },
 	{ href: '/reconciliation', label: 'Rekonsiliasi', icon: '🔄', shortcut: 'N', roles: MANAGER },
 	{ href: '/snapshots', label: 'Snapshots', icon: '📸', shortcut: 'H', roles: MANAGER },
 	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER },

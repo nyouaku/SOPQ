@@ -20,7 +20,8 @@ export const queryKeys = {
 	notifications: ['notifications'] as const,
 	activityLogs: (params: string) => ['activity-logs', params] as const,
 	report: (params: string) => ['reports', 'stock-opname', params] as const,
-	sessions: (params: string) => ['sessions', params] as const
+	sessions: (params: string) => ['sessions', params] as const,
+	inventory: (params: string) => ['inventory', params] as const
 };
 
 /** Buka `data` dari amplop respons; lempar error agar ditangani query. */
@@ -139,6 +140,23 @@ export const notificationsQuery = () =>
 		queryFn: fetchNotifications,
 		refetchInterval: 60_000
 	});
+
+// --- Inventory movement (Stock IN/OUT/transfer) ---
+
+export async function fetchInventoryList(params: URLSearchParams) {
+	const res = await apiClient.get<{ data: any[]; total: number }>(
+		`${API_ENDPOINTS.inventory}?${params.toString()}`
+	);
+	return unwrap(res);
+}
+
+export const inventoryQuery = (params: ParamsInput) =>
+	createQuery(
+		derived(paramsStore(params), ($p) => ({
+			queryKey: queryKeys.inventory($p.toString()),
+			queryFn: () => fetchInventoryList($p)
+		}))
+	);
 
 type ParamsInput = URLSearchParams | Readable<URLSearchParams>;
 

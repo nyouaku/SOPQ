@@ -1,0 +1,182 @@
+<script lang="ts">
+	import { writable } from 'svelte/store';
+	import { page as pageStore } from '$app/stores';
+	import { replaceState } from '$app/navigation';
+	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
+	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
+	import { inventoryQuery, warehousesQuery } from '$lib/api/queries';
+
+	const limit = 25;
+	const init = new URLSearchParams($pageStore.url.search);
+
+	let warehouseId = init.get('warehouse_id') ?? '';
+	let movementType = init.get('movement_type') ?? '';
+	let from = init.get('from') ?? '';
+	let to = init.get('to') ?? '';
+	let page = Math.max(1, parseInt(init.get('page') ?? '1', 10) || 1);
+	let applied = writable(buildParams(page));
+
+	onMount(() =>
+		applied.subscribe((p) => replaceState(`${window.location.pathname}?${p.toString()}`, {}))
+	);
+
+	const movements = inventoryQuery(applied);
+	const warehousesQ = warehousesQuery();
+
+	$: rows = ($movements.data?.data as any[]) || [];
+	$: total = $movements.data?.total || 0;
+	$: totalPages = Math.max(1, Math.ceil(total / limit));
+	$: warehouseList = ($warehousesQ.data as any[]) ?? [];
+
+	function buildParams(nextPage: number) {
+		const p = new URLSearchParams();
+		if (warehouseId) p.set('warehouse_id', warehouseId);
+		if (movementType) p.set('movement_type', movementType);
+		if (from) p.set('from', from);
+		if (to) p.set('to', to);
+		p.set('page', String(nextPage));
+		p.set('limit', String(limit));
+		return p;
+	}
+
+	function apply() {
+		page = 1;
+		applied.set(buildParams(1));
+	}
+
+	function goPage(n: number) {
+		page = n;
+		const p = new URLSearchParams($applied);
+		p.set('page', String(n));
+		applied.set(p);
+	}
+
+	function clearFilters() {
+		warehouseId = '';
+		movementType = '';
+		from = '';
+		to = '';
+		apply();
+	}
+
+	const typeBadge: Record<string, string> = {
+		in: 'badge-success',
+		out: 'badge-error',
+		transfer: 'badge-info'
+	};
+
+	function fmtDate(iso: string) {
+		if (!iso) return '-';
+		return new Date(iso).toLocaleString('id-ID', {
+			day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+		});
+	}
+
+	import { onMount } from 'svelte';
+</script>
+
+<svelte:head>
+	<title>Inventory - Stock Opname</title>
+</svelte:head>
+
+<LayoutWrapper>
+	<div class="page">
+		<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+			<div>
+				<h1 class="page-title">Inventory</h1>
+				<p class="page-subtitle">Pergerakan stok: barang masuk, keluar, dan transfer antar gudang</p>
+			</div>
+			<a href="/inventory/new" class="btn btn-primary btn-sm shrink-0 md:btn-md">
+				<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" d="M12 4v16m8-8H4" />
+				</svg>
+				<span class="hidden sm:inline">Catat pergerakan</span>
+				<span class="sm:hidden">Baru</span>
+			</a>
+		</div>
+
+		<!-- Filters -->
+		<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-4">
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+				<div>
+					<label class="label py-0" for="f-wh"><span class="label-text text-xs text-base-content/60">Gudang</span></label>
+					<select id="f-wh" class="select select-bordered select-sm w-full" bind:value={warehouseId}>
+						<option value="">Semua gudang</option>
+						{#each warehouseList as wh}
+							<option value={wh.id}>{wh.name}</option>
+						{/each}
+					</select>
+				</div>
+				<div>
+					<label class="label py-0" for="f-type"><span class="label-text text-xs text-base-content/60">Jenis</span></label>
+					<select id="f-type" class="select select-bordered select-sm w-full" bind:value={movementType}>
+						<option value="">Semua jenis</option>
+						<option value="in">Masuk (IN)</option>
+						<option value="out">Keluar (OUT)</option>
+						<option value="transfer">Transfer</option>
+					</select>
+				</div>
+				<div>
+					<label class="label py-0" for="f-from"><span class="label-text text-xs text-base-content/60">Dari</span></label>
+					<input id="f-from" type="date" class="input input-bordered input-sm w-full" bind:value={from} />
+				</div>
+				<div>
+					<label class="label py-0" for="f-to"><span class="label-text text-xs text-base-content/60">Sampai</span></label>
+					<input id="f-to" type="date" class="input input-bordered input-sm w-full" bind:value={to} />
+				</div>
+			</div>
+			<div class="mt-3 flex gap-2">
+				<button class="btn btn-primary btn-sm" on:click={apply}>Terapkan</button>
+				<button class="btn btn-ghost btn-sm" on:click={clearFilters}>Bersihkan</button>
+			</div>
+		</div>
+
+		<!-- Table -->
+		<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
+			{#if $movements.isLoading}
+				<TableSkeleton rows={6} columns={6} />
+			{:else if rows.length === 0}
+				<p class="py-8 text-center text-sm text-base-content/60">Belum ada pergerakan stok</p>
+			{:else}
+				<div class="overflow-x-auto">
+					<table class="table table-sm">
+						<thead>
+							<tr>
+								<th>Kode</th>
+								<th>Jenis</th>
+								<th>Gudang</th>
+								<th>Tujuan</th>
+								<th>Ref</th>
+								<th>Waktu</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each rows as m}
+								<tr>
+									<td><a class="link link-primary metric text-xs" href="/inventory/{m.id}">{m.code}</a></td>
+									<td>
+										<span class="badge badge-sm capitalize {typeBadge[m.movement_type] || 'badge-ghost'}">
+											{m.movement_type}
+										</span>
+									</td>
+									<td class="text-xs">{m.warehouse?.name || '-'}</td>
+									<td class="text-xs">{m.to_warehouse?.name || '-'}</td>
+									<td class="metric text-xs">{m.reference_code || '-'}</td>
+									<td class="text-xs text-base-content/60">{fmtDate(m.created_at)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+
+				{#if totalPages > 1}
+					<div class="mt-4 flex items-center justify-center gap-2">
+						<button class="btn btn-sm" disabled={page <= 1} on:click={() => goPage(page - 1)}>Sebelumnya</button>
+						<span class="metric text-xs text-base-content/60">{page} / {totalPages}</span>
+						<button class="btn btn-sm" disabled={page >= totalPages} on:click={() => goPage(page + 1)}>Berikutnya</button>
+					</div>
+				{/if}
+			{/if}
+		</div>
+	</div>
+</LayoutWrapper>
