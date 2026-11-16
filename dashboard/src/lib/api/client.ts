@@ -1,5 +1,4 @@
 // ===== FILE: dashboard/src/lib/api/client.ts =====
-import { goto } from '$app/navigation';
 import { API_BASE_URL } from './config';
 
 interface ApiResponse<T> {
@@ -10,6 +9,16 @@ interface ApiResponse<T> {
 		code: string;
 		message: string;
 	};
+}
+
+/** Error dengan HTTP status — dipakai queryClient utk memutus retry pada 4xx. */
+export class ApiError extends Error {
+	status: number;
+	constructor(message: string, status: number) {
+		super(message);
+		this.name = 'ApiError';
+		this.status = status;
+	}
 }
 
 class ApiClient {
@@ -123,14 +132,16 @@ class ApiClient {
 					}
 				}
 
-				// Refresh gagal ATAU retry tetap 401: hentikan loop, paksa login.
-				// Tanpa ini svelte-query terus refetch dan memicu request berulang.
+				// Refresh gagal ATAU retry tetap 401: paksa logout dengan FULL page reload.
+				// goto() (navigasi SPA) TIDAK menghentikan polling query yang sudah jalan —
+				// query tetap refetch -> 401 lagi -> redirect lagi = loop "blinking".
+				// window.location.replace mematikan seluruh SPA sekaligus (query, observer).
 				if (response.status === 401) {
 					if (typeof window !== 'undefined' && !location.pathname.startsWith('/login')) {
 						localStorage.clear();
-						goto('/login');
+						window.location.replace('/login');
 					}
-					throw new Error('Unauthorized');
+					throw new ApiError('Unauthorized', 401);
 				}
 			}
 
@@ -140,7 +151,7 @@ class ApiClient {
 			const ct = response.headers.get('content-type') || '';
 			if (!ct.includes('application/json')) {
 				if (!response.ok) {
-					throw new Error(`Server error ${response.status}`);
+					throw new ApiError(`Server error ${response.status}`, response.status);
 				}
 				data = { success: response.ok } as ApiResponse<T>;
 			} else {

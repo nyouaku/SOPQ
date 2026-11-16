@@ -13,7 +13,14 @@ export function getQueryClient(): QueryClient {
 			defaultOptions: {
 				queries: {
 					refetchOnWindowFocus: false,
-					retry: 1
+					// 401 tak pernah dipercoba ulang: retry hanya memperbanyak request 401
+					// (memburukkan loop "blinking" saat sesi kedaluwarsa). Retry hanya utk
+					// error jaringan/500 — 4xx adalah kegagalan permanen.
+					retry: (failureCount, error) => {
+						const status = (error as { status?: number } | null)?.status;
+						if (status === 401 || status === 403 || status === 404) return false;
+						return failureCount < 1;
+					}
 				}
 			}
 		});

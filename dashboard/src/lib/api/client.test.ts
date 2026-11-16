@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const goto = vi.fn();
-vi.mock('$app/navigation', () => ({ goto: (...a: unknown[]) => goto(...a) }));
 vi.mock('./config', () => ({ API_BASE_URL: '/api/v1' }));
 
 const { apiClient } = await import('./client');
@@ -12,7 +10,6 @@ const json = (status: number, body: unknown) =>
 describe('apiClient refresh', () => {
 	beforeEach(() => {
 		localStorage.clear();
-		goto.mockReset();
 		vi.restoreAllMocks();
 	});
 
@@ -45,6 +42,11 @@ describe('apiClient refresh', () => {
 	it('401 lalu refresh gagal: sesi dihapus dan diarahkan ke login', async () => {
 		localStorage.setItem('access_token', 'old');
 		localStorage.setItem('refresh_token', 'r1');
+		const replaceSpy = vi.fn();
+		Object.defineProperty(window, 'location', {
+			value: { pathname: '/dashboard', replace: replaceSpy },
+			writable: true
+		});
 
 		vi.stubGlobal(
 			'fetch',
@@ -56,7 +58,8 @@ describe('apiClient refresh', () => {
 
 		await expect(apiClient.get('/products')).rejects.toThrow('Unauthorized');
 		expect(localStorage.getItem('access_token')).toBeNull();
-		expect(goto).toHaveBeenCalledWith('/login');
+		// Redirect memakai full reload, bukan navigasi SPA, agar polling query mati total.
+		expect(replaceSpy).toHaveBeenCalledWith('/login');
 	});
 
 	it('401 pada login: respons asli diteruskan, tanpa redirect ke login', async () => {
@@ -74,7 +77,6 @@ describe('apiClient refresh', () => {
 		expect(res.error?.message).toBe('username atau password salah');
 		// Hanya 1 fetch (tidak coba refresh).
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(goto).not.toHaveBeenCalled();
 	});
 
 	it('banyak request 401 paralel: hanya SATU refresh yang dijalankan (single-flight)', async () => {
