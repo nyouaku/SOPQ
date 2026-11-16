@@ -82,7 +82,7 @@ class ApiClient {
 				headers
 			});
 
-			// Retry with refresh token on 401
+			// Retry sekali dengan refresh token saat 401.
 			if (response.status === 401) {
 				const refreshed = await this.refreshAccessToken();
 				if (refreshed) {
@@ -94,9 +94,12 @@ class ApiClient {
 							headers
 						});
 					}
-				} else {
-					// Refresh failed, redirect to login
-					if (typeof window !== 'undefined') {
+				}
+
+				// Refresh gagal ATAU retry tetap 401: hentikan loop, paksa login.
+				// Tanpa ini svelte-query terus refetch dan memicu request berulang.
+				if (response.status === 401) {
+					if (typeof window !== 'undefined' && !location.pathname.startsWith('/login')) {
 						localStorage.clear();
 						goto('/login');
 					}

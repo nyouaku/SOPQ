@@ -111,10 +111,11 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		// Auth routes (public)
 		auth := v1.Group("/auth")
 		{
-			// Limiter dipasang sebelum handler: 10 login / 15 menit per IP,
-			// 5 / 15 menit per username; refresh 30 / 15 menit per IP.
-			auth.POST("/login", middleware.LoginLimiter(cfg.RedisClient, 10, 15*time.Minute), authHandler.Login)
-			auth.POST("/refresh", middleware.RateLimiterByKey(cfg.RedisClient, "refresh_ip", 30, 15*time.Minute, func(c *gin.Context) string { return c.ClientIP() }), authHandler.RefreshToken)
+			// SEMENTARA unlimited: rate limit login dimatikan untuk debug login (lihat TODO di bawah).
+			// TODO: kembalikan ke LoginLimiter(cfg.RedisClient, 10, 15*time.Minute) dan
+			// RateLimiterByKey(..., "refresh_ip", 30, 15*time.Minute, ...) setelah login beres.
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.RefreshToken)
 
 			// Protected auth routes
 			authProtected := auth.Group("")
