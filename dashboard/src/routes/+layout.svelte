@@ -24,6 +24,19 @@
 		goto('/login');
 	}
 
+	// Guard role: Inventory Management tak untuk staff gudang (UI-only; backend
+	// tetap proteksi via RequireRole). Staff yang memaksa URL dialihkan ke /apps.
+	const INVENTORY_PREFIX = '/inventory';
+	$: isInventory = $page.url.pathname.startsWith(INVENTORY_PREFIX);
+	$: if (
+		!$authStore.isLoading &&
+		$authStore.isAuthenticated &&
+		isInventory &&
+		$authStore.user?.role?.name === 'staff gudang'
+	) {
+		goto('/apps');
+	}
+
 	onMount(() => {
 		authStore.checkAuth();
 		themeStore.init();

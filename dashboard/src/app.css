@@ -1,7 +1,8 @@
 /* Import custom themes - MUST be first */
 @import './lib/styles/themes.css';
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Google Fonts dimuat via <link> di app.html (bukan @import) agar tidak
+   render-blocking dan tidak diblokir CSP style-src. */
 
 @tailwind base;
 @tailwind components;
@@ -14,6 +15,7 @@
 
   body {
     @apply antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
   }
 }
 
@@ -30,5 +32,78 @@
   }
   .page-subtitle {
     @apply mt-1 text-sm text-base-content/60;
+  }
+}
+
+/* ============================================================
+   SOPQ Apple-inspired design system
+   Glassmorphism, hairline separators, soft shadows, Apple easing.
+   Dipakai AppleLayout + application selector + kartu premium.
+   Semua animasi transform/opacity (GPU-friendly).
+   ============================================================ */
+@layer components {
+  /* Translucent frosted panel (pola terbukti di BottomBar.svelte). */
+  .glass {
+    background: color-mix(in srgb, hsl(var(--b1)) 72%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+  }
+
+  /* Kartu premium: rounded, soft shadow lembut (bukan border tebal). */
+  .card-apple {
+    background: hsl(var(--b1));
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, hsl(var(--bc)) 8%, transparent);
+    box-shadow:
+      0 1px 2px hsl(var(--bc) / 0.04),
+      0 8px 24px hsl(var(--bc) / 0.06);
+    transition:
+      transform 250ms var(--ease-apple),
+      box-shadow 250ms var(--ease-apple);
+  }
+  .card-apple--hover:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 2px 4px hsl(var(--bc) / 0.05),
+      0 16px 40px hsl(var(--bc) / 0.1);
+  }
+
+  /* Garis pemisah hairline (bukan border tebal). */
+  .hairline {
+    border-color: color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+  }
+  .hairline-b {
+    border-bottom: 1px solid color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+  }
+
+  /* Tekanan tombol ala iOS. */
+  .press {
+    transition: transform 150ms var(--ease-apple);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+}
+
+@layer base {
+  :root {
+    /* Easing khas Apple Dock / macOS window. */
+    --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-micro: 180ms;
+    --dur-hover: 250ms;
+    --dur-entrance: 420ms;
+    --dur-page: 360ms;
+  }
+
+  /* Hormati preferensi pengguna: matikan animasi. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

@@ -8,8 +8,9 @@
 	import TopNavLayout from './TopNavLayout.svelte';
 	import CommandLayout from './CommandLayout.svelte';
 	import BottomLayout from './BottomLayout.svelte';
+	import AppleLayout from './AppleLayout.svelte';
 
-	let currentLayout: ThemeLayout = 'sidebar';
+	let currentLayout: ThemeLayout = 'apple';
 	let currentPath = '';
 
 	onMount(() => {
@@ -21,7 +22,11 @@
 	$: currentPath = $page.url.pathname;
 </script>
 
-{#if currentLayout === 'sidebar'}
+{#if currentLayout === 'apple'}
+	<AppleLayout {currentPath}>
+		<slot />
+	</AppleLayout>
+{:else if currentLayout === 'sidebar'}
 	<SidebarLayout {currentPath}>
 		<slot />
 	</SidebarLayout>

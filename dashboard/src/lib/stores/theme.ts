@@ -1,8 +1,15 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type ThemeLayout = 'sidebar' | 'topnav' | 'command' | 'bottom';
-export type ThemeColor = 'rack-room' | 'noc-console' | 'daylight-ops' | 'saweria' | 'modern-list';
+export type ThemeLayout = 'apple' | 'sidebar' | 'topnav' | 'command' | 'bottom';
+export type ThemeColor =
+	| 'apple-light'
+	| 'apple-dark'
+	| 'rack-room'
+	| 'noc-console'
+	| 'daylight-ops'
+	| 'saweria'
+	| 'modern-list';
 export type ThemeMode = 'manual' | 'auto';
 
 export interface Theme {
@@ -21,8 +28,8 @@ export interface Theme {
 const THEME_KEY = 'stock-opname-theme';
 
 const defaultTheme: Theme = {
-	layout: 'command',
-	color: 'saweria',
+	layout: 'apple',
+	color: 'apple-dark',
 	mode: 'manual',
 	nightStartHour: 18,
 	dayStartHour: 6
@@ -35,10 +42,10 @@ function getHourBasedColor(theme: Theme): ThemeColor {
 
 	// Jika nightStart > dayStart (misal 18 > 6), malam = hour >= nightStart || hour < dayStart
 	if (nightStart > dayStart) {
-		return hour >= nightStart || hour < dayStart ? (theme.nightColor ?? 'rack-room') : (theme.dayColor ?? 'daylight-ops');
+		return hour >= nightStart || hour < dayStart ? (theme.nightColor ?? 'apple-dark') : (theme.dayColor ?? 'apple-light');
 	}
 	// Kasus edge: nightStart < dayStart (misal 0 > 12 tidak masuk akal, tapi handle)
-	return hour >= nightStart && hour < dayStart ? (theme.nightColor ?? 'rack-room') : (theme.dayColor ?? 'daylight-ops');
+	return hour >= nightStart && hour < dayStart ? (theme.nightColor ?? 'apple-dark') : (theme.dayColor ?? 'apple-light');
 }
 
 function createThemeStore() {
@@ -193,6 +200,12 @@ export const themeStore = createThemeStore();
 // Theme metadata
 export const THEME_LAYOUTS = [
 	{
+		id: 'apple' as ThemeLayout,
+		name: 'Apple',
+		description: 'Glass sidebar, Apple-inspired premium',
+		icon: '🍎'
+	},
+	{
 		id: 'sidebar' as ThemeLayout,
 		name: 'Classic Sidebar',
 		description: 'Traditional sidebar navigation',
@@ -219,6 +232,18 @@ export const THEME_LAYOUTS = [
 ] as const;
 
 export const THEME_COLORS = [
+	{
+		id: 'apple-light' as ThemeColor,
+		name: 'Apple Light',
+		description: 'Apple-inspired light (#F5F5F7)',
+		preview: { bg: '#F5F5F7', primary: '#007AFF', text: '#1D1D1F' }
+	},
+	{
+		id: 'apple-dark' as ThemeColor,
+		name: 'Apple Dark',
+		description: 'Apple-inspired dark (#151516)',
+		preview: { bg: '#151516', primary: '#0A84FF', text: '#F5F5F7' }
+	},
 	{
 		id: 'rack-room' as ThemeColor,
 		name: 'Rack Room',

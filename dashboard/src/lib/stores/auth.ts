@@ -54,7 +54,7 @@ function createAuthStore() {
 						isLoading: false
 					});
 
-					goto('/');
+					goto('/apps');
 					return { success: true };
 				} else {
 					update((state) => ({ ...state, isLoading: false }));

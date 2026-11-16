@@ -4,8 +4,8 @@ export default {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ['Inter', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
-				mono: ['JetBrains Mono', 'IBM Plex Mono', 'Consolas', 'monospace']
+				sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Inter', 'system-ui', 'sans-serif'],
+				mono: ['SF Mono', 'JetBrains Mono', 'IBM Plex Mono', 'Consolas', 'monospace']
 			},
 			colors: {
 				// Rack Room theme
@@ -23,6 +23,36 @@ export default {
 	daisyui: {
 		themes: [
 			{
+				// Apple-inspired light — default. Hairline borders, neutral surfaces (#F5F5F7).
+				'apple-light': {
+					primary: '#007AFF',
+					secondary: '#86868B',
+					accent: '#007AFF',
+					neutral: '#E5E5EA',
+					'base-100': '#FFFFFF',
+					'base-200': '#F5F5F7',
+					'base-300': '#E8E8ED',
+					'base-content': '#1D1D1F',
+					info: '#007AFF',
+					success: '#30D158',
+					warning: '#FF9F0A',
+					error: '#FF3B30'
+				},
+				// Apple-inspired dark — #151516 bg, #242426 surface.
+				'apple-dark': {
+					primary: '#0A84FF',
+					secondary: '#98989D',
+					accent: '#0A84FF',
+					neutral: '#2C2C2E',
+					'base-100': '#242426',
+					'base-200': '#151516',
+					'base-300': '#2C2C2E',
+					'base-content': '#F5F5F7',
+					info: '#0A84FF',
+					success: '#30D158',
+					warning: '#FF9F0A',
+					error: '#FF453A'
+				},
 				'rack-room': {
 					primary: '#5EEAD4',
 					secondary: '#F4B740',
@@ -95,7 +125,7 @@ export default {
 				}
 			}
 		],
-		darkTheme: 'rack-room',
+		darkTheme: 'apple-dark',
 		base: true,
 		styled: true,
 		utils: true

@@ -72,6 +72,17 @@
 		});
 	}
 
+	// Ringkasan (agregat client-side dari halaman aktif) — tanpa ubah backend/API.
+	$: stats = (() => {
+		let inCount = 0, outCount = 0, transferCount = 0;
+		for (const m of rows) {
+			if (m.movement_type === 'in') inCount++;
+			else if (m.movement_type === 'out') outCount++;
+			else if (m.movement_type === 'transfer') transferCount++;
+		}
+		return { inCount, outCount, transferCount };
+	})();
+
 	import { onMount } from 'svelte';
 </script>
 
@@ -93,6 +104,22 @@
 				<span class="hidden sm:inline">Catat pergerakan</span>
 				<span class="sm:hidden">Baru</span>
 			</a>
+		</div>
+
+		<!-- Stat ringkasan (glass, dari halaman aktif) -->
+		<div class="mb-4 grid grid-cols-3 gap-3">
+			<div class="card-apple p-4">
+				<div class="text-xs text-base-content/60">Masuk (IN)</div>
+				<div class="metric text-2xl font-semibold text-success">{stats.inCount}</div>
+			</div>
+			<div class="card-apple p-4">
+				<div class="text-xs text-base-content/60">Keluar (OUT)</div>
+				<div class="metric text-2xl font-semibold text-error">{stats.outCount}</div>
+			</div>
+			<div class="card-apple p-4">
+				<div class="text-xs text-base-content/60">Transfer</div>
+				<div class="metric text-2xl font-semibold text-info">{stats.transferCount}</div>
+			</div>
 		</div>
 
 		<!-- Filters -->
