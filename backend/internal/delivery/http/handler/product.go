@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/nyouaku/SOPQ/backend/internal/domain"
+	"github.com/nyouaku/SOPQ/backend/internal/middleware"
 	"github.com/nyouaku/SOPQ/backend/internal/repository"
 	"github.com/nyouaku/SOPQ/backend/internal/usecase"
 	"github.com/nyouaku/SOPQ/backend/pkg/utils"
@@ -325,15 +326,12 @@ func (h *ProductHandler) TransferProducts(c *gin.Context) {
 		return
 	}
 
-	// Ambil user ID dari context (JWT)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		utils.RespondUnauthorized(c, "Unauthorized")
-		return
-	}
-	userUUID, ok := userID.(uuid.UUID)
+	// Ambil user ID dari context (JWT). Wajib lewat helper middleware — middleware
+	// menyimpan claims di key "user" (bukan "user_id"), jadi c.Get("user_id") selalu
+	// kosong dan endpoint ini sempat selalu 401 walau token valid.
+	userUUID, ok := middleware.GetUserIDFromContext(c)
 	if !ok {
-		utils.RespondUnauthorized(c, "Invalid user ID")
+		utils.RespondUnauthorized(c, "Unauthorized")
 		return
 	}
 
