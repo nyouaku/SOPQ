@@ -84,7 +84,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	dashboardUsecase := usecase.NewDashboardUsecase(repository.NewDashboardRepository(cfg.DB.DB), activityLogRepo)
 	exportUsecase := usecase.NewExportUsecase(stockOpnameDetailRepo, productRepo, repository.NewReportRepository(cfg.DB.DB))
-	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo)
+	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo, stockRepo, warehouseRepo)
 	stockLedgerUsecase := usecase.NewStockLedgerUsecase(stockLedgerRepo, stockRepo)
 
 	// Initialize handlers

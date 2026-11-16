@@ -11,9 +11,12 @@
 	import { toastStore } from '$lib/stores/toast';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	// Auth guard terpusat di src/routes/+layout.svelte.
-	let currentTheme: Theme = { layout: 'bottom', color: 'rack-room' };
+	// mode wajib diisi (Theme butuh itu); kalau kosong, ThemeSelector tak meng-highlight
+	// tombol mode mana pun dan blok auto-mode tak muncul saat render pertama.
+	let currentTheme: Theme = { layout: 'bottom', color: 'rack-room', mode: 'manual' };
 	themeStore.subscribe((t) => (currentTheme = t));
 
 	// Reaktif: user baru terisi setelah checkAuth selesai (penting di mobile).
@@ -99,39 +102,92 @@
 		}
 	}
 
-	async function toggleUserStatus(user: any) {
-		const action = user.is_active ? 'menonaktifkan' : 'mengaktifkan';
-		if (!confirm(`Yakin ingin ${action} user ${user.full_name || user.username}?`)) return;
+	// Confirm dialog state (mengganti window.confirm agar konsisten tema)
+	let showUserConfirm = false;
+	let pendingUserAction: (() => Promise<void>) | null = null;
+	let confirmTitle = '';
+	let confirmMessage = '';
+	let confirmLabel = 'Konfirmasi';
+	let isConfirmLoading = false;
+
+	function openUserConfirm(opts: {
+		title: string;
+		message: string;
+		confirmLabel?: string;
+		action: () => Promise<void>;
+	}) {
+		confirmTitle = opts.title;
+		confirmMessage = opts.message;
+		confirmLabel = opts.confirmLabel || 'Konfirmasi';
+		pendingUserAction = opts.action;
+		showUserConfirm = true;
+	}
+
+	async function handleConfirmUserAction() {
+		if (!pendingUserAction) return;
+		isConfirmLoading = true;
 		try {
-			const res = await apiClient.patch(`${API_ENDPOINTS.users}/${user.id}/toggle-status`, {
-				is_active: !user.is_active
-			});
-			if (res.success) {
-				toastStore.success(`User berhasil ${user.is_active ? 'dinonaktifkan' : 'diaktifkan'}`);
-				await loadStaff();
-			} else {
-				toastStore.error(res.error?.message || 'Gagal mengubah status');
-			}
-		} catch (e: any) {
-			toastStore.error(e.message || 'Gagal mengubah status');
+			await pendingUserAction();
+		} finally {
+			isConfirmLoading = false;
+			showUserConfirm = false;
+			pendingUserAction = null;
 		}
 	}
 
-	async function resetPassword(user: any) {
-		if (!confirm(`Yakin ingin reset password ${user.full_name || user.username}? Semua sesi aktif akan dicabut.`)) return;
-		try {
-			const res = await apiClient.post(`${API_ENDPOINTS.users}/${user.id}/reset-password`, {});
-			if (res.success && res.data?.new_password) {
-				// Tampilkan password baru
-				const newPassword = res.data.new_password;
-				showResetPasswordModal(newPassword);
-				await loadStaff();
-			} else {
-				toastStore.error(res.error?.message || 'Gagal reset password');
+	function handleCancelUserAction() {
+		showUserConfirm = false;
+		pendingUserAction = null;
+	}
+
+	async function toggleUserStatus(user: any) {
+		const action = user.is_active ? 'menonaktifkan' : 'mengaktifkan';
+		openUserConfirm({
+			title: `${user.is_active ? 'Nonaktifkan' : 'Aktifkan'} user`,
+			message: `Yakin ingin ${action} user ${user.full_name || user.username}?`,
+			confirmLabel: user.is_active ? 'Nonaktifkan' : 'Aktifkan',
+			action: async () => {
+				try {
+					const res = await apiClient.patch(`${API_ENDPOINTS.users}/${user.id}/toggle-status`, {
+						is_active: !user.is_active
+					});
+					if (res.success) {
+						toastStore.success(`User berhasil ${user.is_active ? 'dinonaktifkan' : 'diaktifkan'}`);
+						await loadStaff();
+					} else {
+						toastStore.error(res.error?.message || 'Gagal mengubah status');
+					}
+				} catch (e: any) {
+					toastStore.error(e.message || 'Gagal mengubah status');
+				}
 			}
-		} catch (e: any) {
-			toastStore.error(e.message || 'Gagal reset password');
-		}
+		});
+	}
+
+	async function resetPassword(user: any) {
+		openUserConfirm({
+			title: 'Reset password',
+			message: `Yakin ingin reset password ${user.full_name || user.username}? Password saat ini akan DIGANTI dan semua sesi aktif user akan dicabut.`,
+			confirmLabel: 'Reset password',
+			action: async () => {
+				try {
+					const res = await apiClient.post<{ new_password: string }>(
+						`${API_ENDPOINTS.users}/${user.id}/reset-password`,
+						{}
+					);
+					if (res.success && res.data?.new_password) {
+						// Tampilkan password baru
+						const newPassword = res.data.new_password;
+						showResetPasswordModal(newPassword);
+						await loadStaff();
+					} else {
+						toastStore.error(res.error?.message || 'Gagal reset password');
+					}
+				} catch (e: any) {
+					toastStore.error(e.message || 'Gagal reset password');
+				}
+			}
+		});
 	}
 
 	let newPasswordDisplay = '';
@@ -414,6 +470,19 @@
 	</div>
 	<button class="modal-backdrop" aria-label="Tutup tambah staff" on:click={() => (showAddStaff = false)}></button>
 {/if}
+
+<!-- Modal konfirmasi aksi user (toggle status / reset password) -->
+<ConfirmDialog
+	isOpen={showUserConfirm}
+	title={confirmTitle}
+	message={confirmMessage}
+	confirmLabel={confirmLabel}
+	cancelLabel="Batal"
+	danger={true}
+	isLoading={isConfirmLoading}
+	on:confirm={handleConfirmUserAction}
+	on:cancel={handleCancelUserAction}
+/>
 
 <!-- Modal tampilkan password baru -->
 {#if showNewPassword}

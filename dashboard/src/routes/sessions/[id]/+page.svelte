@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 	import SaveNotificationToast from '$lib/components/SaveNotificationToast.svelte';
 	import SessionCompletionDialog from '$lib/components/SessionCompletionDialog.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import ScanTimeline from '$lib/components/ScanTimeline.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { WS_BASE_URL } from '$lib/api/config';
@@ -28,6 +30,19 @@
 	let summary: any = null;
 	let toastTimer: ReturnType<typeof setTimeout> | null = null;
 	let detailView: 'table' | 'timeline' = 'table';
+
+	// Flag mencegah double-submit pada aksi state sesi yang irreversible
+	// (complete → approve). Tanpa ini, klik ganda = transisi duplikat.
+	let isMutating = false;
+
+	// Dialog konfirmasi berbahaya (mengganti window.confirm bawaan browser).
+	// action menyimpan aksi tertunda ('complete'|'approve'|'reopen'); reject
+	// butuh alasan sehingga memakai dialog textarea terpisah.
+	let showActionConfirm = false;
+	let pendingAction: 'complete' | 'approve' | 'reopen' | null = null;
+	let showRejectDialog = false;
+	let rejectReason = '';
+	let rejectError = '';
 
 	$: sessionId = $page.params.id;
 	$: totalPages = Math.ceil(total / filter.limit);
@@ -94,6 +109,15 @@
 				toastTimer = setTimeout(() => {
 					showNotification = false;
 				}, 2000);
+
+				// Semua produk sudah ter-scan? Tampilkan dialog hasil + tombol ke report.
+				// Guard total_products > 0: sesi tanpa target tak memicu dialog palsu.
+				if (session?.total_products > 0 && total >= session.total_products) {
+					notificationMessage = 'Semua produk sudah ter-scan!';
+					if (toastTimer) clearTimeout(toastTimer);
+					playSound('success');
+					loadSummaryAndShowDialog();
+				}
 			} else if (data.type === 'discrepancy_alert') {
 				// Alert selisih besar — toast merah, auto-dismiss 4 detik
 				notificationMessage = `⚠️ ${data.product}: selisih ${data.difference} (${data.percent.toFixed(0)}%)`;
@@ -152,44 +176,57 @@
 		});
 	}
 
-	async function completeSession() {
-		if (!confirm('Yakin ingin menyelesaikan sesi ini?')) return;
+	// Buka dialog konfirmasi (tanpa alasan) lalu jalankan aksinya.
+	function requestAction(action: 'complete' | 'approve' | 'reopen') {
+		if (isMutating) return;
+		pendingAction = action;
+		showActionConfirm = true;
+	}
 
+	async function confirmAction() {
+		const action = pendingAction;
+		if (!action) return;
+		isMutating = true;
 		try {
 			const response = await apiClient.post(
-				`/stock-opname/sessions/${sessionId}/complete`,
+				`/stock-opname/sessions/${sessionId}/${action}`,
 				{}
 			);
 			if (response.success) {
 				await loadSession();
-				toastStore.success('Sesi berhasil diselesaikan');
+				const msg = action === 'complete'
+					? 'Sesi berhasil diselesaikan'
+					: action === 'approve'
+					? 'Sesi berhasil disetujui'
+					: 'Sesi berhasil dibuka kembali';
+				toastStore.success(msg);
+			} else {
+				toastStore.error(response.error?.message || 'Gagal memproses sesi');
 			}
 		} catch (error: any) {
-			toastStore.error('Gagal menyelesaikan sesi: ' + (error.message || 'Unknown error'));
+			toastStore.error('Gagal memproses sesi: ' + (error.message || 'Unknown error'));
+		} finally {
+			isMutating = false;
+			showActionConfirm = false;
+			pendingAction = null;
 		}
 	}
 
-	async function approveSession() {
-		if (!confirm('Yakin ingin menyetujui sesi ini?')) return;
-
-		try {
-			const response = await apiClient.post(
-				`/stock-opname/sessions/${sessionId}/approve`,
-				{}
-			);
-			if (response.success) {
-				await loadSession();
-				toastStore.success('Sesi berhasil disetujui');
-			}
-		} catch (error: any) {
-			toastStore.error('Gagal menyetujui sesi: ' + (error.message || 'Unknown error'));
-		}
+	// Reject butuh alasan — pakai dialog textarea, bukan window.prompt.
+	function openRejectDialog() {
+		if (isMutating) return;
+		rejectReason = '';
+		rejectError = '';
+		showRejectDialog = true;
 	}
 
-	async function rejectSession() {
-		const reason = prompt('Alasan penolakan sesi (wajib):');
-		if (!reason) return;
-
+	async function confirmReject() {
+		const reason = rejectReason.trim();
+		if (reason.length < 3) {
+			rejectError = 'Alasan penolakan minimal 3 karakter';
+			return;
+		}
+		isMutating = true;
 		try {
 			const response = await apiClient.post(
 				`/stock-opname/sessions/${sessionId}/reject`,
@@ -198,26 +235,14 @@
 			if (response.success) {
 				await loadSession();
 				toastStore.success('Sesi berhasil ditolak');
+			} else {
+				toastStore.error(response.error?.message || 'Gagal menolak sesi');
 			}
 		} catch (error: any) {
 			toastStore.error('Gagal menolak sesi: ' + (error.message || 'Unknown error'));
-		}
-	}
-
-	async function reopenSession() {
-		if (!confirm('Yakin ingin membuka kembali sesi ini?')) return;
-
-		try {
-			const response = await apiClient.post(
-				`/stock-opname/sessions/${sessionId}/reopen`,
-				{}
-			);
-			if (response.success) {
-				await loadSession();
-				toastStore.success('Sesi berhasil dibuka kembali');
-			}
-		} catch (error: any) {
-			toastStore.error('Gagal membuka kembali sesi: ' + (error.message || 'Unknown error'));
+		} finally {
+			isMutating = false;
+			showRejectDialog = false;
 		}
 	}
 
@@ -235,8 +260,8 @@
 
 	function handleViewReport() {
 		showCompletionDialog = false;
-		// Redirect ke halaman report dengan filter session ini
-		window.location.href = `/reports?session_id=${sessionId}`;
+		// goto (bukan window.location) supaya SPA tidak reload penuh dan tetap membawa auth.
+		goto(`/reports?session_id=${sessionId}`);
 	}
 
 	function changePage(newPage: number) {
@@ -274,9 +299,53 @@
 		unmatched={summary.unmatched_count}
 		startedAt={new Date(summary.started_at)}
 		onClose={() => (showCompletionDialog = false)}
-		onViewReport={handleViewReport}
+		onReport={handleViewReport}
 	/>
 {/if}
+
+<!-- Dialog konfirmasi aksi sesi: complete / approve / reopen -->
+<ConfirmDialog
+	isOpen={showActionConfirm}
+	title={pendingAction === 'complete'
+		? 'Selesaikan sesi?'
+		: pendingAction === 'approve'
+		? 'Setujui sesi?'
+		: 'Buka kembali sesi?'}
+	message={pendingAction === 'complete'
+		? 'Sesi akan berubah menjadi completed. Langkah ini menandai hitung fisik selesai.'
+		: pendingAction === 'approve'
+		? 'Sesi akan disetujui dan hasil hitung fisik menjadi stok sistem resmi. Tindakan ini tidak dapat dibatalkan.'
+		: 'Sesi yang ditolak akan dibuka kembali untuk dikerjakan ulang.'}
+	confirmLabel={pendingAction === 'complete'
+		? 'Selesaikan'
+		: pendingAction === 'approve'
+		? 'Setujui'
+		: 'Buka kembali'}
+	danger={pendingAction === 'approve'}
+	isLoading={isMutating}
+	on:confirm={confirmAction}
+	on:cancel={() => { showActionConfirm = false; pendingAction = null; }}
+/>
+
+<!-- Dialog tolak sesi: wajib isi alasan -->
+<ConfirmDialog
+	isOpen={showRejectDialog}
+	title="Tolak sesi?"
+	message={'Berikan alasan penolakan (minimal 3 karakter).\n' + (rejectError || '')}
+	confirmLabel="Tolak Sesi"
+	cancelLabel="Batal"
+	danger={true}
+	isLoading={isMutating}
+	on:confirm={confirmReject}
+	on:cancel={() => { showRejectDialog = false; rejectReason = ''; rejectError = ''; }}
+>
+	<textarea
+		class="textarea textarea-bordered w-full mt-3"
+		placeholder="Alasan penolakan..."
+		bind:value={rejectReason}
+		rows="3"
+	></textarea>
+</ConfirmDialog>
 
 <LayoutWrapper>
 	<div class="page">
@@ -340,20 +409,40 @@
 								{session.status.replace('_', ' ')}
 							</span>
 							{#if session.status === 'in_progress'}
-								<button class="btn btn-success btn-sm" on:click={completeSession}>
+								<button
+									class="btn btn-success btn-sm"
+									disabled={isMutating}
+									on:click={() => requestAction('complete')}
+								>
+									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
 									Complete Session
 								</button>
 							{/if}
 							{#if session.status === 'completed' && ($authStore.user?.role?.name === 'supervisor' || $authStore.user?.role?.name === 'admin')}
-								<button class="btn btn-primary btn-sm" on:click={approveSession}>
+								<button
+									class="btn btn-primary btn-sm"
+									disabled={isMutating}
+									on:click={() => requestAction('approve')}
+								>
+									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
 									Approve Session
 								</button>
-								<button class="btn btn-error btn-sm" on:click={rejectSession}>
+								<button
+									class="btn btn-error btn-sm"
+									disabled={isMutating}
+									on:click={openRejectDialog}
+								>
+									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
 									Reject Session
 								</button>
 							{/if}
 							{#if session.status === 'rejected' && $authStore.user?.role?.name === 'admin'}
-								<button class="btn btn-warning btn-sm" on:click={reopenSession}>
+								<button
+									class="btn btn-warning btn-sm"
+									disabled={isMutating}
+									on:click={() => requestAction('reopen')}
+								>
+									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
 									Reopen Session
 								</button>
 							{/if}

@@ -40,9 +40,12 @@
 
 	onMount(async () => {
 		try {
+			const wid = warehouseId as string;
 			const [whRes, layoutRes] = await Promise.all([
-				apiClient.get(`${API_ENDPOINTS.warehouses}/${warehouseId}`),
-				apiClient.get(`${API_ENDPOINTS.warehouses}/${warehouseId}/layout`)
+				apiClient.get<any>(`${API_ENDPOINTS.warehouses}/${wid}`),
+				apiClient.get<{ layout_json: { boxes: any[] } | null }>(
+					`${API_ENDPOINTS.warehouses}/${wid}/layout`
+				)
 			]);
 
 			if (whRes.success && whRes.data) {
@@ -51,9 +54,13 @@
 
 			// Load boxes dari lokasi pertama sebagai default
 			if (warehouse) {
-				const locRes = await apiClient.get(API_ENDPOINTS.warehouseLocations(warehouseId));
+				const locRes = await apiClient.get<{ locations: any[] }>(
+					API_ENDPOINTS.warehouseLocations(wid)
+				);
 				if (locRes.success && locRes.data?.locations?.[0]) {
-					const boxRes = await apiClient.get(API_ENDPOINTS.locationBoxes(locRes.data.locations[0].id));
+					const boxRes = await apiClient.get<{ boxes: any[] }>(
+						API_ENDPOINTS.locationBoxes(locRes.data.locations[0].id)
+					);
 					if (boxRes.success && boxRes.data) {
 						boxes = boxRes.data.boxes || [];
 					}
@@ -61,7 +68,7 @@
 			}
 
 			// Load saved layout
-			if (layoutRes.success && layoutRes.data?.layout_json) {
+			if (layoutRes.success && layoutRes.data?.layout_json?.boxes) {
 				layoutBoxes = layoutRes.data.layout_json.boxes || [];
 			} else {
 				// Initialize default layout dari boxes

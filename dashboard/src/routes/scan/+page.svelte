@@ -97,7 +97,6 @@
 				barcodeDetector = new (window as any).BarcodeDetector({
 					formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39']
 				});
-				console.log(' Native BarcodeDetector initialized');
 			} catch (error) {
 				console.warn(' BarcodeDetector failed:', error);
 			}
@@ -427,7 +426,6 @@
 
 <svelte:head>
 	<title>Scan - Stock Opname</title>
-	<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 </svelte:head>
 
 {#if showSaveNotification}
@@ -709,7 +707,6 @@
 							<dt class="text-xs text-base-content/60">Kode</dt>
 							<dd class="metric">{product.product_code || '-'}</dd>
 						</div>
-						<div>
 						{#if product.brand}
 							<div>
 								<dt class="text-xs text-base-content/60">Brand</dt>

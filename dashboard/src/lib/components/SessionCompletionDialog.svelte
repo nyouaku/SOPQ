@@ -8,7 +8,7 @@
   export let onClose = () => {};
   export let onReport = () => {};
 
-  $: duration = new Date() - startedAt;
+  $: duration = Date.now() - startedAt.getTime();
   $: minutes = Math.floor(duration / 60000);
   $: seconds = Math.floor((duration % 60000) / 1000);
   $: durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
@@ -24,32 +24,32 @@
     on:keydown={(e) => e.key === 'Escape' && onClose()}
     tabindex="-1"
   >
-    <div class="dialog" on:click|stopPropagation>
-      <div class="icon">✓</div>
-      <h2>Sesi Selesai</h2>
+    <div class="dialog bg-base-100" role="presentation" on:click|stopPropagation>
+      <div class="icon bg-success text-success-content">✓</div>
+      <h2 class="text-base-content">Sesi Selesai</h2>
 
       <div class="summary">
-        <div class="card blue">
-          <div class="value">{totalScanned}/{totalProducts}</div>
-          <div class="label">Total</div>
+        <div class="card bg-info/15 border-info/30">
+          <div class="value text-base-content">{totalScanned}/{totalProducts}</div>
+          <div class="label text-base-content/60">Total</div>
         </div>
-        <div class="card green">
-          <div class="value">{matched}</div>
-          <div class="label">Cocok</div>
+        <div class="card bg-success/15 border-success/30">
+          <div class="value text-base-content">{matched}</div>
+          <div class="label text-base-content/60">Cocok</div>
         </div>
-        <div class="card orange">
-          <div class="value">{unmatched}</div>
-          <div class="label">Beda</div>
+        <div class="card bg-warning/15 border-warning/30">
+          <div class="value text-base-content">{unmatched}</div>
+          <div class="label text-base-content/60">Beda</div>
         </div>
       </div>
 
-      <div class="duration">
+      <div class="duration bg-base-200 text-base-content">
         <span>🕐 Durasi: {durationText}</span>
       </div>
 
       <div class="actions">
-        <button class="btn-ghost" on:click={onClose}>Close</button>
-        <button class="btn-primary" on:click={onReport}>Lihat Report</button>
+        <button class="btn-ghost bg-base-100 text-base-content border border-base-300" on:click={onClose}>Close</button>
+        <button class="btn-primary bg-primary text-primary-content" on:click={onReport}>Lihat Report</button>
       </div>
     </div>
   </div>
@@ -67,7 +67,6 @@
   }
 
   .dialog {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     border-radius: 20px;
     padding: 32px;
     max-width: 360px;
@@ -77,20 +76,17 @@
   .icon {
     width: 80px;
     height: 80px;
-    background: #10b981;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 48px;
-    color: white;
     margin: 0 auto 20px;
   }
 
   h2 {
     font-size: 22px;
     font-weight: bold;
-    color: #1f2937;
     margin: 0 0 24px;
   }
 
@@ -107,39 +103,20 @@
     border: 2px solid;
   }
 
-  .card.blue {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.3);
-  }
-
-  .card.green {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.3);
-  }
-
-  .card.orange {
-    background: rgba(249, 115, 22, 0.15);
-    border-color: rgba(249, 115, 22, 0.3);
-  }
-
   .value {
     font-size: 20px;
     font-weight: bold;
-    color: #1f2937;
   }
 
   .label {
     font-size: 11px;
-    color: #6b7280;
     margin-top: 4px;
   }
 
   .duration {
-    background: #e5e7eb;
     padding: 8px 12px;
     border-radius: 8px;
     font-size: 12px;
-    color: #4b5563;
     margin-bottom: 24px;
   }
 
@@ -159,22 +136,11 @@
     transition: all 0.2s;
   }
 
-  .btn-ghost {
-    background: white;
-    color: #4b5563;
-    border: 1px solid #d1d5db;
-  }
-
   .btn-ghost:hover {
-    background: #f3f4f6;
+    background: var(--fallback-b2, oklch(var(--b2)));
   }
 
   .btn-primary {
-    background: #3b82f6;
-    color: white;
-  }
-
-  .btn-primary:hover {
-    background: #2563eb;
+    border: none;
   }
 </style>

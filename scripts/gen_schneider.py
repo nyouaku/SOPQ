@@ -8,7 +8,12 @@ from openpyxl.styles import Font, PatternFill
 
 OUT = "schneider-50-produk.xlsx"
 
-cols = ["product_code", "name", "brand", "unit", "minimum_stock", "status"]
+cols = [
+    "product_code", "name", "brand", "unit", "minimum_stock", "status",
+    "warehouse_code", "stock_system",
+]
+
+STOCK_AWAL = 10  # stok sistem awal contoh per produk
 
 # 50 produk Schneider realistis (kode SKU-style + nama).
 products = [
@@ -85,6 +90,8 @@ for r, (code, name) in enumerate(products, start=2):
     ws.cell(row=r, column=4, value="PCS")  # unit
     ws.cell(row=r, column=5, value=5)      # minimum_stock
     ws.cell(row=r, column=6, value="active")  # status
+    ws.cell(row=r, column=7, value="WH01")  # warehouse_code
+    ws.cell(row=r, column=8, value=STOCK_AWAL)  # stock_system
 
 wb.save(OUT)
 print(f"OK: {OUT} — {len(products)} baris data")

@@ -34,7 +34,9 @@
 				from.setDate(from.getDate() - days);
 				query += `&from=${from.toISOString()}`;
 			}
-			const res = await apiClient.get(`${API_ENDPOINTS.products}/${productId}/stock-history${query}`);
+			const res = await apiClient.get<{ trend: any[] }>(
+				`${API_ENDPOINTS.products}/${productId}/stock-history${query}`
+			);
 			if (res.success && res.data) {
 				trend = res.data.trend || [];
 			}

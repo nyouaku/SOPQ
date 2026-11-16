@@ -8,6 +8,14 @@
 
 	let currentTheme = get(themeStore);
 	themeStore.subscribe((t) => (currentTheme = t));
+
+	function selectValue(e: Event): ThemeColor {
+		return (e.currentTarget as HTMLSelectElement).value as ThemeColor;
+	}
+
+	function intValue(e: Event): number {
+		return parseInt((e.currentTarget as HTMLInputElement).value);
+	}
 </script>
 
 <!-- Layout Selector -->
@@ -67,14 +75,15 @@
 		<!-- Day/Night Colors -->
 		<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
 			<div>
-				<label class="label py-1">
+				<label class="label py-1" for="day-color">
 					<span class="label-text text-xs">Warna Siang Hari</span>
 				</label>
 				<select
+					id="day-color"
 					class="select select-bordered select-sm w-full"
 					value={currentTheme.dayColor || 'daylight-ops'}
 					on:change={(e) => {
-						const val = e.target.value;
+						const val = selectValue(e);
 						themeStore.setDayNightColors(val, currentTheme.nightColor || 'rack-room');
 					}}
 				>
@@ -84,14 +93,15 @@
 				</select>
 			</div>
 			<div>
-				<label class="label py-1">
+				<label class="label py-1" for="night-color">
 					<span class="label-text text-xs">Warna Malam Hari</span>
 				</label>
 				<select
+					id="night-color"
 					class="select select-bordered select-sm w-full"
 					value={currentTheme.nightColor || 'rack-room'}
 					on:change={(e) => {
-						const val = e.target.value;
+						const val = selectValue(e);
 						themeStore.setDayNightColors(currentTheme.dayColor || 'daylight-ops', val);
 					}}
 				>
@@ -115,7 +125,12 @@
 					max="23"
 					class="input input-bordered input-sm"
 					value={currentTheme.nightStartHour ?? 18}
-					on:change={(e) => themeStore.setNightHours(parseInt(e.target.value), currentTheme.dayStartHour ?? 6)}
+					on:change={(e) => {
+						const parsed = intValue(e);
+						if (Number.isFinite(parsed)) {
+							themeStore.setNightHours(parsed, currentTheme.dayStartHour ?? 6);
+						}
+					}}
 				/>
 			</div>
 			<div>
@@ -129,7 +144,12 @@
 					max="23"
 					class="input input-bordered input-sm"
 					value={currentTheme.dayStartHour ?? 6}
-					on:change={(e) => themeStore.setNightHours(currentTheme.nightStartHour ?? 18, parseInt(e.target.value))}
+					on:change={(e) => {
+						const parsed = intValue(e);
+						if (Number.isFinite(parsed)) {
+							themeStore.setNightHours(currentTheme.nightStartHour ?? 18, parsed);
+						}
+					}}
 				/>
 			</div>
 		</div>

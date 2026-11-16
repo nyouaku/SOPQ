@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 
 export interface SoundSettings {
@@ -50,17 +50,31 @@ function createSoundStore() {
 
 export const soundSettingsStore = createSoundStore();
 
+// Reuse one AudioContext across all calls. Browsers cap live contexts (~6 in
+// Chrome), after which every new one fails and all sound silently stops. Lazy
+// init so SSR/import never touches `window`.
+let audioContext: AudioContext | null = null;
+
+function getAudioContext(): AudioContext {
+	if (!audioContext) {
+		audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+	}
+	if (audioContext.state === 'suspended') {
+		audioContext.resume();
+	}
+	return audioContext;
+}
+
 // Play sound utility
 export function playSound(type: 'scan' | 'success' | 'error') {
-	let soundSettings: SoundSettings;
-	soundSettingsStore.subscribe(s => (soundSettings = s))();
+	const soundSettings = get(soundSettingsStore);
 
 	// Check if sound enabled
 	const enabledKey = `${type}Enabled` as keyof SoundSettings;
 	if (!soundSettings[enabledKey]) return;
 
 	// Web Audio API beep
-	const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+	const audioContext = getAudioContext();
 	const oscillator = audioContext.createOscillator();
 	const gain = audioContext.createGain();
 

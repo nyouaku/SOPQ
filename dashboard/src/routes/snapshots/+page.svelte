@@ -27,7 +27,13 @@
 		try {
 			let q = `?days=${days}`;
 			if (warehouseId) q += `&warehouse_id=${warehouseId}`;
-			const res = await apiClient.get(`${API_ENDPOINTS.base}/snapshots/compare${q}`);
+			const res = await apiClient.get<{
+				comparisons: any[];
+				total_products: number;
+				total_increased: number;
+				total_decreased: number;
+				total_unchanged: number;
+			}>(`${API_ENDPOINTS.base}/snapshots/compare${q}`);
 			if (res.success && res.data) {
 				comparisons = res.data.comparisons || [];
 				summary = {

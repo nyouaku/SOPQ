@@ -1,5 +1,6 @@
 <script lang="ts">
 	import QRCode from 'qrcode';
+	import { toastStore } from '$lib/stores/toast';
 
 	export let products: any[] = [];
 	export let paperSize: '58mm' | '80mm' = '80mm';
@@ -112,7 +113,7 @@
 
 			const printWindow = window.open('', '_blank', 'width=400,height=600');
 			if (!printWindow) {
-				alert('Popup diblokir. Izinkan popup untuk mencetak.');
+				toastStore.error('Popup diblokir. Izinkan popup untuk mencetak.');
 				return;
 			}
 
@@ -127,7 +128,7 @@
 			};
 		} catch (e: any) {
 			console.error('Print error:', e);
-			alert('Gagal mencetak: ' + (e.message || 'unknown error'));
+			toastStore.error('Gagal mencetak: ' + (e.message || 'unknown error'));
 		} finally {
 			isGenerating = false;
 		}

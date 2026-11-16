@@ -21,6 +21,9 @@
 	let dateTo = init.get('date_to') ?? '';
 	let minDiff = init.get('min_diff') ?? '';
 	let maxDiff = init.get('max_diff') ?? '';
+	// session_id: diisi saat dibuka dari dialog "Sesi Selesai" agar report
+	// langsung menampilkan hasil sesi tersebut. Disembunyikan dari filter UI.
+	let sessionId = init.get('session_id') ?? '';
 
 	// Params yang sudah diterapkan — store, supaya perubahan memicu query baru.
 	let page = Math.max(1, parseInt(init.get('page') ?? '1', 10) || 1);
@@ -53,6 +56,7 @@
 
 	function buildParams(nextPage: number): URLSearchParams {
 		const p = new URLSearchParams();
+		if (sessionId) p.set('session_id', sessionId);
 		if (warehouseId) p.set('warehouse_id', warehouseId);
 			if (brand) p.set('brand', brand);
 		if (supplierId) p.set('supplier_id', supplierId);

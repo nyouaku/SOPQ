@@ -8,6 +8,7 @@
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import QRCode from 'qrcode';
 	import { authStore } from '$lib/stores/auth';
+	import { toastStore } from '$lib/stores/toast';
 
 	let products: any[] = [];
 	let selected = new Set<string>();
@@ -137,7 +138,7 @@
 			pdf.save(`labels-${selected.size}-produk.pdf`);
 		} catch (e: any) {
 			console.error('PDF generation error:', e);
-			alert('Gagal generate PDF: ' + (e.message || 'unknown error'));
+			toastStore.error('Gagal generate PDF: ' + (e.message || 'unknown error'));
 		} finally {
 			isGenerating = false;
 		}

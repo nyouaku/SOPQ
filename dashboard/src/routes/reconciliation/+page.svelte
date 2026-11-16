@@ -39,7 +39,7 @@
 		}
 		isReconciling = true;
 		try {
-			const res = await apiClient.post('/reconciliation', {
+			const res = await apiClient.post<{ reconciliation: any[] }>('/reconciliation', {
 				warehouse_ids: Array.from(selected)
 			});
 			if (res.success && res.data) {

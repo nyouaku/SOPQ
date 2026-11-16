@@ -39,6 +39,7 @@ func NewReportUsecase(
 }
 
 type StockOpnameReportFilter struct {
+	SessionID    *uuid.UUID
 	WarehouseID  *uuid.UUID
 	Brand        string
 	SupplierID   *uuid.UUID
@@ -83,6 +84,7 @@ type StockOpnameReportRow struct {
 // toRepoFilter mengubah filter usecase menjadi filter repository.
 func toRepoFilter(f StockOpnameReportFilter) repository.ReportFilter {
 	rf := repository.ReportFilter{
+		SessionID:   f.SessionID,
 		WarehouseID: f.WarehouseID,
 		SupplierID:  f.SupplierID,
 		UserID:      f.UserID,

@@ -50,7 +50,7 @@
 				if (selectedWarehouse) url += `&warehouse_id=${selectedWarehouse}`;
 			}
 			url += `&page=${page}&limit=${limit}`;
-			const res = await apiClient.get(url);
+			const res = await apiClient.get<{ ledger: any[]; total: number }>(url);
 			if (res.success && res.data) {
 				entries = res.data.ledger || [];
 				total = res.data.total || 0;

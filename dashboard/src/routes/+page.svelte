@@ -10,7 +10,7 @@
 
 	let isLoading = true;
 	let summary: any = null;
-	let chart: Chart | null = null;
+	let chart: Chart<'doughnut', number[], string> | null = null;
 	let themeObserver: MutationObserver | null = null;
 
 	// Angka & persen diturunkan dari data API (bukan dummy).

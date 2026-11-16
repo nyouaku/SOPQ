@@ -6,10 +6,12 @@
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import Loader from '$lib/components/Loader.svelte';
 	import { getQueryClient } from '$lib/api/queryClient';
+	import { toastStore } from '$lib/stores/toast';
 
 	const query = notificationsQuery();
 	let open = false;
 	let marking: string | null = null;
+	let isMarkingAll = false;
 
 	const client: QueryClient = getQueryClient();
 
@@ -21,6 +23,8 @@
 		try {
 			await apiClient.patch(`${API_ENDPOINTS.notifications}/${id}/read`, {});
 			client.invalidateQueries({ queryKey: queryKeys.notifications });
+		} catch (e: any) {
+			toastStore.error(e.message || 'Gagal menandai notifikasi');
 		} finally {
 			marking = null;
 		}
@@ -28,10 +32,19 @@
 
 	async function markAll() {
 		const pending = notifications.filter((n) => !n.is_read);
-		await Promise.all(
-			pending.map((n) => apiClient.patch(`${API_ENDPOINTS.notifications}/${n.id}/read`, {}))
-		);
-		client.invalidateQueries({ queryKey: queryKeys.notifications });
+		if (pending.length === 0) return;
+		isMarkingAll = true;
+		try {
+			await Promise.all(
+				pending.map((n) => apiClient.patch(`${API_ENDPOINTS.notifications}/${n.id}/read`, {}))
+			);
+			client.invalidateQueries({ queryKey: queryKeys.notifications });
+			toastStore.success(`${pending.length} notifikasi ditandai sudah dibaca`);
+		} catch (e: any) {
+			toastStore.error(e.message || 'Gagal menandai semua notifikasi');
+		} finally {
+			isMarkingAll = false;
+		}
 	}
 
 	function relativeTime(iso: string): string {
@@ -90,7 +103,12 @@
 			<div class="flex items-center justify-between border-b border-base-300 px-4 py-2.5">
 				<span class="text-sm font-semibold">Notifikasi</span>
 				{#if unread > 0}
-					<button class="btn btn-ghost btn-xs" on:click={markAll}>Tandai semua</button>
+					<button class="btn btn-ghost btn-xs" on:click={markAll} disabled={isMarkingAll}>
+						{#if isMarkingAll}
+							<span class="loading loading-spinner loading-xs"></span>
+						{/if}
+						Tandai semua
+					</button>
 				{/if}
 			</div>
 

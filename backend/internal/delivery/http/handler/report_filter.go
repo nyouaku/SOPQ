@@ -22,6 +22,9 @@ func parseReportFilter(c *gin.Context) (usecase.StockOpnameReportFilter, error) 
 	f.Brand = c.Query("brand")
 
 	var err error
+	if f.SessionID, err = parseOptionalUUID(c, "session_id"); err != nil {
+		return f, err
+	}
 	if f.WarehouseID, err = parseOptionalUUID(c, "warehouse_id"); err != nil {
 		return f, err
 	}

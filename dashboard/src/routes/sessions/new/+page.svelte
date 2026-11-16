@@ -64,6 +64,10 @@
 	}
 
 	$: warehouseList = get(warehouses).data ?? [];
+
+	function checkboxChecked(e: Event): boolean {
+		return (e.currentTarget as HTMLInputElement).checked;
+	}
 </script>
 
 <svelte:head>
@@ -147,7 +151,7 @@
 								type="checkbox"
 								class="toggle toggle-primary"
 								checked={isBlindCount}
-								on:change={(e) => (isBlindCount = e.target.checked)}
+								on:change={(e) => (isBlindCount = checkboxChecked(e))}
 							/>
 						</label>
 					</div>

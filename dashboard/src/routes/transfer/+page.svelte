@@ -23,8 +23,8 @@
 	onMount(async () => {
 		try {
 			const [prodRes, whRes] = await Promise.all([
-				apiClient.get(`${API_ENDPOINTS.products}?limit=500`),
-				apiClient.get(API_ENDPOINTS.warehouses)
+				apiClient.get<{ products: any[] }>(`${API_ENDPOINTS.products}?limit=500`),
+				apiClient.get<{ warehouses: any[] }>(API_ENDPOINTS.warehouses)
 			]);
 			if (prodRes.success && prodRes.data) {
 				products = prodRes.data.products || [];
@@ -49,7 +49,9 @@
 		}
 		loadingLocations = true;
 		try {
-			const res = await apiClient.get(API_ENDPOINTS.warehouseLocations(selectedWarehouse));
+			const res = await apiClient.get<{ locations: any[] }>(
+				API_ENDPOINTS.warehouseLocations(selectedWarehouse)
+			);
 			if (res.success && res.data) {
 				locations = res.data.locations || [];
 			}
@@ -68,7 +70,7 @@
 		}
 		loadingBoxes = true;
 		try {
-			const res = await apiClient.get(API_ENDPOINTS.locationBoxes(selectedLocation));
+			const res = await apiClient.get<{ boxes: any[] }>(API_ENDPOINTS.locationBoxes(selectedLocation));
 			if (res.success && res.data) {
 				boxes = res.data.boxes || [];
 			}
@@ -101,7 +103,7 @@
 		}
 		isTransferring = true;
 		try {
-			const res = await apiClient.post(`${API_ENDPOINTS.products}/transfer`, {
+			const res = await apiClient.post<{ transferred: number }>(`${API_ENDPOINTS.products}/transfer`, {
 				product_ids: Array.from(selected),
 				to_box_id: selectedBox
 			});
@@ -109,7 +111,7 @@
 				toastStore.success(`${res.data?.transferred || 0} produk berhasil dipindahkan`);
 				selected = new Set();
 				// Reload products
-				const prodRes = await apiClient.get(`${API_ENDPOINTS.products}?limit=500`);
+				const prodRes = await apiClient.get<{ products: any[] }>(`${API_ENDPOINTS.products}?limit=500`);
 				if (prodRes.success && prodRes.data) {
 					products = prodRes.data.products || [];
 				}

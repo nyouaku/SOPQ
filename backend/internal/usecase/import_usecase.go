@@ -15,8 +15,13 @@ import (
 
 // Kolom template import produk. Urutan ini juga urutan yang dibaca ulang saat import,
 // jadi template dan parser tak bisa melenceng.
+//
+// Kolom warehouse_code & stock_system bersifat opsional. Kalau keduanya diisi,
+// stok awal produk di gudang tersebut ikut di-upsert ke tabel stock — berguna
+// untuk menyiapkan stok awal sebelum SO pertama (SO pertama tak lagi penuh selisih).
 var productImportColumns = []string{
 	"product_code", "name", "brand", "unit", "minimum_stock", "status",
+	"warehouse_code", "stock_system",
 }
 
 // maxImportRows membatasi jumlah baris data per file import.
@@ -40,15 +45,24 @@ type ImportUsecase interface {
 }
 
 type importUsecase struct {
-	productRepo  repository.ProductRepository
-	categoryRepo repository.CategoryRepository
+	productRepo   repository.ProductRepository
+	categoryRepo  repository.CategoryRepository
+	stockRepo     repository.StockRepository
+	warehouseRepo repository.WarehouseRepository
 }
 
 func NewImportUsecase(
 	productRepo repository.ProductRepository,
 	categoryRepo repository.CategoryRepository,
+	stockRepo repository.StockRepository,
+	warehouseRepo repository.WarehouseRepository,
 ) ImportUsecase {
-	return &importUsecase{productRepo: productRepo, categoryRepo: categoryRepo}
+	return &importUsecase{
+		productRepo:   productRepo,
+		categoryRepo:  categoryRepo,
+		stockRepo:     stockRepo,
+		warehouseRepo: warehouseRepo,
+	}
 }
 
 func (u *importUsecase) ProductImportTemplate() (*excelize.File, string, error) {
@@ -79,19 +93,20 @@ func (u *importUsecase) ProductImportTemplate() (*excelize.File, string, error) 
 	// Baris contoh: kolom wajib diisi, sisanya opsional.
 	f.SetCellValue(sheet, "A2", "EL-001")
 	f.SetCellValue(sheet, "B2", "Kabel NYA 2.5mm")
-	f.SetCellValue(sheet, "C2", "8991234567001")
-	f.SetCellValue(sheet, "D2", "Eterna")
-	f.SetCellValue(sheet, "E2", "kabel")
-	f.SetCellValue(sheet, "F2", "ROLL")
-	f.SetCellValue(sheet, "G2", "Elektronik & Listrik")
-	f.SetCellValue(sheet, "H2", 10)
-	f.SetCellValue(sheet, "I2", "active")
+	f.SetCellValue(sheet, "C2", "Eterna")
+	f.SetCellValue(sheet, "D2", "ROLL")
+	f.SetCellValue(sheet, "E2", 10)
+	f.SetCellValue(sheet, "F2", "active")
+	f.SetCellValue(sheet, "G2", "WH01")
+	f.SetCellValue(sheet, "H2", 100)
 
 	f.NewSheet("Petunjuk")
-	f.SetCellValue("Petunjuk", "A1", "Kolom wajib: product_code, name, unit")
+	f.SetCellValue("Petunjuk", "A1", "Kolom wajib: product_code, name")
 	f.SetCellValue("Petunjuk", "A2", "Produk dicocokkan berdasarkan product_code (kode yang dicetak di QR)")
 	f.SetCellValue("Petunjuk", "A3", "product_code yang sudah ada akan memperbarui produk tersebut")
-	f.SetColWidth("Petunjuk", "A", "A", 80)
+	f.SetCellValue("Petunjuk", "A4", "Kolom opsional: warehouse_code + stock_system mengisi stok awal di gudang tsb (kode gudang, mis. WH01)")
+	f.SetCellValue("Petunjuk", "A5", "Isi keduanya untuk menyiapkan stok awal sebelum stock opname pertama")
+	f.SetColWidth("Petunjuk", "A", "A", 90)
 
 	return f, "template-import-products.xlsx", nil
 }
@@ -163,6 +178,22 @@ func (u *importUsecase) ImportProducts(ctx context.Context, r io.Reader) (*Produ
 			status = "active"
 		}
 
+		// Stok awal (opsional): hanya jika warehouse_code & stock_system keduanya diisi.
+		whCode := cell(6)
+		stockSystemStr := cell(7)
+		stockSystem := 0
+		hasStock := false
+		if whCode != "" && stockSystemStr != "" {
+			v, convErr := strconv.Atoi(stockSystemStr)
+			if convErr != nil {
+				result.Failed++
+				result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: "stock_system harus angka"})
+				continue
+			}
+			stockSystem = v
+			hasStock = true
+		}
+
 		existing, err := u.productRepo.FindByCode(ctx, code)
 		if err != nil {
 			result.Failed++
@@ -170,6 +201,7 @@ func (u *importUsecase) ImportProducts(ctx context.Context, r io.Reader) (*Produ
 			continue
 		}
 
+		var productID uuid.UUID
 		if existing != nil {
 			existing.Name = name
 			existing.Brand = cell(2)
@@ -181,27 +213,98 @@ func (u *importUsecase) ImportProducts(ctx context.Context, r io.Reader) (*Produ
 				result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: err.Error()})
 				continue
 			}
+			productID = existing.ID
 			result.Updated++
-			continue
+		} else {
+			product := &domain.Product{
+				ProductCode:  code,
+				Name:         name,
+				Brand:        cell(2),
+				Unit:         unit,
+				MinimumStock: minStock,
+				Status:       status,
+			}
+			if err := u.productRepo.Create(ctx, product); err != nil {
+				result.Failed++
+				result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: err.Error()})
+				continue
+			}
+			productID = product.ID
+			result.Created++
 		}
 
-		product := &domain.Product{
-			ProductCode:  code,
-			Name:         name,
-			Brand:        cell(2),
-			Unit:         unit,
-			MinimumStock: minStock,
-			Status:       status,
+		// Upsert stok awal hanya untuk baris stock yang BELUM ada. Kalau sudah ada,
+		// jangan ditimpa — import ulang tak boleh menghancurkan stok riil.
+		if hasStock {
+			if err := u.upsertInitialStock(ctx, productID, whCode, stockSystem, rowNum, result); err != nil {
+				continue
+			}
 		}
-		if err := u.productRepo.Create(ctx, product); err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: err.Error()})
-			continue
-		}
-		result.Created++
 	}
 
 	return result, nil
+}
+
+// upsertInitialStock mengisi stok awal untuk kombinasi produk + gudang. Gudang dicari
+// lewat List lalu difilter per kode (repo tak punya FindByCode). Stok yang SUDAH ada
+// tidak ditimpa agar import ulang tidak menghancurkan stok riil.
+func (u *importUsecase) upsertInitialStock(
+	ctx context.Context,
+	productID uuid.UUID,
+	warehouseCode string,
+	stockSystem int,
+	rowNum int,
+	result *ProductImportResult,
+) error {
+	warehouses, _, err := u.warehouseRepo.List(ctx, 1000, 0)
+	if err != nil {
+		msg := "gagal memuat gudang: " + err.Error()
+		result.Failed++
+		result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: msg})
+		return fmt.Errorf("list warehouses: %w", err)
+	}
+
+	var whID uuid.UUID
+	found := false
+	for _, w := range warehouses {
+		if strings.EqualFold(strings.TrimSpace(w.Code), warehouseCode) {
+			whID = w.ID
+			found = true
+			break
+		}
+	}
+	if !found {
+		msg := "kode gudang tidak ditemukan: " + warehouseCode
+		result.Failed++
+		result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: msg})
+		return fmt.Errorf("%s", msg)
+	}
+
+	// Baris stock sudah ada? Biarkan — jangan menimpa stok riil.
+	existingStock, err := u.stockRepo.FindByProductAndWarehouse(ctx, productID, whID)
+	if err != nil {
+		msg := "gagal cek stok: " + err.Error()
+		result.Failed++
+		result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: msg})
+		return fmt.Errorf("find stock: %w", err)
+	}
+	if existingStock != nil {
+		return nil
+	}
+
+	newStock := &domain.Stock{
+		ProductID:      productID,
+		WarehouseID:    whID,
+		QuantitySystem: stockSystem,
+		Version:        0,
+	}
+	if err := u.stockRepo.CreateOrUpdate(ctx, newStock); err != nil {
+		msg := "gagal simpan stok awal: " + err.Error()
+		result.Failed++
+		result.Errors = append(result.Errors, ImportRowError{Row: rowNum, Message: msg})
+		return fmt.Errorf("create stock: %w", err)
+	}
+	return nil
 }
 
 func isBlankRow(row []string) bool {

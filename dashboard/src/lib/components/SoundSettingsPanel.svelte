@@ -3,7 +3,7 @@
 	import { soundSettingsStore } from '$lib/stores/soundSettings';
 	import { playSound } from '$lib/stores/soundSettings';
 
-	const SOUNDS = [
+	const SOUNDS: { key: 'scanEnabled' | 'successEnabled' | 'errorEnabled'; label: string; description: string; soundType: 'scan' | 'success' | 'error' }[] = [
 		{ key: 'scanEnabled', label: 'Suara Scan', description: 'Diputar saat QR code terdeteksi', soundType: 'scan' as const },
 		{ key: 'successEnabled', label: 'Suara Berhasil', description: 'Diputar saat data berhasil disimpan', soundType: 'success' as const },
 		{ key: 'errorEnabled', label: 'Suara Error', description: 'Diputar saat terjadi kesalahan', soundType: 'error' as const }
@@ -30,6 +30,14 @@
 	function test(type: 'scan' | 'success' | 'error') {
 		playSound(type);
 	}
+
+	function checkedOf(e: Event): boolean {
+		return (e.currentTarget as HTMLInputElement).checked;
+	}
+
+	function numValueOf(e: Event): number {
+		return parseInt((e.currentTarget as HTMLInputElement).value);
+	}
 </script>
 
 <div class="space-y-4">
@@ -41,7 +49,7 @@
 						type="checkbox"
 						class="toggle toggle-primary"
 						checked={settings[sound.key]}
-						on:change={(e) => toggle(sound.key, e.target.checked)}
+						on:change={(e) => toggle(sound.key, checkedOf(e))}
 					/>
 					<span class="flex-1">
 						<span class="block font-medium">{sound.label}</span>
@@ -75,7 +83,7 @@
 			max="100"
 			step="5"
 			value={settings.volume}
-			on:input={(e) => changeVolume(parseInt(e.target.value))}
+			on:input={(e) => changeVolume(numValueOf(e))}
 			class="range range-primary range-sm"
 			aria-label="Master volume"
 		/>

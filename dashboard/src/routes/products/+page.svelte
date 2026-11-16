@@ -7,6 +7,7 @@
 	import ProductQr from '$lib/components/ProductQr.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { productStock } from '$lib/utils/stock';
 
@@ -24,6 +25,11 @@
 	let detailProduct: any = null;
 	let detailQr: any = null;
 	let qrQr: any = null;
+
+	// Dialog konfirmasi hapus produk (mengganti window.confirm bawaan browser).
+	let showDeleteConfirm = false;
+	let deleteTarget: any = null;
+	let isDeleting = false;
 
 	// Import produk via template Excel.
 	let showImportModal = false;
@@ -330,16 +336,28 @@
 	}
 
 	async function handleDelete(id: string) {
-		if (!confirm('Yakin ingin menghapus produk ini?')) return;
+		// Dialog konfirmasi dibuka dulu; hapus aktual terjadi di confirmDelete().
+		deleteTarget = products.find((p) => p.id === id) || null;
+		showDeleteConfirm = true;
+	}
 
+	async function confirmDelete() {
+		if (!deleteTarget) return;
+		isDeleting = true;
 		try {
-			const response = await apiClient.delete(`${API_ENDPOINTS.products}/${id}`);
+			const response = await apiClient.delete(`${API_ENDPOINTS.products}/${deleteTarget.id}`);
 			if (response.success) {
 				toastStore.success('Produk dihapus');
 				await loadProducts();
+			} else {
+				toastStore.error(response.error?.message || 'Gagal menghapus produk');
 			}
 		} catch (error) {
 			toastStore.error('Gagal menghapus produk');
+		} finally {
+			isDeleting = false;
+			showDeleteConfirm = false;
+			deleteTarget = null;
 		}
 	}
 </script>
@@ -941,3 +959,16 @@
 	</div>
 	<button class="modal-backdrop" aria-label="Tutup import" on:click={() => (showImportModal = false)}></button>
 {/if}
+
+<!-- Dialog konfirmasi hapus produk -->
+<ConfirmDialog
+	isOpen={showDeleteConfirm}
+	title="Hapus produk?"
+	message={'Produk "' + (deleteTarget?.name || '') + '" akan dihapus.\nRiwayat stok opname produk ini tetap tersimpan.'}
+	confirmLabel="Hapus"
+	cancelLabel="Batal"
+	danger={true}
+	isLoading={isDeleting}
+	on:confirm={confirmDelete}
+	on:cancel={() => { showDeleteConfirm = false; deleteTarget = null; }}
+/>

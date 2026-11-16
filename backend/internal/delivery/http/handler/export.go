@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/nyouaku/SOPQ/backend/internal/repository"
 	"github.com/nyouaku/SOPQ/backend/internal/usecase"
 	"github.com/nyouaku/SOPQ/backend/pkg/utils"
@@ -38,19 +36,9 @@ func (h *ExportHandler) ExportStockOpnameExcel(c *gin.Context) {
 		return
 	}
 
-	// session_id hanya dipakai ekspor Excel; ia tidak ada di filter usecase umum.
-	var sessionID *uuid.UUID
-	if raw := c.Query("session_id"); raw != "" {
-		id, err := uuid.Parse(raw)
-		if err != nil {
-			respondFilterError(c, fmt.Errorf("session_id bukan UUID yang valid"))
-			return
-		}
-		sessionID = &id
-	}
-
+	// session_id kini dibaca parseReportFilter, jadi tidak perlu parsing manual lagi.
 	repoFilter := repository.ReportFilter{
-		SessionID:   sessionID,
+		SessionID:   filter.SessionID,
 		WarehouseID: filter.WarehouseID,
 		SupplierID:  filter.SupplierID,
 		UserID:      filter.UserID,
