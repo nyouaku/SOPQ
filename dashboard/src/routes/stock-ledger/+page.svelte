@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
-	import { TableSkeleton } from '$lib/components/skeletons/TableSkeleton.svelte';
+	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';

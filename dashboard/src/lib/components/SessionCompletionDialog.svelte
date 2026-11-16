@@ -24,7 +24,7 @@
     on:keydown={(e) => e.key === 'Escape' && onClose()}
     tabindex="-1"
   >
-    <div class="dialog" role="document" on:click|stopPropagation>
+    <div class="dialog" on:click|stopPropagation>
       <div class="icon">✓</div>
       <h2>Sesi Selesai</h2>
 

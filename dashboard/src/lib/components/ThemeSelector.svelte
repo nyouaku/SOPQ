@@ -73,7 +73,10 @@
 				<select
 					class="select select-bordered select-sm w-full"
 					value={currentTheme.dayColor || 'daylight-ops'}
-					on:change={(e) => themeStore.setDayNightColors(e.target.value as ThemeColor, currentTheme.nightColor || 'rack-room')}
+					on:change={(e) => {
+						const val = e.target.value;
+						themeStore.setDayNightColors(val, currentTheme.nightColor || 'rack-room');
+					}}
 				>
 					{#each THEME_COLORS as color}
 						<option value={color.id}>{color.name}</option>
@@ -87,7 +90,10 @@
 				<select
 					class="select select-bordered select-sm w-full"
 					value={currentTheme.nightColor || 'rack-room'}
-					on:change={(e) => themeStore.setDayNightColors(currentTheme.dayColor || 'daylight-ops', e.target.value as ThemeColor)}
+					on:change={(e) => {
+						const val = e.target.value;
+						themeStore.setDayNightColors(currentTheme.dayColor || 'daylight-ops', val);
+					}}
 				>
 					{#each THEME_COLORS as color}
 						<option value={color.id}>{color.name}</option>
