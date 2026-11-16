@@ -10,5 +10,5 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<ProductsView readOnly={true} subtitle="Lihat daftar produk (baca-saja)" />
+	<ProductsView readOnly={true} />
 </LayoutWrapper>
