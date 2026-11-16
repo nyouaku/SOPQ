@@ -103,6 +103,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	stockLedgerHandler := handler.NewStockLedgerHandler(stockLedgerUsecase)
 	reconciliationHandler := handler.NewReconciliationHandler(stockOpnameUsecase)
 	stockAdjustmentHandler := handler.NewStockAdjustmentHandler(stockOpnameUsecase)
+	backupHandler := handler.NewBackupHandler(cfg.Config, cfg.DB.DB)
 
 	// API v1 group
 	v1 := router.Group("/api/v1")
@@ -303,6 +304,15 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			{
 				stocksAdmin.POST("/adjust", stockAdjustmentHandler.AdjustStock)
 			}
+		}
+
+		// Backup & restore (admin only)
+		backup := v1.Group("/backup")
+		backup.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		backup.Use(middleware.RequireRole("admin"))
+		{
+			backup.GET("/status", backupHandler.GetBackupStatus)
+			backup.GET("/download", backupHandler.TriggerBackup)
 		}
 
 		// WebSocket for real-time progress (PHASE 4).
