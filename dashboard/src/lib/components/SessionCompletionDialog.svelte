@@ -15,8 +15,16 @@
 </script>
 
 {#if isOpen}
-  <div class="overlay" on:click={onClose}>
-    <div class="dialog" on:click|stopPropagation>
+  <div
+    class="overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Ringkasan sesi selesai"
+    on:click={onClose}
+    on:keydown={(e) => e.key === 'Escape' && onClose()}
+    tabindex="-1"
+  >
+    <div class="dialog" role="document" on:click|stopPropagation>
       <div class="icon">✓</div>
       <h2>Sesi Selesai</h2>
 

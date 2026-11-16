@@ -4,7 +4,6 @@
 	export let message = 'Data tersimpan';
 	export let scannedCount = 0;
 	export let totalProducts = 0;
-	export let duration = 2000; // ms — parent harus clear `{#if}` setelah ini
 </script>
 
 <div

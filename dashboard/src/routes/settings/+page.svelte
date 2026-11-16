@@ -8,6 +8,7 @@
 	import ThemeSelector from '$lib/components/ThemeSelector.svelte';
 	import LoaderSettings from '$lib/components/LoaderSettings.svelte';
 	import SoundSettingsPanel from '$lib/components/SoundSettingsPanel.svelte';
+	import { toastStore } from '$lib/stores/toast';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 

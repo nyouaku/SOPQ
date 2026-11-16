@@ -39,13 +39,13 @@
 	<div class="mt-3 flex gap-2">
 		<button
 			class="btn btn-sm flex-1 {currentTheme.mode === 'manual' ? 'btn-primary' : 'btn-outline'}"
-			on:click={() => themeStore.setMode('manual' as ThemeMode)}
+			on:click={() => themeStore.setMode('manual')}
 		>
 			🔧 Manual
 		</button>
 		<button
 			class="btn btn-sm flex-1 {currentTheme.mode === 'auto' ? 'btn-primary' : 'btn-outline'}"
-			on:click={() => themeStore.setMode('auto' as ThemeMode)}
+			on:click={() => themeStore.setMode('auto')}
 		>
 			🕐 Otomatis (Siang/Malam)
 		</button>
