@@ -272,11 +272,17 @@ func TestAuthUsecase_RefreshToken(t *testing.T) {
 		t.Errorf("reusing a rotated refresh token: got %v, want ErrRefreshTokenReused", err)
 	}
 
-	// Setelah pemakaian ulang terdeteksi, SEMUA sesi user dicabut.
-	for id, session := range sessionRepo.sessions {
+	// Pemakaian ulang hanya menolak request itu saja — sesi yang sah (hasil rotasi
+	// terbaru) TETAP aktif. Dulu SEMUA sesi dicabut; itu menghukum pengguna multi-tab
+	// (dashboard + scan) dengan logout berantai. Kini minimal satu sesi aktif tersisa.
+	stillActive := 0
+	for _, session := range sessionRepo.sessions {
 		if session.UserID == user.ID && session.RevokedAt == nil {
-			t.Errorf("session %s still active after refresh-token reuse", id)
+			stillActive++
 		}
+	}
+	if stillActive == 0 {
+		t.Error("all sessions revoked on refresh-token reuse; valid session should stay active")
 	}
 }
 

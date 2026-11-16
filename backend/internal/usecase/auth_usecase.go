@@ -232,7 +232,8 @@ func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string, dev
 	}
 
 	// 2. Token harus cocok dengan sesi di DB. Sesi yang sudah dicabut/kedaluwarsa
-	//    ditolak; yang sudah dipakai (revoked karena rotasi) dianggap kompromi.
+	//    ditolak. Token yang sudah dipakai (revoked karena rotasi) ditolak TANPA
+	//    mencabut sesi lain — lihat catatan di bawah.
 	session, err := u.sessionRepo.FindByRefreshTokenHash(ctx, utils.HashToken(refreshToken))
 	if err != nil {
 		return nil, fmt.Errorf("failed to look up session: %w", err)
@@ -241,10 +242,17 @@ func (u *authUsecase) RefreshToken(ctx context.Context, refreshToken string, dev
 		return nil, domain.ErrRefreshTokenInvalid
 	}
 	if session.RevokedAt != nil {
-		if revokeErr := u.sessionRepo.RevokeByUserID(ctx, session.UserID); revokeErr != nil {
-			return nil, fmt.Errorf("failed to revoke sessions after token reuse: %w", revokeErr)
-		}
-		u.audit(ctx, &session.UserID, "refresh_reuse_detected", deviceInfo)
+		// Pemakaian ulang refresh token yang sudah dirotasi. Dulu ini mencabut SEMUA
+		// sesi user (anggapan token dicuri). Itu terlalu keras untuk aplikasi multi-tab:
+		// tab dashboard + tab scan/PWA masing-masing menyimpan salinan refresh token,
+		// dan siapa pun yang refresh duluan merotasi token, membuat tab lain memakai
+		// token lama -> dihukum logout berantai ("blinking").
+		//
+		// Sekarang: tolak permintaan ini saja. Tab pemakai token lama akan menerima 401
+		// dan mengambil token terbaru dari localStorage, atau login ulang; tab yang sah
+		// (pemegang token hasil rotasi terbaru) TETAP hidup. Rotasi sekali-pakai tetap
+		// terjaga (token lama tak bisa dipakai dua kali untuk mendapat token baru).
+		u.audit(ctx, &session.UserID, "refresh_reuse_rejected", deviceInfo)
 		return nil, domain.ErrRefreshTokenReused
 	}
 	if !session.ExpiresAt.After(time.Now()) {
