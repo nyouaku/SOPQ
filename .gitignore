@@ -32,3 +32,4 @@ Thumbs.db
 # Data asli
 *.xlsx
 !docs/*.xlsx
+vite.config.ts.timestamp-*.mjs

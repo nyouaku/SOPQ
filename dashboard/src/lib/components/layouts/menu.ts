@@ -31,16 +31,20 @@ export const MENU_ITEMS: MenuItem[] = [
 	{ href: '/reconciliation', label: 'Rekonsiliasi', icon: '🔄', shortcut: 'N', roles: MANAGER, app: 'opname' },
 	{ href: '/snapshots', label: 'Snapshots', icon: '📸', shortcut: 'H', roles: MANAGER, app: 'opname' },
 	{ href: '/stock-ledger', label: 'Stock Ledger', icon: '📒', shortcut: 'L', roles: MANAGER, app: 'opname' },
+	{ href: '/opname/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'opname' },
 	{ href: '/activity', label: 'Activity', icon: '🧾', shortcut: 'A', roles: MANAGER, app: 'opname' },
 
 	// ===== SHARED (kedua aplikasi) =====
-	{ href: '/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'shared' },
 	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'shared' },
 	{ href: '/settings', label: 'Settings', icon: '⚙️', shortcut: 'T', app: 'shared' },
 	{ href: '/backup', label: 'Backup', icon: '💾', shortcut: 'B', roles: ['admin'], app: 'shared' },
 
 	// ===== INVENTORY MANAGEMENT =====
-	{ href: '/inventory', label: 'Pergerakan', icon: '📥', shortcut: 'I', roles: MANAGER, app: 'inventory' },
+	// Products: kelola penuh (tambah/edit/hapus/import) milik Inventory.
+	// Stock Opname hanya punya versi BACA-SAJA (route /opname/products).
+	{ href: '/inventory', label: 'Dashboard', icon: '📊', shortcut: 'I', app: 'inventory' },
+	{ href: '/inventory/movements', label: 'Pergerakan', icon: '📥', shortcut: 'M', roles: MANAGER, app: 'inventory' },
+	{ href: '/inventory/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'inventory' },
 	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory' }
 ];
 

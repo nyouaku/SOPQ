@@ -1,209 +1,152 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
-	import { page as pageStore } from '$app/stores';
-	import { replaceState } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
-	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
-	import { inventoryQuery, warehousesQuery } from '$lib/api/queries';
+	import Loader from '$lib/components/Loader.svelte';
+	import { apiClient } from '$lib/api/client';
+	import { API_ENDPOINTS } from '$lib/api/config';
+	import { toastStore } from '$lib/stores/toast';
 
-	const limit = 25;
-	const init = new URLSearchParams($pageStore.url.search);
+	let isLoading = true;
+	let movements: any[] = [];
+	let warehouses: any[] = [];
+	let selectedWarehouse = '';
 
-	let warehouseId = init.get('warehouse_id') ?? '';
-	let movementType = init.get('movement_type') ?? '';
-	let from = init.get('from') ?? '';
-	let to = init.get('to') ?? '';
-	let page = Math.max(1, parseInt(init.get('page') ?? '1', 10) || 1);
-	let applied = writable(buildParams(page));
+	// Agregat dari data termuat (tanpa ubah backend/API).
+	$: inCount = movements.filter((m) => m.movement_type === 'in').length;
+	$: outCount = movements.filter((m) => m.movement_type === 'out').length;
+	$: transferCount = movements.filter((m) => m.movement_type === 'transfer').length;
+	$: recent = movements.slice(0, 6);
 
-	onMount(() =>
-		applied.subscribe((p) => replaceState(`${window.location.pathname}?${p.toString()}`, {}))
-	);
-
-	const movements = inventoryQuery(applied);
-	const warehousesQ = warehousesQuery();
-
-	$: rows = ($movements.data?.data as any[]) || [];
-	$: total = $movements.data?.total || 0;
-	$: totalPages = Math.max(1, Math.ceil(total / limit));
-	$: warehouseList = ($warehousesQ.data as any[]) ?? [];
-
-	function buildParams(nextPage: number) {
-		const p = new URLSearchParams();
-		if (warehouseId) p.set('warehouse_id', warehouseId);
-		if (movementType) p.set('movement_type', movementType);
-		if (from) p.set('from', from);
-		if (to) p.set('to', to);
-		p.set('page', String(nextPage));
-		p.set('limit', String(limit));
-		return p;
+	async function load() {
+		try {
+			const q = selectedWarehouse ? `?warehouse_id=${selectedWarehouse}&limit=100` : '?limit=100';
+			const [mRes, wRes] = await Promise.all([
+				apiClient.get<{ data: any[] }>(`${API_ENDPOINTS.inventory}${q}`),
+				apiClient.get<{ warehouses: any[] }>(API_ENDPOINTS.warehouses)
+			]);
+			movements = mRes.success && mRes.data ? mRes.data.data || [] : [];
+			warehouses = wRes.success && wRes.data ? wRes.data.warehouses || [] : [];
+		} catch (e: any) {
+			toastError(e);
+		} finally {
+			isLoading = false;
+		}
 	}
 
-	function apply() {
-		page = 1;
-		applied.set(buildParams(1));
+	function toastError(e: any) {
+		toastStore.error(e?.message || 'Gagal memuat');
 	}
 
-	function goPage(n: number) {
-		page = n;
-		const p = new URLSearchParams($applied);
-		p.set('page', String(n));
-		applied.set(p);
+	function warehouseName(id: string): string {
+		return warehouses.find((w) => w.id === id)?.name || '-';
 	}
-
-	function clearFilters() {
-		warehouseId = '';
-		movementType = '';
-		from = '';
-		to = '';
-		apply();
-	}
-
-	const typeBadge: Record<string, string> = {
-		in: 'badge-success',
-		out: 'badge-error',
-		transfer: 'badge-info'
-	};
 
 	function fmtDate(iso: string) {
 		if (!iso) return '-';
 		return new Date(iso).toLocaleString('id-ID', {
-			day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+			day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
 		});
 	}
 
-	// Ringkasan (agregat client-side dari halaman aktif) — tanpa ubah backend/API.
-	$: stats = (() => {
-		let inCount = 0, outCount = 0, transferCount = 0;
-		for (const m of rows) {
-			if (m.movement_type === 'in') inCount++;
-			else if (m.movement_type === 'out') outCount++;
-			else if (m.movement_type === 'transfer') transferCount++;
-		}
-		return { inCount, outCount, transferCount };
-	})();
+	const typeBadge: Record<string, string> = { in: 'success', out: 'error', transfer: 'info' };
+	const typeLabel: Record<string, string> = { in: 'Masuk', out: 'Keluar', transfer: 'Transfer' };
 
-	import { onMount } from 'svelte';
+	load();
 </script>
 
 <svelte:head>
-	<title>Inventory - Stock Opname</title>
+	<title>Inventory - Dashboard</title>
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page">
-		<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+	<div class="page pb-24 md:pb-28">
+		<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
 			<div>
-				<h1 class="page-title">Inventory</h1>
-				<p class="page-subtitle">Pergerakan stok: barang masuk, keluar, dan transfer antar gudang</p>
-			</div>
-			<a href="/inventory/new" class="btn btn-primary btn-sm shrink-0 md:btn-md">
-				<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path stroke-linecap="round" d="M12 4v16m8-8H4" />
-				</svg>
-				<span class="hidden sm:inline">Catat pergerakan</span>
-				<span class="sm:hidden">Baru</span>
-			</a>
-		</div>
-
-		<!-- Stat ringkasan (glass, dari halaman aktif) -->
-		<div class="mb-4 grid grid-cols-3 gap-3">
-			<div class="card-apple p-4">
-				<div class="text-xs text-base-content/60">Masuk (IN)</div>
-				<div class="metric text-2xl font-semibold text-success">{stats.inCount}</div>
-			</div>
-			<div class="card-apple p-4">
-				<div class="text-xs text-base-content/60">Keluar (OUT)</div>
-				<div class="metric text-2xl font-semibold text-error">{stats.outCount}</div>
-			</div>
-			<div class="card-apple p-4">
-				<div class="text-xs text-base-content/60">Transfer</div>
-				<div class="metric text-2xl font-semibold text-info">{stats.transferCount}</div>
+				<h1 class="page-title">Inventory Management</h1>
+				<p class="page-subtitle">Pantau pergerakan stok: barang masuk, keluar, dan transfer</p>
 			</div>
 		</div>
 
-		<!-- Filters -->
-		<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-4">
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<div>
-					<label class="label py-0" for="f-wh"><span class="label-text text-xs text-base-content/60">Gudang</span></label>
-					<select id="f-wh" class="select select-bordered select-sm w-full" bind:value={warehouseId}>
-						<option value="">Semua gudang</option>
-						{#each warehouseList as wh}
-							<option value={wh.id}>{wh.name}</option>
+		<!-- Filter gudang -->
+		<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-3">
+			<div class="flex flex-wrap items-center gap-2">
+				<label class="text-xs text-base-content/60" for="dash-wh">Gudang:</label>
+				<select id="dash-wh" class="select select-bordered select-sm" bind:value={selectedWarehouse} on:change={load}>
+					<option value="">Semua gudang</option>
+					{#each warehouses as wh}
+						<option value={wh.id}>{wh.name}</option>
+					{/each}
+				</select>
+				<a href="/inventory/movements" class="btn btn-ghost btn-sm ml-auto">Semua pergerakan →</a>
+			</div>
+		</div>
+
+		{#if isLoading}
+			<div class="flex h-40 items-center justify-center"><Loader size={48} /></div>
+		{:else}
+			<!-- Stat tiles (hairline grid, Apple-adjacent) -->
+			<div class="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-base-300 bg-base-300 lg:grid-cols-4">
+				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 0, easing: cubicOut }}>
+					<div class="text-xs text-base-content/60">Total Pergerakan</div>
+					<div class="metric text-2xl font-semibold">{movements.length}</div>
+				</div>
+				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 60, easing: cubicOut }}>
+					<div class="text-xs text-base-content/60">Masuk (IN)</div>
+					<div class="metric text-2xl font-semibold text-success">{inCount}</div>
+				</div>
+				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 120, easing: cubicOut }}>
+					<div class="text-xs text-base-content/60">Keluar (OUT)</div>
+					<div class="metric text-2xl font-semibold text-error">{outCount}</div>
+				</div>
+				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 180, easing: cubicOut }}>
+					<div class="text-xs text-base-content/60">Transfer</div>
+					<div class="metric text-2xl font-semibold text-info">{transferCount}</div>
+				</div>
+			</div>
+
+			<!-- Transaksi terbaru -->
+			<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
+				<div class="mb-3 flex items-center justify-between">
+					<h2 class="font-semibold">Transaksi Terbaru</h2>
+					<a href="/inventory/movements" class="text-xs link link-primary">Lihat semua</a>
+				</div>
+				{#if recent.length === 0}
+					<p class="py-6 text-center text-sm text-base-content/60">Belum ada pergerakan stok</p>
+				{:else}
+					<ul class="divide-y divide-base-300">
+						{#each recent as m (m.id)}
+							<li class="flex items-center gap-3 py-2.5">
+								<span class="badge badge-sm capitalize {typeBadge[m.movement_type] || 'badge-ghost'}">
+									{typeLabel[m.movement_type] || m.movement_type}
+								</span>
+								<div class="min-w-0 flex-1">
+									<a href="/inventory/{m.id}" class="link link-hover truncate text-sm font-medium">{m.code}</a>
+									<div class="truncate text-xs text-base-content/60">{warehouseName(m.warehouse_id)}</div>
+								</div>
+								<div class="text-xs text-base-content/50">{fmtDate(m.created_at)}</div>
+							</li>
 						{/each}
-					</select>
-				</div>
-				<div>
-					<label class="label py-0" for="f-type"><span class="label-text text-xs text-base-content/60">Jenis</span></label>
-					<select id="f-type" class="select select-bordered select-sm w-full" bind:value={movementType}>
-						<option value="">Semua jenis</option>
-						<option value="in">Masuk (IN)</option>
-						<option value="out">Keluar (OUT)</option>
-						<option value="transfer">Transfer</option>
-					</select>
-				</div>
-				<div>
-					<label class="label py-0" for="f-from"><span class="label-text text-xs text-base-content/60">Dari</span></label>
-					<input id="f-from" type="date" class="input input-bordered input-sm w-full" bind:value={from} />
-				</div>
-				<div>
-					<label class="label py-0" for="f-to"><span class="label-text text-xs text-base-content/60">Sampai</span></label>
-					<input id="f-to" type="date" class="input input-bordered input-sm w-full" bind:value={to} />
-				</div>
-			</div>
-			<div class="mt-3 flex gap-2">
-				<button class="btn btn-primary btn-sm" on:click={apply}>Terapkan</button>
-				<button class="btn btn-ghost btn-sm" on:click={clearFilters}>Bersihkan</button>
-			</div>
-		</div>
-
-		<!-- Table -->
-		<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
-			{#if $movements.isLoading}
-				<TableSkeleton rows={6} columns={6} />
-			{:else if rows.length === 0}
-				<p class="py-8 text-center text-sm text-base-content/60">Belum ada pergerakan stok</p>
-			{:else}
-				<div class="overflow-x-auto">
-					<table class="table table-sm">
-						<thead>
-							<tr>
-								<th>Kode</th>
-								<th>Jenis</th>
-								<th>Gudang</th>
-								<th>Tujuan</th>
-								<th>Ref</th>
-								<th>Waktu</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each rows as m}
-								<tr>
-									<td><a class="link link-primary metric text-xs" href="/inventory/{m.id}">{m.code}</a></td>
-									<td>
-										<span class="badge badge-sm capitalize {typeBadge[m.movement_type] || 'badge-ghost'}">
-											{m.movement_type}
-										</span>
-									</td>
-									<td class="text-xs">{m.warehouse?.name || '-'}</td>
-									<td class="text-xs">{m.to_warehouse?.name || '-'}</td>
-									<td class="metric text-xs">{m.reference_code || '-'}</td>
-									<td class="text-xs text-base-content/60">{fmtDate(m.created_at)}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-
-				{#if totalPages > 1}
-					<div class="mt-4 flex items-center justify-center gap-2">
-						<button class="btn btn-sm" disabled={page <= 1} on:click={() => goPage(page - 1)}>Sebelumnya</button>
-						<span class="metric text-xs text-base-content/60">{page} / {totalPages}</span>
-						<button class="btn btn-sm" disabled={page >= totalPages} on:click={() => goPage(page + 1)}>Berikutnya</button>
-					</div>
+					</ul>
 				{/if}
-			{/if}
-		</div>
+			</div>
+
+			<!-- Quick actions -->
+			<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+				<a href="/inventory/new" class="card-apple card-apple--hover p-4">
+					<div class="text-sm font-semibold text-success">⬇️ Barang Masuk</div>
+					<div class="text-xs text-base-content/60">Catat pembelian / retur</div>
+				</a>
+				<a href="/inventory/new" class="card-apple card-apple--hover p-4">
+					<div class="text-sm font-semibold text-error">⬆️ Barang Keluar</div>
+					<div class="text-xs text-base-content/60">Catat penjualan / rusak</div>
+				</a>
+				<a href="/inventory/products" class="card-apple card-apple--hover p-4">
+					<div class="text-sm font-semibold text-info">📦 Kelola Produk</div>
+					<div class="text-xs text-base-content/60">Tambah / ubah produk</div>
+				</a>
+			</div>
+		{/if}
 	</div>
 </LayoutWrapper>
