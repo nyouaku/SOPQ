@@ -76,14 +76,19 @@ class ApiClient {
 			headers['Authorization'] = `Bearer ${token}`;
 		}
 
+		// Endpoint auth (login/refresh) tidak lewat logika refresh-token.
+		// 401 di sini berarti kredensial salah — biarkan respons asli sampai ke pemanggil
+		// supaya pesan errornya (mis. "username/password salah") bisa ditampilkan.
+		const isAuthEndpoint = endpoint.startsWith('/auth/');
+
 		try {
 			let response = await fetch(`${this.baseUrl}${endpoint}`, {
 				...options,
 				headers
 			});
 
-			// Retry sekali dengan refresh token saat 401.
-			if (response.status === 401) {
+			// Retry sekali dengan refresh token saat 401 (bukan pada endpoint auth).
+			if (response.status === 401 && !isAuthEndpoint) {
 				const refreshed = await this.refreshAccessToken();
 				if (refreshed) {
 					const newToken = await this.getAccessToken();

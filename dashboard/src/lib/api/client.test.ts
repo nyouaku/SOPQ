@@ -58,4 +58,22 @@ describe('apiClient refresh', () => {
 		expect(localStorage.getItem('access_token')).toBeNull();
 		expect(goto).toHaveBeenCalledWith('/login');
 	});
+
+	it('401 pada login: respons asli diteruskan, tanpa redirect ke login', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				json(401, { success: false, error: { code: 'UNAUTHORIZED', message: 'username atau password salah' } })
+			);
+		vi.stubGlobal('fetch', fetchMock);
+
+		const res = await apiClient.post('/auth/login', { username: 'admin', password: 'salah' });
+
+		// Tidak melempar; respons asli sampai ke pemanggil.
+		expect(res.success).toBe(false);
+		expect(res.error?.message).toBe('username atau password salah');
+		// Hanya 1 fetch (tidak coba refresh).
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(goto).not.toHaveBeenCalled();
+	});
 });
