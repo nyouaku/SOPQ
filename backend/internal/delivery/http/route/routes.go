@@ -136,6 +136,9 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		// Products routes (PHASE 3)
 		products := v1.Group("/products")
 		products.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		// Rate limit: QR search adalah endpoint kritikal (<500ms target).
+		// Batasi 60 req/menit/IP supaya tidak di-spam.
+		products.Use(middleware.RateLimiter(cfg.RedisClient, 60, time.Minute))
 		{
 			products.GET("", productHandler.ListProducts)
 			products.GET("/code/:code", productHandler.GetProductByCode) // Kritikal untuk scan (QR = product_code)
@@ -271,6 +274,8 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		// Manual stock adjustment (admin & supervisor)
 		stocks := v1.Group("/stocks")
 		stocks.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		// Rate limit: stock adjustment adalah operasi kritis, 20x/menit/IP.
+		stocks.Use(middleware.RateLimiter(cfg.RedisClient, 20, time.Minute))
 		{
 			stocksAdmin := stocks.Group("")
 			stocksAdmin.Use(middleware.RequireRole("supervisor", "admin"))
@@ -333,6 +338,8 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		imports := v1.Group("/import")
 		imports.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
 		imports.Use(middleware.RequireRole("admin"))
+		// Rate limit: import adalah operasi berat, 5x/5menit/IP.
+		imports.Use(middleware.RateLimiter(cfg.RedisClient, 5, 5*time.Minute))
 		{
 			imports.GET("/products/template", importHandler.DownloadProductTemplate)
 			imports.POST("/products", importHandler.ImportProducts)

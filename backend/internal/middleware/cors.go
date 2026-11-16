@@ -10,6 +10,7 @@ import (
 )
 
 // CORS mengizinkan origin yang terdaftar di CORS_ALLOWED_ORIGINS (dipisah koma).
+// Support wildcard subdomain: *.example.com akan match sub.example.com.
 //
 // Aturan penting: `Access-Control-Allow-Origin: *` TIDAK BOLEH digabung dengan
 // `Access-Control-Allow-Credentials: true`. Kombinasi itu ditolak browser, dan
@@ -18,9 +19,14 @@ import (
 func CORS(allowedOrigins string) gin.HandlerFunc {
 	origins := parseOrigins(allowedOrigins)
 	wildcard := false
+	var wildcardDomains []string
 	for _, o := range origins {
 		if o == "*" {
 			wildcard = true
+		}
+		// Extract wildcard domains (e.g., *.example.com)
+		if strings.HasPrefix(o, "*.") {
+			wildcardDomains = append(wildcardDomains, o[2:]) // strip "*."
 		}
 	}
 
@@ -28,6 +34,16 @@ func CORS(allowedOrigins string) gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		allowed := wildcard || (origin != "" && slices.Contains(origins, origin))
+
+		// Check wildcard subdomain match
+		if !allowed && origin != "" {
+			for _, domain := range wildcardDomains {
+				if strings.HasSuffix(origin, "."+domain) {
+					allowed = true
+					break
+				}
+			}
+		}
 
 		if allowed {
 			if origin != "" {
