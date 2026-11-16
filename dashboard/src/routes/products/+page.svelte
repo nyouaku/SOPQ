@@ -70,6 +70,7 @@
 		isImporting = true;
 		importError = '';
 		importResult = null;
+		toastStore.info('Mengunggah dan memproses file...');
 		try {
 			const token = localStorage.getItem('access_token');
 			const form = new FormData();
@@ -79,15 +80,24 @@
 				headers: { Authorization: `Bearer ${token}` },
 				body: form
 			});
-			const json = await res.json();
+			const text = await res.text();
+			const json = text ? JSON.parse(text) : { success: res.ok };
 			if (!res.ok || !json.success) {
 				importError = json.error?.message || 'Import gagal';
+				toastStore.error(importError);
 			} else {
 				importResult = json.data;
 				await loadProducts();
+				const { created = 0, updated = 0, failed = 0 } = importResult || {};
+				if (failed > 0) {
+					toastStore.error(`Import selesai: ${created} dibuat, ${updated} diperbarui, ${failed} gagal`);
+				} else {
+					toastStore.success(`Import berhasil: ${created} dibuat, ${updated} diperbarui`);
+				}
 			}
 		} catch (e: any) {
 			importError = e.message || 'Import gagal';
+			toastStore.error(importError);
 		} finally {
 			isImporting = false;
 		}

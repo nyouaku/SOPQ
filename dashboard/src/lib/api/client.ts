@@ -112,7 +112,19 @@ class ApiClient {
 				}
 			}
 
-			const data: ApiResponse<T> = await response.json();
+			// Parse respons dengan aman: respons non-JSON (204 kosong, error HTML dari
+			// reverse-proxy, body rusak) tidak boleh melempar "Unexpected ... after JSON".
+			let data: ApiResponse<T>;
+			const ct = response.headers.get('content-type') || '';
+			if (!ct.includes('application/json')) {
+				if (!response.ok) {
+					throw new Error(`Server error ${response.status}`);
+				}
+				data = { success: response.ok } as ApiResponse<T>;
+			} else {
+				const text = await response.text();
+				data = text ? (JSON.parse(text) as ApiResponse<T>) : ({ success: response.ok } as ApiResponse<T>);
+			}
 			return data;
 		} catch (error) {
 			throw error;
