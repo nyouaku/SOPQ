@@ -319,6 +319,10 @@ type StockRepository interface {
 	// AdjustStock mengubah quantity_system dan mengembalikan nilai sebelum & sesudah.
 	// Menggunakan optimistic locking untuk keamanan.
 	AdjustStock(ctx context.Context, productID, warehouseID uuid.UUID, delta int, version int) (oldVal, newVal int, err error)
+	// CountProductsInWarehouse menghitung jumlah produk yang punya baris stock di
+	// gudang tsb — dipakai sebagai TARGET stock opname sesi di gudang itu. Produk
+	// tanpa baris stock di gudang tsb bukan target (tak dihitung).
+	CountProductsInWarehouse(ctx context.Context, warehouseID uuid.UUID) (int, error)
 }
 
 type stockRepository struct {
@@ -327,6 +331,19 @@ type stockRepository struct {
 
 func NewStockRepository(db *gorm.DB) StockRepository {
 	return &stockRepository{db: db}
+}
+
+// CountProductsInWarehouse menghitung target stock opname: jumlah produk yang
+// punya baris stock (apa pun quantity_system-nya) di gudang tsb.
+func (r *stockRepository) CountProductsInWarehouse(ctx context.Context, warehouseID uuid.UUID) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Stock{}).
+		Where("warehouse_id = ?", warehouseID).
+		Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("failed to count products in warehouse: %w", err)
+	}
+	return int(count), nil
 }
 
 func (r *stockRepository) FindByProductAndWarehouse(ctx context.Context, productID, warehouseID uuid.UUID) (*domain.Stock, error) {

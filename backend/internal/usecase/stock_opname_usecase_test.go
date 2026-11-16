@@ -175,6 +175,16 @@ func (m *mockStockRepository) AdjustStock(ctx context.Context, productID, wareho
 	return 0, 0, nil
 }
 
+func (m *mockStockRepository) CountProductsInWarehouse(ctx context.Context, warehouseID uuid.UUID) (int, error) {
+	count := 0
+	for _, s := range m.stocks {
+		if s.WarehouseID == warehouseID {
+			count++
+		}
+	}
+	return count, nil
+}
+
 type mockProductRepository struct {
 	products map[string]*domain.Product // key: barcode
 }

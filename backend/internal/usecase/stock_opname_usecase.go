@@ -447,6 +447,18 @@ func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uu
 		}
 	}
 
+	// Target sesi = jumlah produk yang PUNYA stok di gudang sesi (bukan semua produk
+	// global). Ini yang menentukan progress & kapan sesi dinyatakan "selesai".
+	totalTarget, err := u.stockRepo.CountProductsInWarehouse(ctx, session.WarehouseID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count target products: %w", err)
+	}
+	// Jangan pernah lebih kecil dari yang sudah ter-scan (bisa terjadi bila stok
+	// baris dihapus setelah scan), agar progress tidak mundur.
+	if totalTarget < len(details) {
+		totalTarget = len(details)
+	}
+
 	// Calculate duration
 	var completedAt time.Time
 	if session.CompletedAt != nil {
@@ -460,7 +472,7 @@ func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uu
 		SessionID:       session.ID,
 		Code:            session.Code,
 		TotalScanned:    len(details),
-		TotalProducts:   len(details), // Assume all scanned for now
+		TotalProducts:   totalTarget,
 		MatchedCount:    matched,
 		UnmatchedCount:  unmatched,
 		Status:          session.Status,

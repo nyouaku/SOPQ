@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { derived, writable } from 'svelte/store';
-	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
@@ -63,7 +62,11 @@
 		});
 	}
 
-	$: warehouseList = get(warehouses).data ?? [];
+	// Reaktif: warehouseList ikut terisi begitu query gudang selesai.
+	// Dulu pakai get(warehouses) yang hanya dibaca SEKALI saat load (masih loading ->
+	// data kosong) sehingga dropdown gudang kadang tak muncul; klik "tambah sesi" ke-2
+	// kebetulan berhasil karena query sudah ter-cache. $warehouses membuatnya reaktif.
+	$: warehouseList = ($warehouses.data as any[]) ?? [];
 
 	function checkboxChecked(e: Event): boolean {
 		return (e.currentTarget as HTMLInputElement).checked;
