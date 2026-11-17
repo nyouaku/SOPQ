@@ -176,7 +176,65 @@
 		});
 	}
 
-	// Buka dialog konfirmasi (tanpa alasan) lalu jalankan aksinya.
+	// Cetak checklist SO: daftar produk per rak dengan kolom kosong "Fisik" utk
+	// pencocokan manual. Pola print sama dgn ThermalPrintPanel (window.open + @page).
+	function printChecklist() {
+		const esc = (s: any) =>
+			String(s ?? '').replace(/[&<>"']/g, (c) =>
+				({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string)
+			);
+		const rows = details
+			.map(
+				(d, i) => `<tr>
+					<td>${i + 1}</td>
+					<td>${esc(d.product?.product_code || '-')}</td>
+					<td>${esc(d.product?.name || '-')}</td>
+					<td>${esc(d.box?.code || '-')}</td>
+					<td class="num">${d.stock_system}</td>
+					<td></td>
+				</tr>`
+			)
+			.join('');
+
+		const html = `<!doctype html><html><head><meta charset="utf-8">
+			<title>Checklist SO ${esc(session?.code || '')}</title>
+			<style>
+				@page { size: A4; margin: 12mm; }
+				body { font-family: -apple-system, Arial, sans-serif; font-size: 12px; }
+				h1 { font-size: 16px; margin: 0 0 4px; }
+				.meta { color: #555; margin-bottom: 12px; font-size: 11px; }
+				table { width: 100%; border-collapse: collapse; }
+				th, td { border: 1px solid #999; padding: 5px 6px; text-align: left; }
+				th { background: #eee; }
+				td.num { text-align: right; }
+				.sign { margin-top: 28px; display: flex; justify-content: space-between; font-size: 11px; }
+				.sign div { width: 30%; border-top: 1px solid #333; padding-top: 4px; text-align: center; }
+			</style></head><body>
+			<h1>Checklist Stock Opname ${esc(session?.code || '')}</h1>
+			<div class="meta">
+				Gudang: ${esc(session?.warehouse?.name || '-')} &nbsp;|&nbsp;
+				Mulai: ${formatDate(session?.started_at)} &nbsp;|&nbsp;
+				Status: ${esc(session?.status || '')}
+			</div>
+			<table>
+				<thead><tr>
+					<th>No</th><th>Kode</th><th>Produk</th><th>Rak</th><th>Sistem</th><th>Fisik</th>
+				</tr></thead>
+				<tbody>${rows}</tbody>
+			</table>
+			<div class="sign"><div>Petugas</div><div>Supervisor</div><div>Admin</div></div>
+			</body></html>`;
+
+		const w = window.open('', '_blank');
+		if (!w) {
+			toastStore.error('Popup diblokir. Izinkan popup utk mencetak.');
+			return;
+		}
+		w.document.write(html);
+		w.document.close();
+		w.focus();
+		w.print();
+	}
 	function requestAction(action: 'complete' | 'approve' | 'reopen') {
 		if (isMutating) return;
 		pendingAction = action;
@@ -408,6 +466,9 @@
 							<span class="badge {getStatusBadge(session.status)} badge-lg capitalize">
 								{session.status.replace('_', ' ')}
 							</span>
+							<button class="btn btn-outline btn-sm" on:click={printChecklist}>
+								🖨️ Cetak Checklist
+							</button>
 							{#if session.status === 'in_progress'}
 								<button
 									class="btn btn-success btn-sm"
