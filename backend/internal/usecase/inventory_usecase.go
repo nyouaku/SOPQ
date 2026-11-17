@@ -21,6 +21,13 @@ type InventoryUsecase interface {
 	PostTransfer(ctx context.Context, input PostTransferInput) (*domain.StockMovement, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.StockMovement, error)
 	List(ctx context.Context, filter repository.InventoryFilter) ([]domain.StockMovement, int64, error)
+	// PostGrid menyimpan banyak isian grid (produk × tanggal) sekaligus. Item
+	// dikelompokkan per tanggal -> satu dokumen per tanggal, tiap dokumen atomic.
+	PostGrid(ctx context.Context, input PostGridInput) (*GridResult, error)
+	// GetGrid mengembalikan agregat isian per produk × tanggal utk mengisi grid.
+	GetGrid(ctx context.Context, q GridQuery) ([]domain.GridCell, error)
+	// GetSummary mengembalikan KPI dashboard (server-side, bukan agregat klien).
+	GetSummary(ctx context.Context, q SummaryQuery) (*domain.InventorySummary, error)
 }
 
 type inventoryUsecase struct {
@@ -41,6 +48,8 @@ type MovementItemInput struct {
 	Quantity  int
 	UnitCost  float64
 	Note      string
+	// MovementDate: tanggal efektif transaksi (dipakai grid entry). Nil = form biasa.
+	MovementDate *time.Time
 }
 
 // PostMovementInput untuk IN dan OUT (satu gudang).
@@ -122,10 +131,11 @@ func (u *inventoryUsecase) build(
 			return nil, nil, nil, fmt.Errorf("jumlah harus lebih dari 0")
 		}
 		movement.Items = append(movement.Items, domain.StockMovementItem{
-			ProductID: it.ProductID,
-			Quantity:  it.Quantity,
-			UnitCost:  it.UnitCost,
-			Note:      it.Note,
+			ProductID:    it.ProductID,
+			Quantity:     it.Quantity,
+			UnitCost:     it.UnitCost,
+			MovementDate: it.MovementDate,
+			Note:         it.Note,
 		})
 
 		delta := it.Quantity // IN: naik
@@ -275,6 +285,138 @@ func (u *inventoryUsecase) GetByID(ctx context.Context, id uuid.UUID) (*domain.S
 
 func (u *inventoryUsecase) List(ctx context.Context, filter repository.InventoryFilter) ([]domain.StockMovement, int64, error) {
 	return u.repo.List(ctx, filter)
+}
+
+// GridEntryInput satu sel isian grid (produk × tanggal).
+type GridEntryInput struct {
+	ProductID    uuid.UUID
+	Date         time.Time
+	Quantity     int
+	UnitCost     float64
+}
+
+// PostGridInput — body untuk posting seluruh isian grid sekaligus.
+type PostGridInput struct {
+	WarehouseID uuid.UUID
+	MovementType string // in | out
+	SubType      string
+	ReferenceCode string
+	UserID       uuid.UUID
+	IPAddress    string
+	Entries      []GridEntryInput
+}
+
+// GridQuery — parameter baca isian grid satu bulan.
+type GridQuery struct {
+	WarehouseID  uuid.UUID
+	Month        time.Time
+	MovementType string
+}
+
+// SummaryQuery — parameter KPI dashboard.
+type SummaryQuery struct {
+	WarehouseID uuid.UUID
+	Month       time.Time
+}
+
+// GridResult — ringkasan hasil posting grid.
+type GridResult struct {
+	MovementsCreated int   `json:"movements_created"`
+	ItemsPosted      int   `json:"items_posted"`
+}
+
+// PostGrid menyimpan seluruh isian grid (produk × tanggal) sekaligus.
+// Item dikelompokkan per tanggal -> satu dokumen per tanggal (tiap dokumen atomic),
+// sehingga stok + ledger per tanggal tetap konsisten dan bisa diaudit per hari.
+func (u *inventoryUsecase) PostGrid(ctx context.Context, input PostGridInput) (*GridResult, error) {
+	if len(input.Entries) == 0 {
+		return nil, fmt.Errorf("tidak ada isian grid untuk disimpan")
+	}
+	if input.WarehouseID == uuid.Nil {
+		return nil, fmt.Errorf("gudang wajib dipilih")
+	}
+	if input.MovementType != domain.MovementTypeIn && input.MovementType != domain.MovementTypeOut {
+		return nil, fmt.Errorf("movement_type harus 'in' atau 'out'")
+	}
+	if err := validasiSubType(input.MovementType, input.SubType); err != nil {
+		return nil, err
+	}
+
+	// Kelompokkan isian per tanggal.
+	byDate := make(map[string][]MovementItemInput)
+	var dates []time.Time
+	for _, e := range input.Entries {
+		if e.Quantity <= 0 {
+			return nil, fmt.Errorf("jumlah harus lebih dari 0")
+		}
+		if e.Date.IsZero() {
+			return nil, fmt.Errorf("setiap isian wajib punya tanggal")
+		}
+		day := e.Date.Format("2006-01-02")
+		if _, ok := byDate[day]; !ok {
+			dates = append(dates, e.Date)
+		}
+		byDate[day] = append(byDate[day], MovementItemInput{
+			ProductID:    e.ProductID,
+			Quantity:     e.Quantity,
+			UnitCost:     e.UnitCost,
+			MovementDate: &e.Date,
+		})
+	}
+
+	created := 0
+	itemsPosted := 0
+	for _, d := range dates {
+		day := d
+		items := byDate[day.Format("2006-01-02")]
+
+		var err error
+		if input.MovementType == domain.MovementTypeOut {
+			_, err = u.PostOut(ctx, PostMovementInput{
+				WarehouseID:   input.WarehouseID,
+				SubType:       input.SubType,
+				ReferenceCode: input.ReferenceCode,
+				UserID:        input.UserID,
+				IPAddress:     input.IPAddress,
+				Items:         items,
+			})
+		} else {
+			_, err = u.PostIn(ctx, PostMovementInput{
+				WarehouseID:   input.WarehouseID,
+				SubType:       input.SubType,
+				ReferenceCode: input.ReferenceCode,
+				UserID:        input.UserID,
+				IPAddress:     input.IPAddress,
+				Items:         items,
+			})
+		}
+		if err != nil {
+			return nil, fmt.Errorf("gagal menyimpan tanggal %s: %w", day.Format("02 Jan"), err)
+		}
+		created++
+		itemsPosted += len(items)
+	}
+
+	return &GridResult{MovementsCreated: created, ItemsPosted: itemsPosted}, nil
+}
+
+// GetGrid mengembalikan agregat isian per produk × tanggal (pre-fill grid).
+func (u *inventoryUsecase) GetGrid(ctx context.Context, q GridQuery) ([]domain.GridCell, error) {
+	if q.WarehouseID == uuid.Nil {
+		return nil, fmt.Errorf("gudang wajib dipilih")
+	}
+	if q.MovementType != domain.MovementTypeIn && q.MovementType != domain.MovementTypeOut {
+		return nil, fmt.Errorf("movement_type harus 'in' atau 'out'")
+	}
+	return u.repo.GridCells(ctx, q.WarehouseID, q.Month, q.MovementType)
+}
+
+// GetSummary mengembalikan KPI dashboard inventory.
+func (u *inventoryUsecase) GetSummary(ctx context.Context, q SummaryQuery) (*domain.InventorySummary, error) {
+	if q.WarehouseID == uuid.Nil {
+		return nil, fmt.Errorf("gudang wajib dipilih")
+	}
+	return u.repo.Summary(ctx, q.WarehouseID, q.Month)
 }
 
 func (u *inventoryUsecase) log(ctx context.Context, userID uuid.UUID, ip string, movement *domain.StockMovement) {

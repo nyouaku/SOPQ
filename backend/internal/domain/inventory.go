@@ -59,18 +59,60 @@ func (StockMovement) TableName() string {
 
 // StockMovementItem — satu baris produk dalam dokumen pergerakan.
 type StockMovementItem struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	MovementID uuid.UUID `json:"movement_id" gorm:"type:uuid;not null"`
-	ProductID  uuid.UUID `json:"product_id" gorm:"type:uuid;not null"`
-	Product    *Product  `json:"product,omitempty" gorm:"foreignKey:ProductID"`
-	Quantity   int       `json:"quantity" gorm:"not null"`
-	UnitCost   float64   `json:"unit_cost" gorm:"not null;default:0"`
-	Note       string    `json:"note"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID           uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
+	MovementID   uuid.UUID `json:"movement_id" gorm:"type:uuid;not null"`
+	ProductID    uuid.UUID `json:"product_id" gorm:"type:uuid;not null"`
+	Product      *Product  `json:"product,omitempty" gorm:"foreignKey:ProductID"`
+	Quantity     int       `json:"quantity" gorm:"not null"`
+	UnitCost     float64   `json:"unit_cost" gorm:"not null;default:0"`
+	// MovementDate: tanggal efektif transaksi (diisi saat posting dari grid).
+	// Nil = dibuat lewat form biasa (created_at dipakai).
+	MovementDate *time.Time `json:"movement_date,omitempty" gorm:"type:date"`
+	Note         string     `json:"note"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 func (StockMovementItem) TableName() string {
 	return "stock_movement_item"
+}
+
+// GridCell — satu agregat isian grid untuk (produk, tanggal).
+// Dipakai utk pre-fill grid dan menyimpan isian per hari.
+type GridCell struct {
+	ProductID uuid.UUID `json:"product_id"`
+	Name      string    `json:"name"`
+	ProductCode string  `json:"product_code"`
+	Day       int       `json:"day"` // 1-31
+	InQty     int       `json:"in_qty"`
+	OutQty    int       `json:"out_qty"`
+	UnitCost  float64   `json:"unit_cost"`
+}
+
+// InventorySummary — KPI dashboard inventory (server-side agregat).
+type InventorySummary struct {
+	TotalIn        int             `json:"total_in"`
+	TotalOut       int             `json:"total_out"`
+	TotalTransfer  int             `json:"total_transfer"`
+	MovementsCount int64           `json:"movements_count"`
+	TotalValueIn   float64         `json:"total_value_in"`
+	TotalValueOut  float64         `json:"total_value_out"`
+	TopOut         []TopMovement   `json:"top_out"`
+	LowStock       []LowStockItem  `json:"low_stock"`
+}
+
+// TopMovement — produk paling banyak keluar.
+type TopMovement struct {
+	ProductID uuid.UUID `json:"product_id"`
+	Name      string    `json:"name"`
+	Quantity  int       `json:"quantity"`
+}
+
+// LowStockItem — produk dengan stok di bawah minimum.
+type LowStockItem struct {
+	ProductID  uuid.UUID `json:"product_id"`
+	Name       string    `json:"name"`
+	QuantitySys int      `json:"quantity_system"`
+	MinStock   int       `json:"minimum_stock"`
 }
 
 // LedgerTypeFor memetakan (movement_type, sub_type) -> transaction_type stock_ledger.

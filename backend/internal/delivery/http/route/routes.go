@@ -327,7 +327,11 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				inventoryWrite.POST("/in", inventoryHandler.PostIn)
 				inventoryWrite.POST("/out", inventoryHandler.PostOut)
 				inventoryWrite.POST("/transfer", inventoryHandler.PostTransfer)
+				inventoryWrite.POST("/grid", inventoryHandler.PostGrid)
 			}
+			// Read endpoints grid + summary (supervisor & admin).
+			inventory.GET("/grid", inventoryHandler.GetGrid)
+			inventory.GET("/summary", inventoryHandler.GetSummary)
 		}
 
 		// Backup & restore (admin only)

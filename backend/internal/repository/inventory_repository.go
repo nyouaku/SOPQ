@@ -43,6 +43,10 @@ type InventoryRepository interface {
 	// simpan header+item, ubah quantity_system tiap efek stok (optimistic lock),
 	// tulis baris ledger dengan balance_after. Semua atau tidak sama sekali.
 	PostMovementTx(ctx context.Context, movement *domain.StockMovement, effects []StockEffect, ledgerEntries []*domain.StockLedger) error
+	// GridCells mengembalikan agregat isian per produk × tanggal untuk pre-fill grid.
+	GridCells(ctx context.Context, warehouseID uuid.UUID, month time.Time, movementType string) ([]domain.GridCell, error)
+	// Summary menghitung KPI dashboard inventory per gudang + bulan.
+	Summary(ctx context.Context, warehouseID uuid.UUID, month time.Time) (*domain.InventorySummary, error)
 }
 
 type inventoryRepository struct {
@@ -203,4 +207,119 @@ func applyStockDeltaTx(tx *gorm.DB, eff StockEffect) error {
 		return fmt.Errorf("stok berubah oleh proses lain, coba lagi")
 	}
 	return nil
+}
+
+// GridCells mengembalikan agregat isian per produk × tanggal untuk pre-fill grid
+// pada bulan + gudang + tipe pergerakan tertentu. Sumber: stock_movement_item yang
+// punya movement_date.
+func (r *inventoryRepository) GridCells(ctx context.Context, warehouseID uuid.UUID, month time.Time, movementType string) ([]domain.GridCell, error) {
+	monthStart := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, 0)
+
+	var rows []domain.GridCell
+	q := r.db.WithContext(ctx).
+		Table("stock_movement_item AS smi").
+		Select(`
+			smi.product_id AS product_id,
+			p.name AS name,
+			p.product_code AS product_code,
+			EXTRACT(DAY FROM smi.movement_date)::int AS day,
+			SUM(CASE WHEN sm.movement_type = 'in' THEN smi.quantity ELSE 0 END)::int AS in_qty,
+			SUM(CASE WHEN sm.movement_type = 'out' THEN smi.quantity ELSE 0 END)::int AS out_qty,
+			MAX(smi.unit_cost) AS unit_cost`).
+		Joins("JOIN stock_movement sm ON sm.id = smi.movement_id").
+		Joins("JOIN products p ON p.id = smi.product_id").
+		Where("sm.warehouse_id = ?", warehouseID).
+		Where("sm.movement_type = ?", movementType).
+		Where("smi.movement_date IS NOT NULL").
+		Where("smi.movement_date >= ? AND smi.movement_date < ?", monthStart, monthEnd).
+		Group("smi.product_id, p.name, p.product_code, day").
+		Order("p.name ASC, day ASC")
+
+	if err := q.Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to load grid cells: %w", err)
+	}
+	return rows, nil
+}
+
+// Summary menghitung KPI dashboard inventory: total IN/OUT/transfer + nilai + top keluar
+// + stok menipis, untuk satu gudang dalam sebulan.
+func (r *inventoryRepository) Summary(ctx context.Context, warehouseID uuid.UUID, month time.Time) (*domain.InventorySummary, error) {
+	monthStart := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, 0)
+	summary := &domain.InventorySummary{}
+
+	// Agregat per tipe pergerakan (header).
+	var typeRows []struct {
+		MovementType string
+		Count        int64
+		TotalIn      int
+		TotalOut     int
+		ValueIn      float64
+		ValueOut     float64
+	}
+	err := r.db.WithContext(ctx).
+		Table("stock_movement sm").
+		Select(`
+			sm.movement_type,
+			COUNT(DISTINCT sm.id) AS count,
+			COALESCE(SUM(smi.quantity) FILTER (WHERE sm.movement_type='in'),0)::int AS total_in,
+			COALESCE(SUM(smi.quantity) FILTER (WHERE sm.movement_type='out'),0)::int AS total_out,
+			COALESCE(SUM(smi.total_cost) FILTER (WHERE sm.movement_type='in'),0) AS value_in,
+			COALESCE(SUM(smi.total_cost) FILTER (WHERE sm.movement_type='out'),0) AS value_out`).
+		Joins("LEFT JOIN stock_movement_item smi ON smi.movement_id = sm.id").
+		Where("sm.warehouse_id = ? AND sm.created_at >= ? AND sm.created_at < ? AND sm.deleted_at IS NULL",
+			warehouseID, monthStart, monthEnd).
+		Group("sm.movement_type").
+		Scan(&typeRows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load summary: %w", err)
+	}
+
+	for _, tr := range typeRows {
+		summary.MovementsCount += tr.Count
+		switch tr.MovementType {
+		case domain.MovementTypeIn:
+			summary.TotalIn = tr.TotalIn
+			summary.TotalValueIn = tr.ValueIn
+		case domain.MovementTypeOut:
+			summary.TotalOut = tr.TotalOut
+			summary.TotalValueOut = tr.ValueOut
+		case domain.MovementTypeTransfer:
+			summary.TotalTransfer = tr.TotalOut // qty keluar dari gudang asal
+		}
+	}
+
+	// Top 5 produk paling banyak keluar.
+	var topOut []domain.TopMovement
+	err = r.db.WithContext(ctx).
+		Table("stock_movement_item AS smi").
+		Select("smi.product_id AS product_id, p.name AS name, SUM(smi.quantity)::int AS quantity").
+		Joins("JOIN stock_movement sm ON sm.id = smi.movement_id").
+		Joins("JOIN products p ON p.id = smi.product_id").
+		Where("sm.warehouse_id = ? AND sm.movement_type = 'out' AND sm.created_at >= ? AND sm.created_at < ?",
+			warehouseID, monthStart, monthEnd).
+		Group("smi.product_id, p.name").
+		Order("quantity DESC").Limit(5).Scan(&topOut).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load top out: %w", err)
+	}
+	summary.TopOut = topOut
+
+	// Stok menipis: quantity_system < minimum_stock (produk aktif).
+	var low []domain.LowStockItem
+	err = r.db.WithContext(ctx).
+		Table("stock AS s").
+		Select(`s.product_id AS product_id, p.name AS name,
+			s.quantity_system AS quantity_system, p.minimum_stock AS minimum_stock`).
+		Joins("JOIN products p ON p.id = s.product_id").
+		Where("s.warehouse_id = ? AND s.quantity_system < p.minimum_stock AND p.deleted_at IS NULL",
+			warehouseID).
+		Order("s.quantity_system ASC").Limit(10).Scan(&low).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load low stock: %w", err)
+	}
+	summary.LowStock = low
+
+	return summary, nil
 }

@@ -320,4 +320,178 @@ type PostTransferRequest struct {
 	Items           []movementItemRequest `json:"items" validate:"required,min=1,dive"`
 }
 
+// gridEntryRequest satu sel isian grid.
+type gridEntryRequest struct {
+	ProductID string  `json:"product_id" validate:"required,uuid"`
+	Date      string  `json:"date" validate:"required"` // YYYY-MM-DD
+	Quantity  int     `json:"quantity" validate:"required,min=1"`
+	UnitCost  float64 `json:"unit_cost"`
+}
+
+// PostGridRequest — DTO posting seluruh isian grid sekaligus.
+type PostGridRequest struct {
+	WarehouseID   string            `json:"warehouse_id" validate:"required,uuid"`
+	MovementType  string            `json:"movement_type" validate:"required,oneof=in out"`
+	SubType       string            `json:"sub_type" validate:"required"`
+	ReferenceCode string            `json:"reference_code"`
+	Entries       []gridEntryRequest `json:"entries" validate:"required,min=1,dive"`
+}
+
+// PostGrid godoc
+// @Summary Post inventory grid (bulk, per tanggal)
+// @Description Simpan seluruh isian grid (produk × tanggal) sekaligus. Item dikelompokkan
+// @Description per tanggal -> satu dokumen per tanggal, tiap dokumen atomic.
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body PostGridRequest true "Grid data"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/inventory/grid [post]
+func (h *InventoryHandler) PostGrid(c *gin.Context) {
+	var req PostGridRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondBadRequest(c, "Invalid request body")
+		return
+	}
+	if err := validator.Validate(req); err != nil {
+		utils.RespondValidationError(c, validator.FormatValidationError(err))
+		return
+	}
+	uid, ok := h.userID(c)
+	if !ok {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+	whID, err := uuid.Parse(req.WarehouseID)
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid warehouse ID")
+		return
+	}
+
+	entries := make([]usecase.GridEntryInput, 0, len(req.Entries))
+	for _, e := range req.Entries {
+		pid, perr := uuid.Parse(e.ProductID)
+		if perr != nil {
+			utils.RespondBadRequest(c, "Invalid product ID")
+			return
+		}
+		d, derr := time.Parse("2006-01-02", e.Date)
+		if derr != nil {
+			utils.RespondBadRequest(c, "Tanggal harus format YYYY-MM-DD")
+			return
+		}
+		entries = append(entries, usecase.GridEntryInput{
+			ProductID: pid,
+			Date:      d,
+			Quantity:  e.Quantity,
+			UnitCost:  e.UnitCost,
+		})
+	}
+
+	result, err := h.inventoryUsecase.PostGrid(c.Request.Context(), usecase.PostGridInput{
+		WarehouseID:   whID,
+		MovementType:  req.MovementType,
+		SubType:       req.SubType,
+		ReferenceCode: req.ReferenceCode,
+		UserID:        uid,
+		IPAddress:     c.ClientIP(),
+		Entries:       entries,
+	})
+	if err != nil {
+		utils.RespondBadRequest(c, err.Error())
+		return
+	}
+	utils.RespondOK(c, result)
+}
+
+// GetGrid godoc
+// @Summary Get inventory grid (pre-fill per produk × tanggal)
+// @Description Agregat isian grid per produk × tanggal untuk satu gudang + bulan + tipe.
+// @Tags inventory
+// @Produce json
+// @Security BearerAuth
+// @Param warehouse_id query string true "Warehouse ID"
+// @Param month query string true "Month (YYYY-MM)"
+// @Param movement_type query string true "in | out"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/inventory/grid [get]
+func (h *InventoryHandler) GetGrid(c *gin.Context) {
+	whRaw := c.Query("warehouse_id")
+	if whRaw == "" {
+		utils.RespondBadRequest(c, "warehouse_id wajib")
+		return
+	}
+	whID, err := uuid.Parse(whRaw)
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid warehouse ID")
+		return
+	}
+	monthRaw := c.Query("month")
+	if monthRaw == "" {
+		utils.RespondBadRequest(c, "month wajib (YYYY-MM)")
+		return
+	}
+	month, err := time.Parse("2006-01", monthRaw)
+	if err != nil {
+		utils.RespondBadRequest(c, "month harus format YYYY-MM")
+		return
+	}
+	mt := c.Query("movement_type")
+	if mt != "in" && mt != "out" {
+		utils.RespondBadRequest(c, "movement_type harus 'in' atau 'out'")
+		return
+	}
+
+	cells, err := h.inventoryUsecase.GetGrid(c.Request.Context(), usecase.GridQuery{
+		WarehouseID:  whID,
+		Month:        month,
+		MovementType: mt,
+	})
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+	utils.RespondOK(c, gin.H{"cells": cells})
+}
+
+// GetSummary godoc
+// @Summary Get inventory dashboard KPI (server-side)
+// @Description KPI dashboard: total masuk/keluar/transfer, nilai, top keluar, stok menipis.
+// @Tags inventory
+// @Produce json
+// @Security BearerAuth
+// @Param warehouse_id query string true "Warehouse ID"
+// @Param month query string true "Month (YYYY-MM)"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/inventory/summary [get]
+func (h *InventoryHandler) GetSummary(c *gin.Context) {
+	whRaw := c.Query("warehouse_id")
+	if whRaw == "" {
+		utils.RespondBadRequest(c, "warehouse_id wajib")
+		return
+	}
+	whID, err := uuid.Parse(whRaw)
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid warehouse ID")
+		return
+	}
+	monthRaw := c.DefaultQuery("month", time.Now().Format("2006-01"))
+	month, err := time.Parse("2006-01", monthRaw)
+	if err != nil {
+		utils.RespondBadRequest(c, "month harus format YYYY-MM")
+		return
+	}
+
+	summary, err := h.inventoryUsecase.GetSummary(c.Request.Context(), usecase.SummaryQuery{
+		WarehouseID: whID,
+		Month:       month,
+	})
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+	utils.RespondOK(c, summary)
+}
+
 // ===== END FILE =====

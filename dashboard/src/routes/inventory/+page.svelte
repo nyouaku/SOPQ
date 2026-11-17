@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
@@ -9,49 +8,46 @@
 	import { toastStore } from '$lib/stores/toast';
 
 	let isLoading = true;
-	let movements: any[] = [];
+	let summary: any = null;
 	let warehouses: any[] = [];
 	let selectedWarehouse = '';
-
-	// Agregat dari data termuat (tanpa ubah backend/API).
-	$: inCount = movements.filter((m) => m.movement_type === 'in').length;
-	$: outCount = movements.filter((m) => m.movement_type === 'out').length;
-	$: transferCount = movements.filter((m) => m.movement_type === 'transfer').length;
-	$: recent = movements.slice(0, 6);
+	let month = new Date().toISOString().slice(0, 7); // YYYY-MM
 
 	async function load() {
+		isLoading = true;
 		try {
-			const q = selectedWarehouse ? `?warehouse_id=${selectedWarehouse}&limit=100` : '?limit=100';
-			const [mRes, wRes] = await Promise.all([
-				apiClient.get<{ data: any[] }>(`${API_ENDPOINTS.inventory}${q}`),
+			const wh = selectedWarehouse;
+			if (!wh) {
+				summary = null;
+				const wRes = await apiClient.get<{ warehouses: any[] }>(API_ENDPOINTS.warehouses);
+				warehouses = wRes.success && wRes.data ? wRes.data.warehouses || [] : [];
+				if (warehouses.length > 0) {
+					selectedWarehouse = warehouses[0].id;
+					await load();
+				}
+				return;
+			}
+			const [sRes, wRes] = await Promise.all([
+				apiClient.get<any>(
+					`${API_ENDPOINTS.inventorySummary}?warehouse_id=${wh}&month=${month}`
+				),
 				apiClient.get<{ warehouses: any[] }>(API_ENDPOINTS.warehouses)
 			]);
-			movements = mRes.success && mRes.data ? mRes.data.data || [] : [];
+			summary = sRes.success ? sRes.data : null;
 			warehouses = wRes.success && wRes.data ? wRes.data.warehouses || [] : [];
 		} catch (e: any) {
-			toastError(e);
+			toastStore.error(e?.message || 'Gagal memuat ringkasan');
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	function toastError(e: any) {
-		toastStore.error(e?.message || 'Gagal memuat');
+	function fmtNum(n: number): string {
+		return new Intl.NumberFormat('id-ID').format(n ?? 0);
 	}
-
-	function warehouseName(id: string): string {
-		return warehouses.find((w) => w.id === id)?.name || '-';
+	function fmtRp(n: number): string {
+		return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(n ?? 0));
 	}
-
-	function fmtDate(iso: string) {
-		if (!iso) return '-';
-		return new Date(iso).toLocaleString('id-ID', {
-			day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-		});
-	}
-
-	const typeBadge: Record<string, string> = { in: 'success', out: 'error', transfer: 'info' };
-	const typeLabel: Record<string, string> = { in: 'Masuk', out: 'Keluar', transfer: 'Transfer' };
 
 	load();
 </script>
@@ -67,80 +63,101 @@
 				<h1 class="page-title">Inventory Management</h1>
 				<p class="page-subtitle">Pantau pergerakan stok: barang masuk, keluar, dan transfer</p>
 			</div>
+			<!-- Grid Entry = aksi utama (kebiasaan Excel) -->
+			<a href="/inventory/entry" class="btn btn-primary btn-sm shrink-0 md:btn-md">
+				<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+				</svg>
+				Isi Grid Harian
+			</a>
 		</div>
 
-		<!-- Filter gudang -->
+		<!-- Filter gudang + bulan -->
 		<div class="mb-4 rounded-2xl border border-base-300 bg-base-200 p-3">
 			<div class="flex flex-wrap items-center gap-2">
 				<label class="text-xs text-base-content/60" for="dash-wh">Gudang:</label>
 				<select id="dash-wh" class="select select-bordered select-sm" bind:value={selectedWarehouse} on:change={load}>
-					<option value="">Semua gudang</option>
 					{#each warehouses as wh}
 						<option value={wh.id}>{wh.name}</option>
 					{/each}
 				</select>
-				<a href="/inventory/movements" class="btn btn-ghost btn-sm ml-auto">Semua pergerakan →</a>
+				<label class="text-xs text-base-content/60 ml-2" for="dash-month">Bulan:</label>
+				<input id="dash-month" type="month" class="input input-bordered input-sm" bind:value={month} on:change={load} />
 			</div>
 		</div>
 
 		{#if isLoading}
 			<div class="flex h-40 items-center justify-center"><Loader size={48} /></div>
+		{:else if !summary}
+			<p class="py-8 text-center text-sm text-base-content/60">Pilih gudang untuk melihat ringkasan</p>
 		{:else}
-			<!-- Stat tiles (hairline grid, Apple-adjacent) -->
+			<!-- KPI (dari server) -->
 			<div class="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-base-300 bg-base-300 lg:grid-cols-4">
 				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 0, easing: cubicOut }}>
-					<div class="text-xs text-base-content/60">Total Pergerakan</div>
-					<div class="metric text-2xl font-semibold">{movements.length}</div>
+					<div class="text-xs text-base-content/60">Masuk (unit)</div>
+					<div class="metric text-2xl font-semibold text-success">{fmtNum(summary.total_in)}</div>
 				</div>
 				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 60, easing: cubicOut }}>
-					<div class="text-xs text-base-content/60">Masuk (IN)</div>
-					<div class="metric text-2xl font-semibold text-success">{inCount}</div>
+					<div class="text-xs text-base-content/60">Keluar (unit)</div>
+					<div class="metric text-2xl font-semibold text-error">{fmtNum(summary.total_out)}</div>
 				</div>
 				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 120, easing: cubicOut }}>
-					<div class="text-xs text-base-content/60">Keluar (OUT)</div>
-					<div class="metric text-2xl font-semibold text-error">{outCount}</div>
+					<div class="text-xs text-base-content/60">Transfer</div>
+					<div class="metric text-2xl font-semibold text-info">{fmtNum(summary.total_transfer)}</div>
 				</div>
 				<div class="bg-base-200 p-4" in:fly={{ y: 8, duration: 360, delay: 180, easing: cubicOut }}>
-					<div class="text-xs text-base-content/60">Transfer</div>
-					<div class="metric text-2xl font-semibold text-info">{transferCount}</div>
+					<div class="text-xs text-base-content/60">Nilai Keluar</div>
+					<div class="metric text-2xl font-semibold">{fmtRp(summary.total_value_out)}</div>
 				</div>
 			</div>
 
-			<!-- Transaksi terbaru -->
-			<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
-				<div class="mb-3 flex items-center justify-between">
-					<h2 class="font-semibold">Transaksi Terbaru</h2>
-					<a href="/inventory/movements" class="text-xs link link-primary">Lihat semua</a>
+			<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+				<!-- Top keluar -->
+				<div class="card-apple p-4">
+					<h2 class="mb-3 font-semibold">Produk Terbanyak Keluar</h2>
+					{#if !summary.top_out?.length}
+						<p class="text-sm text-base-content/50">Belum ada data</p>
+					{:else}
+						<ul class="space-y-2">
+							{#each summary.top_out as t}
+								<li class="flex items-center justify-between gap-2 text-sm">
+									<span class="truncate">{t.name}</span>
+									<span class="metric shrink-0 font-semibold text-error">{t.quantity}</span>
+								</li>
+							{/each}
+						</ul>
+					{/if}
 				</div>
-				{#if recent.length === 0}
-					<p class="py-6 text-center text-sm text-base-content/60">Belum ada pergerakan stok</p>
-				{:else}
-					<ul class="divide-y divide-base-300">
-						{#each recent as m (m.id)}
-							<li class="flex items-center gap-3 py-2.5">
-								<span class="badge badge-sm capitalize {typeBadge[m.movement_type] || 'badge-ghost'}">
-									{typeLabel[m.movement_type] || m.movement_type}
-								</span>
-								<div class="min-w-0 flex-1">
-									<a href="/inventory/{m.id}" class="link link-hover truncate text-sm font-medium">{m.code}</a>
-									<div class="truncate text-xs text-base-content/60">{warehouseName(m.warehouse_id)}</div>
-								</div>
-								<div class="text-xs text-base-content/50">{fmtDate(m.created_at)}</div>
-							</li>
-						{/each}
-					</ul>
-				{/if}
+
+				<!-- Stok menipis -->
+				<div class="card-apple p-4">
+					<h2 class="mb-3 font-semibold">Stok Menipis</h2>
+					{#if !summary.low_stock?.length}
+						<p class="text-sm text-base-content/50">Semua stok aman</p>
+					{:else}
+						<ul class="space-y-2">
+							{#each summary.low_stock as l}
+								<li class="flex items-center justify-between gap-2 text-sm">
+									<span class="truncate">{l.name}</span>
+									<span class="metric shrink-0 font-semibold text-warning">
+										{l.quantity_system} / {l.minimum_stock}
+									</span>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Quick actions -->
 			<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-				<a href="/inventory/new" class="card-apple card-apple--hover p-4">
-					<div class="text-sm font-semibold text-success">⬇️ Barang Masuk</div>
-					<div class="text-xs text-base-content/60">Catat pembelian / retur</div>
+				<a href="/inventory/entry" class="card-apple card-apple--hover p-4">
+					<div class="text-sm font-semibold">📋 Isi Grid Harian</div>
+					<div class="text-xs text-base-content/60">Masuk/keluar per tanggal (ala Excel)</div>
 				</a>
-				<a href="/inventory/new" class="card-apple card-apple--hover p-4">
-					<div class="text-sm font-semibold text-error">⬆️ Barang Keluar</div>
-					<div class="text-xs text-base-content/60">Catat penjualan / rusak</div>
+				<a href="/inventory/movements" class="card-apple card-apple--hover p-4">
+					<div class="text-sm font-semibold text-info">📥 Semua Pergerakan</div>
+					<div class="text-xs text-base-content/60">Daftar lengkap dokumen</div>
 				</a>
 				<a href="/products" class="card-apple card-apple--hover p-4">
 					<div class="text-sm font-semibold text-info">📦 Kelola Produk</div>

@@ -63,12 +63,14 @@ export const MENU_ITEMS: MenuItem[] = [
 
 	// ===== INVENTORY MANAGEMENT (operasional — kendali penuh) =====
 	{ href: '/inventory', label: 'Dashboard', icon: '📊', shortcut: 'I', app: 'inventory', access: 'full' },
+	{ href: '/inventory/entry', label: 'Grid Harian', icon: '📋', shortcut: 'B', app: 'inventory', access: 'full' },
 	{ href: '/inventory/movements', label: 'Pergerakan', icon: '📥', shortcut: 'M', roles: MANAGER, app: 'inventory', access: 'full' },
 	// Products & Gudang: KENDALI PENUH di Inventory (tambah/ubah/hapus).
 	// SO hanya punya versi lihat-saja di atas.
 	{ href: '/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'inventory', access: 'full' },
 	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory', access: 'full' },
-	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'inventory', access: 'full' }
+	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'inventory', access: 'full' },
+	{ href: '/inventory/settings', label: 'Settings', icon: '⚙️', shortcut: 'X', app: 'inventory', access: 'full' }
 ];
 
 /** Menu yang boleh dilihat role tertentu. Hanya penyembunyian UI; proteksi nyata ada di backend. */

@@ -77,5 +77,7 @@ export const API_ENDPOINTS = {
 	inventoryIn: '/inventory/in',
 	inventoryOut: '/inventory/out',
 	inventoryTransfer: '/inventory/transfer',
+	inventoryGrid: '/inventory/grid',
+	inventorySummary: '/inventory/summary',
 };
 // ===== END FILE =====

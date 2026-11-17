@@ -158,6 +158,23 @@ export const inventoryQuery = (params: ParamsInput) =>
 		}))
 	);
 
+/** KPI dashboard inventory (server-side agregat). */
+export async function fetchInventorySummary(params: URLSearchParams) {
+	const res = await apiClient.get<any>(
+		`${API_ENDPOINTS.inventorySummary}?${params.toString()}`
+	);
+	return unwrap(res);
+}
+
+export const inventorySummaryQuery = (params: ParamsInput) =>
+	createQuery(
+		derived(paramsStore(params), ($p) => ({
+			queryKey: [...queryKeys.inventory('summary'), $p.toString()] as const,
+			queryFn: () => fetchInventorySummary($p),
+			staleTime: 60_000
+		}))
+	);
+
 type ParamsInput = URLSearchParams | Readable<URLSearchParams>;
 
 /**

@@ -32,6 +32,14 @@ func (m *mockInventoryRepo) List(ctx context.Context, f repository.InventoryFilt
 	return nil, 0, nil
 }
 
+func (m *mockInventoryRepo) GridCells(ctx context.Context, warehouseID uuid.UUID, month time.Time, movementType string) ([]domain.GridCell, error) {
+	return nil, nil
+}
+
+func (m *mockInventoryRepo) Summary(ctx context.Context, warehouseID uuid.UUID, month time.Time) (*domain.InventorySummary, error) {
+	return &domain.InventorySummary{}, nil
+}
+
 func (m *mockInventoryRepo) NextCode(ctx context.Context, day time.Time) (string, error) {
 	m.nextCodeSeq++
 	return "MV-TEST-0001", nil
@@ -194,5 +202,78 @@ func TestLedgerTypeFor(t *testing.T) {
 		if got := domain.LedgerTypeFor(c.mt, c.st); got != c.want {
 			t.Errorf("LedgerTypeFor(%q,%q) = %q, want %q", c.mt, c.st, got, c.want)
 		}
+	}
+}
+
+// Regresi grid: isian grid dikelompokkan per tanggal -> satu dokumen per tanggal.
+func TestPostGrid_GroupsByDate(t *testing.T) {
+	repo := &mockInventoryRepo{}
+	uc := NewInventoryUsecase(repo, &mockActivityLogRepository{})
+	wh := uuid.New()
+	d1 := time.Date(2026, 11, 5, 0, 0, 0, 0, time.UTC)
+	d2 := time.Date(2026, 11, 6, 0, 0, 0, 0, time.UTC)
+
+	res, err := uc.PostGrid(context.Background(), PostGridInput{
+		WarehouseID:  wh,
+		MovementType: domain.MovementTypeOut,
+		SubType:      domain.MovementSubSale,
+		UserID:       uuid.New(),
+		Entries: []GridEntryInput{
+			{ProductID: uuid.New(), Date: d1, Quantity: 2},
+			{ProductID: uuid.New(), Date: d1, Quantity: 3}, // sama tanggal d1
+			{ProductID: uuid.New(), Date: d2, Quantity: 5},
+		},
+	})
+	if err != nil {
+		t.Fatalf("PostGrid() error = %v", err)
+	}
+	// 2 tanggal -> 2 dokumen.
+	if res.MovementsCreated != 2 {
+		t.Errorf("MovementsCreated = %d, want 2 (satu per tanggal)", res.MovementsCreated)
+	}
+	if res.ItemsPosted != 3 {
+		t.Errorf("ItemsPosted = %d, want 3", res.ItemsPosted)
+	}
+	// Tiap dokumen: efek stok = jumlah item di tanggal itu.
+	if len(repo.effects) != 2 {
+		t.Fatalf("posting groups = %d, want 2", len(repo.effects))
+	}
+	if len(repo.effects[0]) != 2 {
+		t.Errorf("tanggal pertama efek = %d, want 2 (2 item)", len(repo.effects[0]))
+	}
+	if len(repo.effects[1]) != 1 {
+		t.Errorf("tanggal kedua efek = %d, want 1", len(repo.effects[1]))
+	}
+}
+
+// Regresi grid: qty <= 0 ditolak.
+func TestPostGrid_RejectsZeroQty(t *testing.T) {
+	repo := &mockInventoryRepo{}
+	uc := NewInventoryUsecase(repo, &mockActivityLogRepository{})
+	_, err := uc.PostGrid(context.Background(), PostGridInput{
+		WarehouseID:  uuid.New(),
+		MovementType: domain.MovementTypeOut,
+		SubType:      domain.MovementSubSale,
+		UserID:       uuid.New(),
+		Entries:      []GridEntryInput{{ProductID: uuid.New(), Date: time.Now(), Quantity: 0}},
+	})
+	if err == nil {
+		t.Error("PostGrid() dengan qty 0 harus gagal")
+	}
+}
+
+// Regresi grid: tanpa tanggal ditolak.
+func TestPostGrid_RejectsMissingDate(t *testing.T) {
+	repo := &mockInventoryRepo{}
+	uc := NewInventoryUsecase(repo, &mockActivityLogRepository{})
+	_, err := uc.PostGrid(context.Background(), PostGridInput{
+		WarehouseID:  uuid.New(),
+		MovementType: domain.MovementTypeIn,
+		SubType:      domain.MovementSubPurchase,
+		UserID:       uuid.New(),
+		Entries:      []GridEntryInput{{ProductID: uuid.New(), Quantity: 3}}, // tanpa Date
+	})
+	if err == nil {
+		t.Error("PostGrid() tanpa tanggal harus gagal")
 	}
 }
