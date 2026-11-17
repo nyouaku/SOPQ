@@ -10,11 +10,15 @@
 
 	export let currentPath: string = '';
 
-	// Aplikasi aktif ditentukan dari path: /inventory* = Inventory, lainnya = Stock Opname.
+	// Aplikasi aktif ditentukan dari path. Inventory Management = /inventory*,
+	// /products*, /warehouses*, /transfer* (semuanya milik Inventory). Sisanya SO.
 	// Inilah pemisahan fitur: sidebar hanya menampilkan item milik aplikasi aktif.
 	let activeApp: AppId = 'opname';
 	const MANAGER = ['admin', 'supervisor'];
-	$: activeApp = currentPath.startsWith('/inventory') ? ('inventory' as AppId) : ('opname' as AppId);
+	const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses', '/transfer'];
+	$: activeApp = INVENTORY_ROOTS.some((r) => currentPath === r || currentPath.startsWith(r + '/'))
+		? ('inventory' as AppId)
+		: ('opname' as AppId);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
 		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))

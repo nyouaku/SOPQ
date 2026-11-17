@@ -26,8 +26,11 @@
 
 	// Guard role: Inventory Management tak untuk staff gudang (UI-only; backend
 	// tetap proteksi via RequireRole). Staff yang memaksa URL dialihkan ke /apps.
-	const INVENTORY_PREFIX = '/inventory';
-	$: isInventory = $page.url.pathname.startsWith(INVENTORY_PREFIX);
+	// Inventory = /inventory*, /products*, /warehouses*, /transfer*.
+	const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses', '/transfer'];
+	$: isInventory = INVENTORY_ROOTS.some(
+		(r) => $page.url.pathname === r || $page.url.pathname.startsWith(r + '/')
+	);
 	$: if (
 		!$authStore.isLoading &&
 		$authStore.isAuthenticated &&
