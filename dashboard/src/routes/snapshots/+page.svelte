@@ -33,7 +33,7 @@
 				total_increased: number;
 				total_decreased: number;
 				total_unchanged: number;
-			}>(`${API_ENDPOINTS.base}/snapshots/compare${q}`);
+			}>(`/snapshots/compare${q}`);
 			if (res.success && res.data) {
 				comparisons = res.data.comparisons || [];
 				summary = {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 	import { apiClient } from '$lib/api/client';
@@ -24,6 +25,11 @@
 	}
 
 	async function load() {
+		// id undefined → jangan fetch, kembali ke list (mencegah /inventory/undefined 400).
+		if (!movementId || movementId === 'undefined') {
+			goto('/inventory/movements');
+			return;
+		}
 		try {
 			const res = await apiClient.get<any>(`/inventory/${movementId}`);
 			if (res.success && res.data) {
