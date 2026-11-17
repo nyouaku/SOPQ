@@ -11,7 +11,8 @@
 	export let currentPath: string = '';
 
 	// Aplikasi aktif dari path. Sidebar hanya tampilkan item milik aplikasi aktif.
-	$: activeApp: AppId = activeAppFor(currentPath);
+	let activeApp: AppId = 'opname';
+	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
 		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
