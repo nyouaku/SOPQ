@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nyouaku/SOPQ/backend/internal/domain"
 	"github.com/nyouaku/SOPQ/backend/internal/repository"
+	"github.com/xuri/excelize/v2"
 )
 
 // InventoryUsecase mencatat pergerakan stok harian (IN/OUT/transfer antar gudang).
@@ -34,6 +35,8 @@ type InventoryUsecase interface {
 	GetSummary(ctx context.Context, q SummaryQuery) (*domain.InventorySummary, error)
 	// SetLowStockDeps menyuntikkan depensi utk peringatan stok menipis otomatis.
 	SetLowStockDeps(notifRepo repository.NotificationRepository, productRepo repository.ProductRepository, stockRepo repository.StockRepository)
+	// ExportGridToExcel menghasilkan file Excel grid (produk × tanggal) utk unduh.
+	ExportGridToExcel(ctx context.Context, q GridQuery) (*excelize.File, string, error)
 }
 
 type inventoryUsecase struct {
@@ -511,6 +514,81 @@ func (u *inventoryUsecase) GetSummary(ctx context.Context, q SummaryQuery) (*dom
 		return nil, fmt.Errorf("gudang wajib dipilih")
 	}
 	return u.repo.Summary(ctx, q.WarehouseID, q.Month)
+}
+
+// ExportGridToExcel menghasilkan file Excel grid harian (produk × tanggal) untuk
+// unduh — mempertahankan kebiasaan karyawan yang bekerja di Excel.
+func (u *inventoryUsecase) ExportGridToExcel(ctx context.Context, q GridQuery) (*excelize.File, string, error) {
+	if q.WarehouseID == uuid.Nil {
+		return nil, "", fmt.Errorf("gudang wajib dipilih")
+	}
+	if q.MovementType != domain.MovementTypeIn && q.MovementType != domain.MovementTypeOut {
+		return nil, "", fmt.Errorf("movement_type harus 'in' atau 'out'")
+	}
+
+	cells, err := u.repo.GridCells(ctx, q.WarehouseID, q.Month, q.MovementType)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Hitung jumlah hari di bulan tsb.
+	daysInMonth := time.Date(q.Month.Year(), q.Month.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
+
+	f := excelize.NewFile()
+	sheet := "Grid"
+	index, err := f.NewSheet(sheet)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create sheet: %w", err)
+	}
+	f.SetActiveSheet(index)
+	f.DeleteSheet("Sheet1")
+
+	// Header: Produk | Kode | 1 | 2 | ... | N
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "FFFFFF"},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"2E7D32"}, Pattern: 1},
+	})
+	f.SetCellValue(sheet, "A1", "Produk")
+	f.SetCellValue(sheet, "B1", "Kode")
+	f.SetCellStyle(sheet, "A1", "A1", headerStyle)
+	f.SetCellStyle(sheet, "B1", "B1", headerStyle)
+	for d := 1; d <= daysInMonth; d++ {
+		cell, _ := excelize.CoordinatesToCellName(d+2, 1)
+		f.SetCellValue(sheet, cell, d)
+		f.SetCellStyle(sheet, cell, cell, headerStyle)
+	}
+	f.SetColWidth(sheet, "A", "A", 30)
+	f.SetColWidth(sheet, "B", "B", 14)
+
+	// Isi baris: satu produk per baris, nilai per tanggal.
+	byProduct := make(map[uuid.UUID][]domain.GridCell)
+	var order []uuid.UUID
+	for _, c := range cells {
+		if _, ok := byProduct[c.ProductID]; !ok {
+			order = append(order, c.ProductID)
+		}
+		byProduct[c.ProductID] = append(byProduct[c.ProductID], c)
+	}
+
+	for r, pid := range order {
+		rowNum := r + 2
+		f.SetCellValue(sheet, "A"+fmt.Sprint(rowNum), byProduct[pid][0].Name)
+		f.SetCellValue(sheet, "B"+fmt.Sprint(rowNum), byProduct[pid][0].ProductCode)
+		for _, c := range byProduct[pid] {
+			qty := c.InQty
+			if q.MovementType == domain.MovementTypeOut {
+				qty = c.OutQty
+			}
+			if qty > 0 {
+				cell, _ := excelize.CoordinatesToCellName(c.Day+2, rowNum)
+				f.SetCellValue(sheet, cell, qty)
+			}
+		}
+	}
+
+	filename := fmt.Sprintf("inventory-grid-%s-%s.xlsx",
+		q.MovementType, q.Month.Format("2006-01"))
+	return f, filename, nil
 }
 
 func (u *inventoryUsecase) log(ctx context.Context, userID uuid.UUID, ip string, movement *domain.StockMovement) {

@@ -334,6 +334,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			}
 			// Read endpoints grid + summary (supervisor & admin).
 			inventory.GET("/grid", inventoryHandler.GetGrid)
+			inventory.GET("/grid/export", inventoryHandler.ExportGrid)
 			inventory.GET("/summary", inventoryHandler.GetSummary)
 		}
 

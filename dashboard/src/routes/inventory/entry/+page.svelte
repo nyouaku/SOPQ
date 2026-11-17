@@ -180,6 +180,33 @@
 		}
 	}
 
+	// Ekspor grid bulan aktif ke Excel (unduh file).
+	let isExporting = false;
+	async function exportGrid() {
+		if (!warehouseId) return;
+		isExporting = true;
+		try {
+			const token = localStorage.getItem('access_token');
+			const url = `${API_ENDPOINTS.inventoryGrid}/export?warehouse_id=${warehouseId}&month=${month}&movement_type=${mode}`;
+			const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+			if (!res.ok) throw new Error('Gagal mengekspor grid');
+			const blob = await res.blob();
+			const dlUrl = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = dlUrl;
+			a.download = `inventory-grid-${mode}-${month}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(dlUrl);
+			document.body.removeChild(a);
+			toastStore.success('Grid diekspor ke Excel');
+		} catch (e: any) {
+			toastStore.error(e?.message || 'Gagal mengekspor grid');
+		} finally {
+			isExporting = false;
+		}
+	}
+
 	// Autocomplete produk per baris.
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 	let activeRow = -1;
@@ -249,6 +276,12 @@
 					{/each}
 				</select>
 				<input type="month" class="input input-bordered input-sm" bind:value={month} on:change={loadGrid} />
+				<button class="btn btn-ghost btn-sm" on:click={exportGrid} disabled={isExporting}>
+					{#if isExporting}
+						<span class="loading loading-spinner loading-xs"></span>
+					{/if}
+					📥 Ekspor Excel
+				</button>
 				<button class="btn btn-ghost btn-sm" on:click={copyPrevMonth} disabled={isCopying}>
 					{#if isCopying}
 						<span class="loading loading-spinner loading-xs"></span>

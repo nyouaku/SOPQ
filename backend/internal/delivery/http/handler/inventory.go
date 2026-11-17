@@ -560,4 +560,59 @@ func (h *InventoryHandler) CopyGrid(c *gin.Context) {
 	utils.RespondOK(c, result)
 }
 
+// ExportGrid godoc
+// @Summary Export inventory grid ke Excel
+// @Description Unduh grid harian (produk × tanggal) sebagai file Excel sesuai kebiasaan kerja.
+// @Tags inventory
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+// @Security BearerAuth
+// @Param warehouse_id query string true "Warehouse ID"
+// @Param month query string true "Month (YYYY-MM)"
+// @Param movement_type query string true "in | out"
+// @Success 200 {file} file
+// @Router /api/v1/inventory/grid/export [get]
+func (h *InventoryHandler) ExportGrid(c *gin.Context) {
+	whRaw := c.Query("warehouse_id")
+	if whRaw == "" {
+		utils.RespondBadRequest(c, "warehouse_id wajib")
+		return
+	}
+	whID, err := uuid.Parse(whRaw)
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid warehouse ID")
+		return
+	}
+	monthRaw := c.Query("month")
+	if monthRaw == "" {
+		utils.RespondBadRequest(c, "month wajib (YYYY-MM)")
+		return
+	}
+	month, err := time.Parse("2006-01", monthRaw)
+	if err != nil {
+		utils.RespondBadRequest(c, "month harus format YYYY-MM")
+		return
+	}
+	mt := c.Query("movement_type")
+	if mt != "in" && mt != "out" {
+		utils.RespondBadRequest(c, "movement_type harus 'in' atau 'out'")
+		return
+	}
+
+	file, filename, err := h.inventoryUsecase.ExportGridToExcel(c.Request.Context(), usecase.GridQuery{
+		WarehouseID:  whID,
+		Month:        month,
+		MovementType: mt,
+	})
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	if err := file.Write(c.Writer); err != nil {
+		utils.RespondInternalError(c, err.Error())
+	}
+}
+
 // ===== END FILE =====
