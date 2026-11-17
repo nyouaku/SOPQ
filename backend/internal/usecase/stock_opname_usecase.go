@@ -25,6 +25,8 @@ type StockOpnameUsecase interface {
 	GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error)
 	// GetProgressByBox mengembalikan progress scan per rak/box dalam satu sesi.
 	GetProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error)
+	// CompareSessions membandingkan hasil fisik 2 sesi SO per produk.
+	CompareSessions(ctx context.Context, prevID, currID uuid.UUID) (*domain.SessionCompare, error)
 	ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error)
 	// GetProductTrend mengembalikan riwayat stok fisik satu produk untuk grafik tren.
 	// from/to opsional (nil = tanpa batas awal/akhir). limit default 100, max 500.
@@ -499,6 +501,45 @@ func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uu
 // GetProgressByBox mengembalikan progress scan per rak/box dalam satu sesi.
 func (u *stockOpnameUsecase) GetProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error) {
 	return u.stockOpnameDetailRepo.ProgressByBox(ctx, sessionID)
+}
+
+// CompareSessions membandingkan hasil fisik 2 sesi SO per produk + ringkasan.
+func (u *stockOpnameUsecase) CompareSessions(ctx context.Context, prevID, currID uuid.UUID) (*domain.SessionCompare, error) {
+	prev, err := u.stockOpnameRepo.FindByID(ctx, prevID)
+	if err != nil || prev == nil {
+		return nil, fmt.Errorf("sesi sebelumnya tidak ditemukan")
+	}
+	curr, err := u.stockOpnameRepo.FindByID(ctx, currID)
+	if err != nil || curr == nil {
+		return nil, fmt.Errorf("sesi sekarang tidak ditemukan")
+	}
+
+	rows, err := u.stockOpnameDetailRepo.CompareSessions(ctx, prevID, currID)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := domain.SessionCompareSummary{}
+	for _, r := range rows {
+		switch {
+		case r.PrevPhysical > 0 && r.CurrPhysical > 0:
+			summary.InBoth++
+		case r.PrevPhysical > 0:
+			summary.OnlyInPrev++
+		case r.CurrPhysical > 0:
+			summary.OnlyInCurr++
+		}
+		if r.PrevPhysical != r.CurrPhysical {
+			summary.Changed++
+		}
+	}
+
+	return &domain.SessionCompare{
+		PrevSession: prev,
+		CurrSession: curr,
+		Rows:        rows,
+		Summary:     summary,
+	}, nil
 }
 
 func (u *stockOpnameUsecase) ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error) {

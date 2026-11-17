@@ -206,6 +206,8 @@ type StockOpnameDetailRepository interface {
 	// ProgressByBox mengembalikan progress scan per rak/box dalam satu sesi:
 	// jumlah produk di-scan vs target produk di box tsb.
 	ProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error)
+	// CompareSessions membandingkan hasil fisik 2 sesi SO per produk.
+	CompareSessions(ctx context.Context, prevID, currID uuid.UUID) ([]domain.SessionCompareRow, error)
 	// FindProductTrend mengembalikan riwayat stok fisik satu produk di seluruh
 	// sesi (dalam rentang waktu opsional). Dipakai untuk grafik tren stok.
 	FindProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error)
@@ -343,6 +345,36 @@ func (r *stockOpnameDetailRepository) ProgressByBox(ctx context.Context, session
 	`, sessionID, sessionID).Scan(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to load progress by box: %w", err)
+	}
+	return rows, nil
+}
+
+// CompareSessions membandingkan hasil fisik 2 sesi SO per produk (FULL OUTER join).
+func (r *stockOpnameDetailRepository) CompareSessions(ctx context.Context, prevID, currID uuid.UUID) ([]domain.SessionCompareRow, error) {
+	var rows []domain.SessionCompareRow
+	err := r.db.WithContext(ctx).Raw(`
+		WITH prev AS (
+			SELECT product_id, stock_physical, stock_system
+			FROM stock_opname_detail WHERE stock_opname_id = ?
+		),
+		curr AS (
+			SELECT product_id, stock_physical, stock_system
+			FROM stock_opname_detail WHERE stock_opname_id = ?
+		)
+		SELECT p.id AS product_id, p.product_code, p.name AS product_name,
+			COALESCE(pr.stock_physical, 0)::int AS prev_physical,
+			COALESCE(cu.stock_physical, 0)::int AS curr_physical,
+			COALESCE(cu.stock_physical,0) - COALESCE(pr.stock_physical,0)::int AS change,
+			COALESCE(pr.stock_system, 0)::int AS prev_system,
+			COALESCE(cu.stock_system, 0)::int AS curr_system
+		FROM products p
+		LEFT JOIN prev pr ON pr.product_id = p.id
+		LEFT JOIN curr cu ON cu.product_id = p.id
+		WHERE pr.product_id IS NOT NULL OR cu.product_id IS NOT NULL
+		ORDER BY p.name ASC
+	`, prevID, currID).Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to compare sessions: %w", err)
 	}
 	return rows, nil
 }

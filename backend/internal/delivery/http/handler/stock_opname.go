@@ -334,6 +334,36 @@ func (h *StockOpnameHandler) GetProgressByBox(c *gin.Context) {
 	utils.RespondOK(c, gin.H{"progress": progress})
 }
 
+// CompareSessions godoc
+// @Summary Compare hasil 2 sesi SO
+// @Description Bandingkan hasil fisik per produk antara 2 sesi stock opname.
+// @Tags stock-opname
+// @Produce json
+// @Security BearerAuth
+// @Param prev query string true "Previous session ID"
+// @Param curr query string true "Current session ID"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/stock-opname/compare [get]
+func (h *StockOpnameHandler) CompareSessions(c *gin.Context) {
+	prevID, err := uuid.Parse(c.Query("prev"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid prev session ID")
+		return
+	}
+	currID, err := uuid.Parse(c.Query("curr"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid curr session ID")
+		return
+	}
+
+	result, err := h.stockOpnameUsecase.CompareSessions(c.Request.Context(), prevID, currID)
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+	utils.RespondOK(c, result)
+}
+
 // ListSessions godoc
 // @Summary List stock opname sessions
 // @Description List sessions with filters

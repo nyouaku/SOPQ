@@ -132,6 +132,10 @@ func (m *mockStockOpnameDetailRepository) ProgressByBox(ctx context.Context, ses
 	return nil, nil
 }
 
+func (m *mockStockOpnameDetailRepository) CompareSessions(ctx context.Context, prevID, currID uuid.UUID) ([]domain.SessionCompareRow, error) {
+	return nil, nil
+}
+
 func (m *mockStockOpnameDetailRepository) FindProductTrend(ctx context.Context, productID uuid.UUID, from, to *time.Time, limit int) ([]domain.ProductStockTrend, error) {
 	return nil, nil
 }

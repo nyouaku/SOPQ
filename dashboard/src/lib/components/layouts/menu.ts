@@ -50,6 +50,7 @@ export const MENU_ITEMS: MenuItem[] = [
 	{ href: '/', label: 'Dashboard', icon: '📊', shortcut: 'D', app: 'opname', access: 'full' },
 	{ href: '/scan', label: 'Scan', icon: '📸', shortcut: 'S', app: 'opname', access: 'full' },
 	{ href: '/sessions', label: 'Sessions', icon: '📋', shortcut: 'E', app: 'opname', access: 'full' },
+	{ href: '/sessions/compare', label: 'Riwayat', icon: '📅', shortcut: 'V', roles: MANAGER, app: 'opname', access: 'view' },
 	{ href: '/reports', label: 'Reports', icon: '📈', shortcut: 'R', roles: MANAGER, app: 'opname', access: 'view' },
 	{ href: '/reconciliation', label: 'Rekonsiliasi', icon: '🔄', shortcut: 'N', roles: MANAGER, app: 'opname', access: 'view' },
 	{ href: '/snapshots', label: 'Snapshots', icon: '📸', shortcut: 'H', roles: MANAGER, app: 'opname', access: 'view' },

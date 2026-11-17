@@ -255,6 +255,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stockOpname.GET("/sessions/:id/details", stockOpnameHandler.GetSessionDetails)
 			stockOpname.GET("/sessions/:id/summary", stockOpnameHandler.GetSessionSummary)
 			stockOpname.GET("/sessions/:id/progress-by-box", stockOpnameHandler.GetProgressByBox)
+			stockOpname.GET("/compare", stockOpnameHandler.CompareSessions)
 			stockOpname.POST("/sessions/:id/scan", stockOpnameHandler.SubmitScan)
 			stockOpname.POST("/sessions/:id/complete", stockOpnameHandler.CompleteSession)
 

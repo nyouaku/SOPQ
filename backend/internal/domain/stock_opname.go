@@ -103,6 +103,33 @@ type BoxProgress struct {
 	Percent   float64   `json:"percent"`   // scanned/target * 100
 }
 
+// SessionCompareRow — perbandingan 1 produk antara 2 sesi SO.
+type SessionCompareRow struct {
+	ProductID   uuid.UUID `json:"product_id"`
+	ProductCode string    `json:"product_code"`
+	ProductName string    `json:"product_name"`
+	PrevPhysical int      `json:"prev_physical"`
+	CurrPhysical int      `json:"curr_physical"`
+	Change       int      `json:"change"` // curr - prev
+	PrevSystem   int      `json:"prev_system"`
+	CurrSystem   int      `json:"curr_system"`
+}
+
+// SessionCompare — hasil perbandingan 2 sesi SO.
+type SessionCompare struct {
+	PrevSession *StockOpname `json:"prev_session"`
+	CurrSession *StockOpname `json:"curr_session"`
+	Rows        []SessionCompareRow `json:"rows"`
+	Summary     SessionCompareSummary `json:"summary"`
+}
+
+type SessionCompareSummary struct {
+	OnlyInPrev int `json:"only_in_prev"` // produk ada di prev, tak ada di curr
+	OnlyInCurr int `json:"only_in_curr"`
+	InBoth     int `json:"in_both"`
+	Changed    int `json:"changed"` // physical berubah
+}
+
 // SessionSummary untuk completion status
 type SessionSummary struct {
 	SessionID      uuid.UUID  `json:"session_id"`
