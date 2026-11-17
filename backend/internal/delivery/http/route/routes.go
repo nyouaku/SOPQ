@@ -89,6 +89,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	exportUsecase := usecase.NewExportUsecase(stockOpnameDetailRepo, productRepo, repository.NewReportRepository(cfg.DB.DB))
 	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo, stockRepo, warehouseRepo)
 	inventoryUsecase := usecase.NewInventoryUsecase(inventoryRepo, activityLogRepo)
+	inventoryUsecase.SetLowStockDeps(notificationRepo, productRepo, stockRepo)
 	stockLedgerUsecase := usecase.NewStockLedgerUsecase(stockLedgerRepo, stockRepo)
 
 	// Initialize handlers
@@ -329,6 +330,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				inventoryWrite.POST("/out", inventoryHandler.PostOut)
 				inventoryWrite.POST("/transfer", inventoryHandler.PostTransfer)
 				inventoryWrite.POST("/grid", inventoryHandler.PostGrid)
+				inventoryWrite.POST("/grid/copy", inventoryHandler.CopyGrid)
 			}
 			// Read endpoints grid + summary (supervisor & admin).
 			inventory.GET("/grid", inventoryHandler.GetGrid)

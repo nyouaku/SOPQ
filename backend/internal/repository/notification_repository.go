@@ -16,6 +16,9 @@ type NotificationRepository interface {
 	ListByUser(ctx context.Context, userID *uuid.UUID, limit, offset int) ([]domain.Notification, int64, error)
 	MarkAsRead(ctx context.Context, id uuid.UUID) error
 	MarkAllAsRead(ctx context.Context, userID uuid.UUID) error
+	// HasUnreadLowStock mencegah spam: true bila sudah ada notifikasi low-stock
+	// belum-dibaca untuk produk+gudang yang sama.
+	HasUnreadLowStock(ctx context.Context, productID, warehouseID uuid.UUID) (bool, error)
 }
 
 type notificationRepository struct {
@@ -93,5 +96,21 @@ func (r *notificationRepository) MarkAllAsRead(ctx context.Context, userID uuid.
 		return fmt.Errorf("failed to mark all as read: %w", err)
 	}
 	return nil
+}
+
+// HasUnreadLowStock mencegah spam notifikasi: true bila sudah ada notifikasi
+// low-stock (type low_stock, belum dibaca) utk produk + gudang yang sama.
+// Metadata disimpan sbg jsonb, jadi cek lewat cast text.
+func (r *notificationRepository) HasUnreadLowStock(ctx context.Context, productID, warehouseID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&domain.Notification{}).
+		Where("type = ? AND is_read = false", domain.NotificationTypeLowStock).
+		Where("metadata->>'product_id' = ? AND metadata->>'warehouse_id' = ?", productID, warehouseID).
+		Count(&count).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check low stock notification: %w", err)
+	}
+	return count > 0, nil
 }
 // ===== END FILE =====

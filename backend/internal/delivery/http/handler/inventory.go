@@ -494,4 +494,70 @@ func (h *InventoryHandler) GetSummary(c *gin.Context) {
 	utils.RespondOK(c, summary)
 }
 
+// CopyGridRequest — DTO salin isian grid bulan sumber ke bulan tujuan.
+type CopyGridRequest struct {
+	WarehouseID   string `json:"warehouse_id" validate:"required,uuid"`
+	SrcMonth      string `json:"src_month" validate:"required"` // YYYY-MM
+	DstMonth      string `json:"dst_month" validate:"required"` // YYYY-MM
+	MovementType  string `json:"movement_type" validate:"required,oneof=in out"`
+	SubType       string `json:"sub_type" validate:"required"`
+}
+
+// CopyGrid godoc
+// @Summary Copy inventory grid dari bulan sumber ke bulan tujuan
+// @Description Salin seluruh isian grid (produk & hari sama) dari bulan sumber ke bulan tujuan.
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body CopyGridRequest true "Copy grid data"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/inventory/grid/copy [post]
+func (h *InventoryHandler) CopyGrid(c *gin.Context) {
+	var req CopyGridRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondBadRequest(c, "Invalid request body")
+		return
+	}
+	if err := validator.Validate(req); err != nil {
+		utils.RespondValidationError(c, validator.FormatValidationError(err))
+		return
+	}
+	uid, ok := h.userID(c)
+	if !ok {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+	whID, err := uuid.Parse(req.WarehouseID)
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid warehouse ID")
+		return
+	}
+	srcMonth, err := time.Parse("2006-01", req.SrcMonth)
+	if err != nil {
+		utils.RespondBadRequest(c, "src_month harus format YYYY-MM")
+		return
+	}
+	dstMonth, err := time.Parse("2006-01", req.DstMonth)
+	if err != nil {
+		utils.RespondBadRequest(c, "dst_month harus format YYYY-MM")
+		return
+	}
+
+	result, err := h.inventoryUsecase.CopyGrid(c.Request.Context(), usecase.CopyGridInput{
+		WarehouseID:  whID,
+		SrcMonth:     srcMonth,
+		DstMonth:     dstMonth,
+		MovementType: req.MovementType,
+		SubType:      req.SubType,
+		UserID:       uid,
+		IPAddress:    c.ClientIP(),
+	})
+	if err != nil {
+		utils.RespondBadRequest(c, err.Error())
+		return
+	}
+	utils.RespondOK(c, result)
+}
+
 // ===== END FILE =====

@@ -40,18 +40,21 @@ describe('pemisahan aplikasi SO vs Inventory', () => {
 		expect(src).toMatch(/href: '\/opname\/warehouses'.*app: 'opname'/);
 	});
 
-	it('activeAppFor memetakan /products /warehouses /transfer ke Inventory', async () => {
+	it('activeAppFor memetakan path ke aplikasi benar', async () => {
 		const { activeAppFor } = await import('./menu');
 		expect(activeAppFor('/inventory')).toBe('inventory');
 		expect(activeAppFor('/products')).toBe('inventory');
 		expect(activeAppFor('/warehouses')).toBe('inventory');
-		expect(activeAppFor('/transfer')).toBe('inventory');
 		expect(activeAppFor('/inventory/movements')).toBe('inventory');
-		// Stock Opname
+		expect(activeAppFor('/inventory/entry')).toBe('inventory');
+		expect(activeAppFor('/inventory/transfer')).toBe('inventory');
+		expect(activeAppFor('/inventory/settings')).toBe('inventory');
+		// Stock Opname (termasuk /transfer = pindah lokasi box, bukan inventory)
 		expect(activeAppFor('/')).toBe('opname');
 		expect(activeAppFor('/scan')).toBe('opname');
 		expect(activeAppFor('/sessions')).toBe('opname');
 		expect(activeAppFor('/opname/products')).toBe('opname');
 		expect(activeAppFor('/opname/warehouses')).toBe('opname');
+		expect(activeAppFor('/transfer')).toBe('opname');
 	});
 });

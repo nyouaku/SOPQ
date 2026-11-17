@@ -8,6 +8,13 @@ import (
 	"gorm.io/datatypes"
 )
 
+// Tipe notifikasi. Reuse pola type string; tambahkan low_stock utk peringatan stok menipis.
+const (
+	NotificationTypeDiff       = "diff_over_threshold"
+	NotificationTypeSyncFailed = "sync_failed"
+	NotificationTypeLowStock   = "low_stock"
+)
+
 type Notification struct {
 	ID        uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
 	UserID    *uuid.UUID     `json:"user_id,omitempty" gorm:"type:uuid;index:idx_notifications_user"`

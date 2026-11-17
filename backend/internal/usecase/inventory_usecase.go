@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -24,15 +25,25 @@ type InventoryUsecase interface {
 	// PostGrid menyimpan banyak isian grid (produk × tanggal) sekaligus. Item
 	// dikelompokkan per tanggal -> satu dokumen per tanggal, tiap dokumen atomic.
 	PostGrid(ctx context.Context, input PostGridInput) (*GridResult, error)
+	// CopyGrid menyalin seluruh isian grid dari bulan sumber ke bulan tujuan
+	// (produk & hari sama). Mengembalikan ringkasan hasil.
+	CopyGrid(ctx context.Context, input CopyGridInput) (*GridResult, error)
 	// GetGrid mengembalikan agregat isian per produk × tanggal utk mengisi grid.
 	GetGrid(ctx context.Context, q GridQuery) ([]domain.GridCell, error)
 	// GetSummary mengembalikan KPI dashboard (server-side, bukan agregat klien).
 	GetSummary(ctx context.Context, q SummaryQuery) (*domain.InventorySummary, error)
+	// SetLowStockDeps menyuntikkan depensi utk peringatan stok menipis otomatis.
+	SetLowStockDeps(notifRepo repository.NotificationRepository, productRepo repository.ProductRepository, stockRepo repository.StockRepository)
 }
 
 type inventoryUsecase struct {
 	repo           repository.InventoryRepository
 	activityLogRepo repository.ActivityLogRepository
+	// notifRepo + productRepo + stockRepo dipakai utk peringatan stok menipis.
+	// Nil (mis. di sebagian test) = lewati notifikasi tanpa error.
+	notifRepo   repository.NotificationRepository
+	productRepo repository.ProductRepository
+	stockRepo   repository.StockRepository
 }
 
 func NewInventoryUsecase(
@@ -40,6 +51,18 @@ func NewInventoryUsecase(
 	activityLogRepo repository.ActivityLogRepository,
 ) InventoryUsecase {
 	return &inventoryUsecase{repo: repo, activityLogRepo: activityLogRepo}
+}
+
+// SetLowStockDeps menyuntikkan notifikasi + product + stock repo (dipanggil dari wiring).
+// Bila tak diset, peringatan stok menipis dilewati.
+func (u *inventoryUsecase) SetLowStockDeps(
+	notifRepo repository.NotificationRepository,
+	productRepo repository.ProductRepository,
+	stockRepo repository.StockRepository,
+) {
+	u.notifRepo = notifRepo
+	u.productRepo = productRepo
+	u.stockRepo = stockRepo
 }
 
 // MovementItemInput satu baris produk dalam dokumen pergerakan.
@@ -189,6 +212,9 @@ func (u *inventoryUsecase) PostOut(ctx context.Context, input PostMovementInput)
 		return nil, err
 	}
 	u.log(ctx, input.UserID, input.IPAddress, movement)
+	// Peringatan stok menipis otomatis (event-driven, tanpa cron). Gagal notifikasi
+	// tak menggagalkan posting — stok sudah tersimpan.
+	u.notifyLowStock(ctx, input.WarehouseID, effects)
 	return movement, nil
 }
 
@@ -319,6 +345,17 @@ type SummaryQuery struct {
 	Month       time.Time
 }
 
+// CopyGridInput — parameter salin isian grid bulan sumber ke bulan tujuan.
+type CopyGridInput struct {
+	WarehouseID  uuid.UUID
+	SrcMonth     time.Time
+	DstMonth     time.Time
+	MovementType string // in | out
+	SubType      string
+	UserID       uuid.UUID
+	IPAddress    string
+}
+
 // GridResult — ringkasan hasil posting grid.
 type GridResult struct {
 	MovementsCreated int   `json:"movements_created"`
@@ -411,6 +448,63 @@ func (u *inventoryUsecase) GetGrid(ctx context.Context, q GridQuery) ([]domain.G
 	return u.repo.GridCells(ctx, q.WarehouseID, q.Month, q.MovementType)
 }
 
+// CopyGrid menyalin seluruh isian grid bulan sumber ke bulan tujuan (produk & hari sama).
+// Reuse GridCells (baca sumber) + PostGrid (tulis tujuan, per tanggal atomic).
+func (u *inventoryUsecase) CopyGrid(ctx context.Context, input CopyGridInput) (*GridResult, error) {
+	if input.WarehouseID == uuid.Nil {
+		return nil, fmt.Errorf("gudang wajib dipilih")
+	}
+	if input.SrcMonth.Equal(input.DstMonth) {
+		return nil, fmt.Errorf("bulan sumber dan tujuan tidak boleh sama")
+	}
+	if input.MovementType != domain.MovementTypeIn && input.MovementType != domain.MovementTypeOut {
+		return nil, fmt.Errorf("movement_type harus 'in' atau 'out'")
+	}
+
+	cells, err := u.GetGrid(ctx, GridQuery{
+		WarehouseID:  input.WarehouseID,
+		Month:        input.SrcMonth,
+		MovementType: input.MovementType,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(cells) == 0 {
+		return nil, fmt.Errorf("bulan sumber tidak punya isian untuk disalin")
+	}
+
+	// Petakan tiap cell -> entry bulan tujuan (hari sama, tahun+bulan ikut tujuan).
+	var entries []GridEntryInput
+	for _, c := range cells {
+		if c.InQty <= 0 && c.OutQty <= 0 {
+			continue
+		}
+		qty := c.InQty
+		if input.MovementType == domain.MovementTypeOut {
+			qty = c.OutQty
+		}
+		entries = append(entries, GridEntryInput{
+			ProductID: c.ProductID,
+			Date: time.Date(
+				input.DstMonth.Year(), input.DstMonth.Month(), c.Day,
+				0, 0, 0, 0, time.UTC,
+			),
+			Quantity: qty,
+			UnitCost: c.UnitCost,
+		})
+	}
+
+	return u.PostGrid(ctx, PostGridInput{
+		WarehouseID:   input.WarehouseID,
+		MovementType:  input.MovementType,
+		SubType:       input.SubType,
+		ReferenceCode: "",
+		UserID:        input.UserID,
+		IPAddress:     input.IPAddress,
+		Entries:       entries,
+	})
+}
+
 // GetSummary mengembalikan KPI dashboard inventory.
 func (u *inventoryUsecase) GetSummary(ctx context.Context, q SummaryQuery) (*domain.InventorySummary, error) {
 	if q.WarehouseID == uuid.Nil {
@@ -430,4 +524,46 @@ func (u *inventoryUsecase) log(ctx context.Context, userID uuid.UUID, ip string,
 		EntityID:   &movement.ID,
 		IPAddress:  ip,
 	})
+}
+
+// notifyLowStock memeriksa tiap produk yang stoknya berkurang; bila stok kini di
+// bawah minimum_stock, buat notifikasi (dengan guard dedup agar tak spam). Gagal
+// notifikasi hanya dicatat, tak menggagalkan posting.
+func (u *inventoryUsecase) notifyLowStock(ctx context.Context, warehouseID uuid.UUID, effects []repository.StockEffect) {
+	if u.notifRepo == nil || u.productRepo == nil {
+		return
+	}
+	for _, eff := range effects {
+		if eff.Delta >= 0 {
+			continue // hanya stok yang berkurang
+		}
+		stock, err := u.stockRepo.FindByProductAndWarehouse(ctx, eff.ProductID, warehouseID)
+		if err != nil || stock == nil {
+			continue
+		}
+		product, err := u.productRepo.FindByID(ctx, eff.ProductID)
+		if err != nil || product == nil {
+			continue
+		}
+		if stock.QuantitySystem >= product.MinimumStock {
+			continue // masih di atas minimum
+		}
+		// Guard dedup: lewati bila sudah ada notifikasi low-stock belum dibaca.
+		exists, err := u.notifRepo.HasUnreadLowStock(ctx, eff.ProductID, warehouseID)
+		if err != nil || exists {
+			continue
+		}
+		meta, _ := json.Marshal(map[string]any{
+			"product_id":   eff.ProductID,
+			"warehouse_id": warehouseID,
+			"quantity_system": stock.QuantitySystem,
+			"minimum_stock": product.MinimumStock,
+		})
+		_ = u.notifRepo.Create(ctx, &domain.Notification{
+			Type:    domain.NotificationTypeLowStock,
+			Title:   "Stok menipis: " + product.Name,
+			Message: fmt.Sprintf("Stok %s tersisa %d (minimum %d)", product.Name, stock.QuantitySystem, product.MinimumStock),
+			Metadata: meta,
+		})
+	}
 }

@@ -27,8 +27,10 @@ export interface MenuItem {
 
 export type AppId = 'opname' | 'inventory' | 'shared';
 
-/** Prefix URL milik aplikasi Inventory. Dipakai semua layout utk deteksi konteks. */
-export const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses', '/transfer'];
+/** Prefix URL milik aplikasi Inventory. Dipakai semua layout utk deteksi konteks.
+ *  Catatan: /transfer (pindah lokasi box) BUKAN bagian inventory — yang inventory
+ *  adalah /inventory/transfer (transfer stok antar gudang). */
+export const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses'];
 
 /** Apakah path termasuk aplikasi Inventory Management. */
 export function isInventoryPath(path: string): boolean {
@@ -66,7 +68,7 @@ export const MENU_ITEMS: MenuItem[] = [
 	// Products & Gudang: KENDALI PENUH di Inventory (tambah/ubah/hapus).
 	// SO hanya punya versi lihat-saja di atas.
 	{ href: '/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'inventory', access: 'full' },
-	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory', access: 'full' },
+	{ href: '/inventory/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory', access: 'full' },
 	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'inventory', access: 'full' },
 	{ href: '/inventory/settings', label: 'Settings', icon: '⚙️', shortcut: 'X', app: 'inventory', access: 'full' }
 ];

@@ -143,6 +143,43 @@
 		}
 	}
 
+	// Copy isian grid bulan lalu ke bulan aktif (produk & hari sama).
+	let isCopying = false;
+	async function copyPrevMonth() {
+		if (!warehouseId) return;
+		// Hitung bulan sebelum bulan aktif.
+		const [y, m] = month.split('-').map(Number);
+		const prev = new Date(y, m - 2, 1); // m-1 bulan (0-indexed)
+		const srcMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+		if (srcMonth === month) {
+			toastStore.error('Bulan sumber dan tujuan sama');
+			return;
+		}
+
+		isCopying = true;
+		try {
+			const res = await apiClient.post<{ movements_created: number; items_posted: number }>(
+				API_ENDPOINTS.inventoryGridCopy,
+				{
+					warehouse_id: warehouseId,
+					src_month: srcMonth,
+					dst_month: month,
+					movement_type: mode,
+					sub_type: mode === 'in' ? 'purchase' : 'sale'
+				}
+			);
+			if (!res.success) throw new Error(res.error?.message || 'Gagal menyalin');
+			toastStore.success(
+				`${res.data.items_posted} isian disalin dari ${srcMonth}`
+			);
+			await loadGrid();
+		} catch (e: any) {
+			toastStore.error(e?.message || 'Gagal menyalin bulan lalu');
+		} finally {
+			isCopying = false;
+		}
+	}
+
 	// Autocomplete produk per baris.
 	let searchTimer: ReturnType<typeof setTimeout> | null = null;
 	let activeRow = -1;
@@ -212,6 +249,12 @@
 					{/each}
 				</select>
 				<input type="month" class="input input-bordered input-sm" bind:value={month} on:change={loadGrid} />
+				<button class="btn btn-ghost btn-sm" on:click={copyPrevMonth} disabled={isCopying}>
+					{#if isCopying}
+						<span class="loading loading-spinner loading-xs"></span>
+					{/if}
+					📋 Copy bulan lalu
+				</button>
 				<button class="btn btn-ghost btn-sm ml-auto" on:click={addRow}>+ Tambah produk</button>
 			</div>
 		</div>
