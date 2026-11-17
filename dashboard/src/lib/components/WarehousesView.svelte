@@ -34,8 +34,11 @@
 	let deleteConfirm: { kind: 'warehouse' | 'location' | 'box'; id: string; name: string } | null = null;
 
 	// Reaktif: user baru terisi setelah checkAuth selesai (penting di mobile).
-	$: isAdmin = $authStore.user?.role?.name === 'admin';
-	$: canManage = isAdmin && !readOnly;
+	// Backend mengizinkan admin & supervisor mengelola gudang, jadi gate-nya
+	// isManager (bukan admin-saja) — supervisor tak boleh terkunci.
+	$: isManager =
+		$authStore.user?.role?.name === 'admin' || $authStore.user?.role?.name === 'supervisor';
+	$: canManage = isManager && !readOnly;
 
 	onMount(async () => {
 		await loadWarehouses();
