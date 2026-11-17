@@ -142,7 +142,7 @@
 					<div class="text-sm font-semibold text-error">⬆️ Barang Keluar</div>
 					<div class="text-xs text-base-content/60">Catat penjualan / rusak</div>
 				</a>
-				<a href="/inventory/products" class="card-apple card-apple--hover p-4">
+				<a href="/products" class="card-apple card-apple--hover p-4">
 					<div class="text-sm font-semibold text-info">📦 Kelola Produk</div>
 					<div class="text-xs text-base-content/60">Tambah / ubah produk</div>
 				</a>

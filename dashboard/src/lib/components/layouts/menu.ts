@@ -35,17 +35,18 @@ export const MENU_ITEMS: MenuItem[] = [
 	{ href: '/activity', label: 'Activity', icon: '🧾', shortcut: 'A', roles: MANAGER, app: 'opname' },
 
 	// ===== SHARED (kedua aplikasi) =====
-	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'shared' },
 	{ href: '/settings', label: 'Settings', icon: '⚙️', shortcut: 'T', app: 'shared' },
 	{ href: '/backup', label: 'Backup', icon: '💾', shortcut: 'B', roles: ['admin'], app: 'shared' },
 
 	// ===== INVENTORY MANAGEMENT =====
-	// Products: kelola penuh (tambah/edit/hapus/import) milik Inventory.
-	// Stock Opname hanya punya versi BACA-SAJA (route /opname/products).
+	// Products & Gudang: kelola penuh milik Inventory. Stock Opname hanya punya
+	// versi BACA-SAJA (route /opname/products). /products top-level agar tak
+	// bentrok dengan route dinamis /inventory/[id].
 	{ href: '/inventory', label: 'Dashboard', icon: '📊', shortcut: 'I', app: 'inventory' },
 	{ href: '/inventory/movements', label: 'Pergerakan', icon: '📥', shortcut: 'M', roles: MANAGER, app: 'inventory' },
-	{ href: '/inventory/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'inventory' },
-	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory' }
+	{ href: '/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'inventory' },
+	{ href: '/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory' },
+	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'inventory' }
 ];
 
 /** Menu yang boleh dilihat role tertentu. Hanya penyembunyian UI; proteksi nyata ada di backend. */
