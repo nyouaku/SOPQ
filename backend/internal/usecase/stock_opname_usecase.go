@@ -23,6 +23,8 @@ type StockOpnameUsecase interface {
 	GetSessionByID(ctx context.Context, sessionID uuid.UUID) (*domain.StockOpname, error)
 	GetSessionDetails(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
 	GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error)
+	// GetProgressByBox mengembalikan progress scan per rak/box dalam satu sesi.
+	GetProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error)
 	ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error)
 	// GetProductTrend mengembalikan riwayat stok fisik satu produk untuk grafik tren.
 	// from/to opsional (nil = tanpa batas awal/akhir). limit default 100, max 500.
@@ -492,6 +494,11 @@ func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uu
 		CompletedAt:     session.CompletedAt,
 		DurationSeconds: int64(duration),
 	}, nil
+}
+
+// GetProgressByBox mengembalikan progress scan per rak/box dalam satu sesi.
+func (u *stockOpnameUsecase) GetProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error) {
+	return u.stockOpnameDetailRepo.ProgressByBox(ctx, sessionID)
 }
 
 func (u *stockOpnameUsecase) ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error) {

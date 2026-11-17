@@ -93,6 +93,16 @@ func (StockOpnameDetail) TableName() string {
 	return "stock_opname_detail"
 }
 
+// BoxProgress — progress scan satu rak/box dalam sesi SO.
+type BoxProgress struct {
+	BoxID     uuid.UUID `json:"box_id"`
+	BoxCode   string    `json:"box_code"`
+	BoxName   string    `json:"box_name"`
+	Scanned   int       `json:"scanned"`   // jumlah produk sudah di-scan di box tsb
+	Target    int       `json:"target"`    // jumlah produk seharusnya ada di box tsb
+	Percent   float64   `json:"percent"`   // scanned/target * 100
+}
+
 // SessionSummary untuk completion status
 type SessionSummary struct {
 	SessionID      uuid.UUID  `json:"session_id"`

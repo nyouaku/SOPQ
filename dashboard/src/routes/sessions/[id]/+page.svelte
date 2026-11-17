@@ -44,12 +44,35 @@
 	let rejectReason = '';
 	let rejectError = '';
 
+	// Progress scan per rak/box (fetch dari endpoint progress-by-box).
+	let boxProgress: any[] = [];
+	let showBoxProgress = false;
+
 	$: sessionId = $page.params.id;
 	$: totalPages = Math.ceil(total / filter.limit);
+
+	async function loadBoxProgress() {
+		try {
+			const res = await apiClient.get(
+				`/stock-opname/sessions/${sessionId}/progress-by-box`
+			);
+			if (res.success && res.data) {
+				boxProgress = res.data.progress || [];
+			}
+		} catch {
+			boxProgress = [];
+		}
+	}
+
+	function toggleBoxProgress() {
+		showBoxProgress = !showBoxProgress;
+		if (showBoxProgress) loadBoxProgress();
+	}
 
 	onMount(async () => {
 		await loadSession();
 		await loadDetails();
+		await loadBoxProgress();
 		connectWebSocket();
 	});
 
@@ -99,6 +122,9 @@
 				// Prepend new scan to list
 				details = [data.detail, ...details];
 				total++;
+
+				// Segarkan progress per rak bila panel terbuka.
+				if (showBoxProgress) loadBoxProgress();
 
 				// Show notification toast dengan auto-dismiss
 				scannedCount = total;
@@ -546,6 +572,35 @@
 				</div>
 			</div>
 		{/if}
+
+		<!-- Progress per rak/box -->
+		<div class="card bg-base-200 shadow-xl mb-6">
+			<div class="card-body p-4">
+				<div class="flex items-center justify-between">
+					<h3 class="font-semibold">Progress per Rak</h3>
+					<button class="btn btn-ghost btn-xs" on:click={toggleBoxProgress}>
+						{showBoxProgress ? 'Sembunyikan' : 'Tampilkan'}
+					</button>
+				</div>
+				{#if showBoxProgress}
+					{#if boxProgress.length === 0}
+						<p class="text-sm text-base-content/50">Belum ada data rak</p>
+					{:else}
+						<div class="space-y-2">
+							{#each boxProgress as b}
+								<div>
+									<div class="flex justify-between text-xs">
+										<span>{b.box_code}{b.box_name ? ' — ' + b.box_name : ''}</span>
+										<span class="metric">{b.scanned}/{b.target} ({b.percent}%)</span>
+									</div>
+									<progress class="progress progress-primary progress-xs" value={b.percent} max="100"></progress>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				{/if}
+			</div>
+		</div>
 
 		<!-- Details Table -->
 		<div class="card bg-base-200 shadow-xl">
