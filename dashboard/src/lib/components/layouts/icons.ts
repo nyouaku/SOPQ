@@ -35,6 +35,9 @@ export const ICONS: Record<string, string> = {
 	// Stock Opname read-only products
 	'/opname/products':
 		'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+	// Stock Opname read-only warehouses
+	'/opname/warehouses':
+		'M3 21V8l9-5 9 5v13M9 21v-6h6v6M3 12h18',
 	// Reconciliation
 	'/reconciliation':
 		'M4 4h6v6H4V4zM14 14h6v6h-6v-6zM14 4h6v6h-6V4zM4 14h6v6H4v-6z',
