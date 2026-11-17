@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, type AppId } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, type AppId } from './menu';
 	import { iconFor } from './icons';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import BottomBar from './BottomBar.svelte';
@@ -10,21 +10,15 @@
 
 	export let currentPath: string = '';
 
-	// Aplikasi aktif ditentukan dari path. Inventory Management = /inventory*,
-	// /products*, /warehouses*, /transfer* (semuanya milik Inventory). Sisanya SO.
-	// Inilah pemisahan fitur: sidebar hanya menampilkan item milik aplikasi aktif.
-	let activeApp: AppId = 'opname';
-	const MANAGER = ['admin', 'supervisor'];
-	const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses', '/transfer'];
-	$: activeApp = INVENTORY_ROOTS.some((r) => currentPath === r || currentPath.startsWith(r + '/'))
-		? ('inventory' as AppId)
-		: ('opname' as AppId);
+	// Aplikasi aktif dari path. Sidebar hanya tampilkan item milik aplikasi aktif.
+	$: activeApp: AppId = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
 		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname');
 
 	// Aplikasi lain untuk tombol pindah (hanya manager; staff tak punya akses inventory).
+	const MANAGER = ['admin', 'supervisor'];
 	$: isManager = MANAGER.includes($authStore.user?.role?.name ?? '');
 	$: otherApp = activeApp === 'inventory'
 		? { href: '/', label: 'Stock Opname' }

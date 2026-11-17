@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
-	import { MENU_ITEMS, menuForRole } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
 
 	export let currentPath: string = '';
 
 	// Tampilan bottom bar hanya muat 5 slot di layar sempit.
 	// 4 menu utama tampil langsung; sisanya masuk panel "Lainnya".
 	// Dihitung ulang tiap auth berubah, supaya menu sesuai role user.
-	$: visible = menuForRole(MENU_ITEMS, $authStore.user?.role?.name);
+	$: visible = menuForApp(MENU_ITEMS, activeAppFor(currentPath), $authStore.user?.role?.name);
 	$: primary = visible.slice(0, 4);
 	$: overflow = visible.slice(4);
 	$: overflowActive = overflow.some((i) => i.href === currentPath);

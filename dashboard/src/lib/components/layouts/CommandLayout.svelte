@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
 	import { onMount } from 'svelte';
-	import { MENU_ITEMS, menuForRole } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
 	import BottomBar from './BottomBar.svelte';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 
 	export let currentPath: string = '';
 
-	$: menuItems = menuForRole(MENU_ITEMS, $authStore.user?.role?.name);
+	$: menuItems = menuForApp(MENU_ITEMS, activeAppFor(currentPath), $authStore.user?.role?.name);
 
 	let currentTime = '';
 	let systemStatus = 'ONLINE';

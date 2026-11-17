@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
-	import { MENU_ITEMS, menuForRole } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
 	import BottomBar from './BottomBar.svelte';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 
 	export let currentPath: string = '';
 
-	$: menuItems = menuForRole(MENU_ITEMS, $authStore.user?.role?.name);
+	$: menuItems = menuForApp(MENU_ITEMS, activeAppFor(currentPath), $authStore.user?.role?.name);
 
 	// Sidebar di mobile: default tersembunyi, dibuka lewat hamburger.
 	// Di desktop (lg+): selalu tampil, tidak ada fitur hide.

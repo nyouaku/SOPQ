@@ -26,6 +26,19 @@ export interface MenuItem {
 }
 
 export type AppId = 'opname' | 'inventory' | 'shared';
+
+/** Prefix URL milik aplikasi Inventory. Dipakai semua layout utk deteksi konteks. */
+export const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses', '/transfer'];
+
+/** Apakah path termasuk aplikasi Inventory Management. */
+export function isInventoryPath(path: string): boolean {
+	return INVENTORY_ROOTS.some((r) => path === r || path.startsWith(r + '/'));
+}
+
+/** Aplikasi aktif untuk sebuah path ('inventory' | 'opname'). */
+export function activeAppFor(path: string): AppId {
+	return isInventoryPath(path) ? 'inventory' : 'opname';
+}
 export type AccessLevel = 'view' | 'full';
 
 const MANAGER = ['admin', 'supervisor'];
