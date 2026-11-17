@@ -10,6 +10,13 @@
 
 	$: productId = $page.params.id;
 
+	// Konteks asal: halaman ini bisa dibuka dari SO (baca-saja) maupun Inventory
+	// (kelola). Breadcrumb "Products" kembali ke daftar yang sesuai. Karena /products
+	// sekarang milik Inventory, dari SO arahkan ke daftar baca-saja.
+	const fromOpname =
+		typeof window !== 'undefined' && document.referrer.includes('/opname/products');
+	$: productsListHref = fromOpname ? '/opname/products' : '/products';
+
 	let product: any = null;
 	let trend: any[] = [];
 	let isLoading = true;
@@ -66,7 +73,7 @@
 		<div class="breadcrumbs mb-6 text-sm">
 			<ul>
 				<li><a href="/">Dashboard</a></li>
-				<li><a href="/products">Products</a></li>
+				<li><a href={productsListHref}>Products</a></li>
 				<li>{product?.name || 'Detail'}</li>
 			</ul>
 		</div>
