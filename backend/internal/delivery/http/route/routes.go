@@ -97,6 +97,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	supplierHandler := handler.NewSupplierHandler(supplierUsecase)
 	warehouseHandler := handler.NewWarehouseHandler(warehouseUsecase)
 	productHandler := handler.NewProductHandler(productUsecase)
+	productHandler.SetStockRepos(stockRepo, stockLedgerRepo)
 	stockOpnameHandler := handler.NewStockOpnameHandler(stockOpnameUsecase)
 	reportHandler := handler.NewReportHandler(reportUsecase, notificationUsecase)
 	dashboardHandler := handler.NewDashboardHandler(dashboardUsecase)

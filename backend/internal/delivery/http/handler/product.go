@@ -17,12 +17,23 @@ import (
 
 type ProductHandler struct {
 	productUsecase usecase.ProductUsecase
+	// stockRepo & ledgerRepo dipakai untuk membuat stok awal + baris ledger 'initial'
+	// saat menambah produk baru dengan stok awal.
+	stockRepo  repository.StockRepository
+	ledgerRepo repository.StockLedgerRepository
 }
 
 func NewProductHandler(productUsecase usecase.ProductUsecase) *ProductHandler {
 	return &ProductHandler{
 		productUsecase: productUsecase,
 	}
+}
+
+// SetStockRepos menyuntikkan stock + ledger repo (opsional). Dipanggil dari wiring
+// routes.go agar handler bisa membuat stok awal saat menambah produk baru.
+func (h *ProductHandler) SetStockRepos(stockRepo repository.StockRepository, ledgerRepo repository.StockLedgerRepository) {
+	h.stockRepo = stockRepo
+	h.ledgerRepo = ledgerRepo
 }
 
 // DTOs
@@ -37,6 +48,9 @@ type CreateProductRequest struct {
 	MinimumStock int        `json:"minimum_stock"`
 	SupplierID   *uuid.UUID `json:"supplier_id"`
 	Status       string     `json:"status"`
+	// Stok awal (opsional): bila diisi, buat baris stock di gudang tsb.
+	InitialWarehouseID string `json:"initial_warehouse_id"`
+	InitialStock       int    `json:"initial_stock"`
 }
 
 type UpdateProductRequest struct {
@@ -100,6 +114,40 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	if err := h.productUsecase.CreateProduct(c.Request.Context(), product); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "CREATE_FAILED", err.Error())
 		return
+	}
+
+	// Ambil userID (opsional) utk pencipta baris ledger.
+	userID, _ := middleware.GetUserIDFromContext(c)
+
+	// Stok awal (opsional): bila initial_warehouse_id + initial_stock diisi, buat baris
+	// stock di gudang tsb + catat ke ledger sebagai 'initial'. Gagal ledger tak menggagalkan
+	// pembuatan produk (produk + stok sudah tersimpan).
+	if req.InitialWarehouseID != "" && req.InitialStock > 0 && h.stockRepo != nil && h.ledgerRepo != nil {
+		whID, werr := uuid.Parse(req.InitialWarehouseID)
+		if werr != nil {
+			utils.RespondBadRequest(c, "Invalid initial_warehouse_id")
+			return
+		}
+		newStock := &domain.Stock{
+			ProductID:      product.ID,
+			WarehouseID:    whID,
+			QuantitySystem: req.InitialStock,
+			Version:        0,
+		}
+		if err := h.stockRepo.CreateOrUpdate(c.Request.Context(), newStock); err != nil {
+			utils.RespondError(c, http.StatusBadRequest, "INITIAL_STOCK_FAILED", err.Error())
+			return
+		}
+		_ = h.ledgerRepo.Create(c.Request.Context(), &domain.StockLedger{
+			ProductID:       product.ID,
+			WarehouseID:     whID,
+			TransactionType: domain.LedgerTypeInitial,
+			ReferenceType:   "inventory",
+			QuantityIn:      req.InitialStock,
+			BalanceAfter:    req.InitialStock,
+			Note:            "Stok awal saat tambah produk",
+			CreatedBy:       &userID,
+		})
 	}
 
 	utils.RespondCreated(c, product)

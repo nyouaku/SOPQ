@@ -116,7 +116,9 @@
 		brand: '',
 		unit: '',
 		minimum_stock: 0,
-		box_id: ''
+		box_id: '',
+		initial_warehouse_id: '',
+		initial_stock: 0
 	};
 
 	// --- Cascading pilihan Gudang → Lokasi → Box ---
@@ -254,7 +256,9 @@
 			brand: '',
 			unit: 'pcs',
 			minimum_stock: 0,
-			box_id: ''
+			box_id: '',
+			initial_warehouse_id: '',
+			initial_stock: 0
 		};
 		formWarehouseId = '';
 		formLocationId = '';
@@ -272,7 +276,10 @@
 			brand: product.brand || '',
 			unit: product.unit || 'pcs',
 			minimum_stock: product.minimum_stock || 0,
-			box_id: product.box_id || ''
+			box_id: product.box_id || '',
+			// Edit tak mengubah stok awal (stok berubah lewat pergerakan/adjustment).
+			initial_warehouse_id: '',
+			initial_stock: 0
 		};
 		if (!warehouses.length) loadWarehouses();
 		syncWarehouseFrom(product);
@@ -288,7 +295,9 @@
 			brand: '',
 			unit: '',
 			minimum_stock: 0,
-			box_id: ''
+			box_id: '',
+			initial_warehouse_id: '',
+			initial_stock: 0
 		};
 		formWarehouseId = '';
 		formLocationId = '';
@@ -305,13 +314,16 @@
 		isSaving = true;
 		try {
 			// box_id kosong harus null, bukan "" — backend mem-parse UUID.
-			const payload = {
+			const payload: any = {
 				...formData,
 				box_id: formData.box_id || null,
 			};
+			// Stok awal hanya utk produk BARU; edit tak kirim field ini.
 			let response;
 			if (editingProduct) {
 				// Update
+				delete payload.initial_warehouse_id;
+				delete payload.initial_stock;
 				response = await apiClient.put(
 					`${API_ENDPOINTS.products}/${editingProduct.id}`,
 					payload
@@ -632,6 +644,44 @@
 						/>
 					</div>
 				</div>
+
+				<!-- Stok awal (hanya saat TAMBAH produk baru) -->
+				{#if !editingProduct}
+					<div class="divider my-2"></div>
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+						<div class="form-control">
+							<label class="label" for="p-init-wh">
+								<span class="label-text font-medium text-sm sm:text-base">Gudang Stok Awal</span>
+							</label>
+							<select
+								id="p-init-wh"
+								class="select select-bordered select-xs sm:select-sm"
+								bind:value={formData.initial_warehouse_id}
+							>
+								<option value="">-- Tidak ada --</option>
+								{#each warehouses as wh}
+									<option value={wh.id}>{wh.name}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="form-control">
+							<label class="label" for="p-init-stock">
+								<span class="label-text font-medium text-sm sm:text-base">Stok Awal</span>
+							</label>
+							<input
+								id="p-init-stock"
+								type="number"
+								class="input input-bordered input-xs sm:input-sm"
+								bind:value={formData.initial_stock}
+								min="0"
+								placeholder="0"
+							/>
+						</div>
+					</div>
+					<p class="text-xs text-base-content/50 -mt-2">
+						Isi bila ingin mencatat stok awal produk di gudang tsb.
+					</p>
+				{/if}
 
 				<!-- Divider -->
 				<div class="divider my-2"></div>

@@ -56,10 +56,8 @@ export const MENU_ITEMS: MenuItem[] = [
 	{ href: '/opname/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'opname', access: 'view' },
 	{ href: '/opname/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'opname', access: 'view' },
 	{ href: '/activity', label: 'Activity', icon: '🧾', shortcut: 'A', roles: MANAGER, app: 'opname', access: 'view' },
-
-	// ===== SHARED (kedua aplikasi) =====
-	{ href: '/settings', label: 'Settings', icon: '⚙️', shortcut: 'T', app: 'shared', access: 'full' },
-	{ href: '/backup', label: 'Backup', icon: '💾', shortcut: 'B', roles: ['admin'], app: 'shared', access: 'full' },
+	{ href: '/settings', label: 'Settings', icon: '⚙️', shortcut: 'T', app: 'opname', access: 'full' },
+	{ href: '/backup', label: 'Backup', icon: '💾', shortcut: 'B', roles: ['admin'], app: 'opname', access: 'full' },
 
 	// ===== INVENTORY MANAGEMENT (operasional — kendali penuh) =====
 	{ href: '/inventory', label: 'Dashboard', icon: '📊', shortcut: 'I', app: 'inventory', access: 'full' },
