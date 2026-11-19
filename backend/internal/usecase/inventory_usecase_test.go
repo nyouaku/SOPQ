@@ -52,6 +52,10 @@ func (m *mockInventoryRepo) PostMovementTx(ctx context.Context, mv *domain.Stock
 	return nil
 }
 
+func (m *mockInventoryRepo) CancelMovement(ctx context.Context, id, userID uuid.UUID, reason string) error {
+	return nil
+}
+
 func TestPostIn_BuildsEffectsAndLedger(t *testing.T) {
 	repo := &mockInventoryRepo{}
 	uc := NewInventoryUsecase(repo, &mockActivityLogRepository{})
@@ -275,5 +279,49 @@ func TestPostGrid_RejectsMissingDate(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("PostGrid() tanpa tanggal harus gagal")
+	}
+}
+
+// Mock pembatalan: cukup mencatat panggilan untuk memverifikasi validasi usecase.
+type mockCancelRepo struct {
+	repository.InventoryRepository // method lain tak dipakai di test ini
+	calledWithID     uuid.UUID
+	calledWithReason string
+	returnErr        error
+}
+
+func (m *mockCancelRepo) CancelMovement(ctx context.Context, id, userID uuid.UUID, reason string) error {
+	m.calledWithID = id
+	m.calledWithReason = reason
+	return m.returnErr
+}
+
+func TestCancelMovement_RequiresReason(t *testing.T) {
+	repo := &mockCancelRepo{}
+	uc := NewInventoryUsecase(repo, &mockActivityLogRepository{})
+
+	err := uc.CancelMovement(context.Background(), uuid.New(), uuid.New(), "   ", "127.0.0.1")
+	if err == nil {
+		t.Fatal("alasan kosong harus ditolak")
+	}
+	if repo.calledWithID != uuid.Nil {
+		t.Fatal("repo tak boleh dipanggil saat alasan kosong")
+	}
+}
+
+func TestCancelMovement_TrimsReasonAndLogs(t *testing.T) {
+	repo := &mockCancelRepo{}
+	logRepo := &mockActivityLogRepository{}
+	uc := NewInventoryUsecase(repo, logRepo)
+
+	id := uuid.New()
+	if err := uc.CancelMovement(context.Background(), id, uuid.New(), "  salah input  ", "127.0.0.1"); err != nil {
+		t.Fatalf("cancel: %v", err)
+	}
+	if repo.calledWithID != id {
+		t.Fatal("repo tidak menerima ID yang benar")
+	}
+	if repo.calledWithReason != "salah input" {
+		t.Fatalf("alasan tidak di-trim: %q", repo.calledWithReason)
 	}
 }

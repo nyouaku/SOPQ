@@ -19,4 +19,8 @@ var (
 	ErrWeakPassword   = errors.New("password minimal 12 karakter")
 	ErrImportTooLarge = errors.New("jumlah baris melebihi batas")
 	ErrExportTooLarge = errors.New("jumlah baris ekspor melebihi batas")
+
+	ErrMovementNotFound         = errors.New("dokumen pergerakan tidak ditemukan")
+	ErrMovementAlreadyCancelled = errors.New("dokumen pergerakan sudah dibatalkan")
+	ErrMovementNotCancellable   = errors.New("hanya dokumen berstatus posted yang bisa dibatalkan")
 )

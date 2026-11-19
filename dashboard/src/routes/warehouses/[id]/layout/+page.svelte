@@ -28,6 +28,9 @@
 	let dragging: LayoutBox | null = null;
 	let dragOffset = { x: 0, y: 0 };
 	let svgElement: SVGSVGElement;
+	// Rak terpilih — bisa lewat mouse, Tab, atau Enter. Panel samping mengedit posisinya.
+	let selectedId: string | null = null;
+	$: selectedBox = layoutBoxes.find((b) => b.id === selectedId) ?? null;
 
 	const GRID_SIZE = 20;
 	const BOX_WIDTH = 80;
@@ -92,6 +95,7 @@
 
 	function handleMouseDown(e: MouseEvent, box: LayoutBox) {
 		if (e.button !== 0) return;
+		selectedId = box.id;
 		dragging = box;
 		dragOffset = {
 			x: e.clientX - box.x,
@@ -112,6 +116,58 @@
 
 	function handleMouseUp() {
 		dragging = null;
+	}
+
+	/** Pilih rak (klik atau Enter di SVG). */
+	function selectBox(box: LayoutBox) {
+		selectedId = box.id;
+	}
+
+	/** Geser rak terpilih 1 grid ke arah tsb. Arrow key di panel & di SVG keduanya pakai ini. */
+	function nudge(dx: number, dy: number) {
+		if (!selectedBox) return;
+		const maxX = 800 - selectedBox.width;
+		const maxY = 500 - selectedBox.height;
+		selectedBox.x = Math.max(0, Math.min(maxX, Math.round((selectedBox.x + dx) / GRID_SIZE) * GRID_SIZE));
+		selectedBox.y = Math.max(0, Math.min(maxY, Math.round((selectedBox.y + dy) / GRID_SIZE) * GRID_SIZE));
+		// Picu reactivity: layoutBoxes di-assign ulang agar panel ikut ter-render.
+		layoutBoxes = [...layoutBoxes];
+	}
+
+	/** Set x/y manual dari input angka di panel. */
+	function setPos(axis: 'x' | 'y', raw: string) {
+		if (!selectedBox) return;
+		const maxX = 800 - selectedBox.width;
+		const maxY = 500 - selectedBox.height;
+		const v = parseInt(raw, 10) || 0;
+		const snapped = Math.round(v / GRID_SIZE) * GRID_SIZE;
+		selectedBox[axis] = axis === 'x'
+			? Math.max(0, Math.min(maxX, snapped))
+			: Math.max(0, Math.min(maxY, snapped));
+		layoutBoxes = [...layoutBoxes];
+	}
+
+	/** Keyboard pada rak di SVG: Enter/Space pilih, panah geser 1 grid, Shift+panah 5 grid. */
+	function onBoxKeydown(e: KeyboardEvent, box: LayoutBox) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			e.stopPropagation();
+			selectedId = box.id;
+			return;
+		}
+		const step = e.shiftKey ? GRID_SIZE * 5 : GRID_SIZE;
+		const moves: Record<string, [number, number]> = {
+			ArrowLeft: [-step, 0],
+			ArrowRight: [step, 0],
+			ArrowUp: [0, -step],
+			ArrowDown: [0, step]
+		};
+		const mv = moves[e.key];
+		if (!mv) return;
+		e.preventDefault();
+		e.stopPropagation();
+		selectedId = box.id;
+		nudge(mv[0], mv[1]);
 	}
 
 	function addBox() {
@@ -176,7 +232,8 @@
 			<div>
 				<h1 class="page-title">Layout Editor</h1>
 				<p class="mt-1 text-sm text-base-content/60">
-					Drag rak untuk mengatur posisi. Klik "Simpan" untuk menyimpan layout.
+					Drag rak, atau pilih lalu atur posisi lewat panel samping.
+					Tab untuk memilih, Enter menandai, panah menggeser (Shift = 5 grid).
 				</p>
 			</div>
 			<div class="flex gap-2">
@@ -217,8 +274,16 @@
 					style="height: 500px; background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px); background-size: {GRID_SIZE}px {GRID_SIZE}px;"
 				>
 					{#each layoutBoxes as box (box.id)}
+						<!-- role="group": wadah rect + tombol hapus.
+						     svelte-ignore di bawah: handler panah di sini memang disengaja —
+						     itu jalur keyboard untuk menggeser rak (rect di dalam role=button
+						     tak bisa punya arrow key handler sendiri tanpa memakai tabindex ganda). -->
+						<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 						<g
+							role="group"
+							aria-label={`Rak ${box.code}. Panah untuk menggeser, Enter untuk memilih.`}
 							on:mousedown={(e) => handleMouseDown(e, box)}
+							on:keydown={(e) => onBoxKeydown(e, box)}
 							class="cursor-grab active:cursor-grabbing"
 						>
 							<rect
@@ -228,9 +293,9 @@
 								height={box.height}
 								rx="4"
 								fill={box.color}
-								fill-opacity="0.2"
-								stroke={box.color}
-								stroke-width="2"
+								fill-opacity={selectedId === box.id ? 0.4 : 0.2}
+								stroke={selectedId === box.id ? 'hsl(var(--p))' : box.color}
+								stroke-width={selectedId === box.id ? 3 : 2}
 							/>
 							<text x={box.x + box.width / 2} y={box.y + box.height / 2 - 5} text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor">
 								{box.code}
@@ -240,20 +305,92 @@
 							</text>
 							<!-- Delete button -->
 							<circle cx={box.x + box.width - 10} cy={box.y + 10} r="8" fill="#EF4444" />
-							<text
-								x={box.x + box.width - 10}
-								y={box.y + 14}
-								text-anchor="middle"
-								font-size="10"
-								fill="white"
-								style="cursor: pointer;"
+							<!-- Tombol hapus: <g> ber-role button dengan gelar rakit sendiri,
+							     supaya <text> di dalamnya tak perlu role terpisah. -->
+							<g
+								role="button"
+								tabindex="0"
+								aria-label={`Hapus rak ${box.code}`}
+								class="cursor-pointer"
 								on:click|stopPropagation={() => removeBox(box.id)}
+								on:keydown|stopPropagation={(e) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										removeBox(box.id);
+									}
+								}}
 							>
-								×
-							</text>
+								<text
+									x={box.x + box.width - 10}
+									y={box.y + 14}
+									text-anchor="middle"
+									font-size="10"
+									fill="white"
+								>
+									×
+								</text>
+							</g>
 						</g>
 					{/each}
 				</svg>
+			</div>
+
+			<!-- Panel samping: posisi rak terpilih, editable lewat angka & tombol panah.
+			     Jalur keyboard utama — drag mouse hanyalah pintasan. -->
+			<div class="mt-4 rounded-2xl border border-base-300 bg-base-200 p-4">
+				{#if !selectedBox}
+					<p class="text-sm text-base-content/60">
+						Pilih rak pada canvas (klik, atau Tab + Enter) untuk mengatur posisinya.
+					</p>
+				{:else}
+					<div class="mb-3 flex items-center gap-2">
+						<span
+							class="inline-block h-3 w-3 rounded-full"
+							style="background:{selectedBox.color}"
+						></span>
+						<span class="font-semibold">{selectedBox.code}</span>
+						<span class="text-sm text-base-content/60">{selectedBox.name}</span>
+					</div>
+
+					<div class="flex flex-wrap items-end gap-4">
+						<label class="form-control">
+							<span class="label-text text-xs text-base-content/60">X (px)</span>
+							<input
+								type="number" step={GRID_SIZE} min="0"
+								class="input input-bordered input-sm w-24"
+								value={selectedBox.x}
+								on:input={(e) => setPos('x', e.currentTarget.value)}
+							/>
+						</label>
+
+						<label class="form-control">
+							<span class="label-text text-xs text-base-content/60">Y (px)</span>
+							<input
+								type="number" step={GRID_SIZE} min="0"
+								class="input input-bordered input-sm w-24"
+								value={selectedBox.y}
+								on:input={(e) => setPos('y', e.currentTarget.value)}
+							/>
+						</label>
+
+						<!-- Tombol panah: ±1 grid, Shift = ±5 grid -->
+						<div class="flex items-center gap-1" role="group" aria-label="Geser rak terpilih">
+							<button class="btn btn-sm" aria-label="Geser kiri 1 grid"
+								on:click={() => nudge(-GRID_SIZE, 0)}>←</button>
+							<button class="btn btn-sm" aria-label="Geser kanan 1 grid"
+								on:click={() => nudge(GRID_SIZE, 0)}>→</button>
+							<button class="btn btn-sm" aria-label="Geser atas 1 grid"
+								on:click={() => nudge(0, -GRID_SIZE)}>↑</button>
+							<button class="btn btn-sm" aria-label="Geser bawah 1 grid"
+								on:click={() => nudge(0, GRID_SIZE)}>↓</button>
+							<span class="ml-2 text-xs text-base-content/60">Shift + panah = 5 grid</span>
+						</div>
+
+						<button class="btn btn-sm text-error" on:click={() => removeBox(selectedBox.id)}>
+							Hapus rak
+						</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

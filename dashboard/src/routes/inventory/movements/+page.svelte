@@ -4,8 +4,15 @@
 	import { replaceState } from '$app/navigation';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { apiClient } from '$lib/api/client';
+	import { API_ENDPOINTS } from '$lib/api/config';
+	import { toastStore } from '$lib/stores/toast';
+	import { authStore } from '$lib/stores/auth';
+	import { useQueryClient } from '@tanstack/svelte-query';
 	import { inventoryQuery, warehousesQuery } from '$lib/api/queries';
 
+	const queryClient = useQueryClient();
 	const limit = 25;
 	const init = new URLSearchParams($pageStore.url.search);
 
@@ -82,6 +89,45 @@
 		}
 		return { inCount, outCount, transferCount };
 	})();
+
+	// Pembatalan dokumen: balik stok + tandai 'cancelled' (bukan hapus). Alasan wajib.
+	let cancelTarget: any = null;
+	let cancelReason = '';
+	let isCancelling = false;
+
+	function openCancel(m: any) {
+		cancelTarget = m;
+		cancelReason = '';
+	}
+
+	function closeCancel() {
+		if (isCancelling) return;
+		cancelTarget = null;
+		cancelReason = '';
+	}
+
+	async function confirmCancel() {
+		if (!cancelTarget) return;
+		if (cancelReason.trim().length < 3) {
+			toastStore.error('Alasan minimal 3 karakter');
+			return;
+		}
+		isCancelling = true;
+		try {
+			const res = await apiClient.post(API_ENDPOINTS.inventoryCancel(cancelTarget.id), {
+				reason: cancelReason.trim()
+			});
+			if (!res.success) throw new Error(res.error?.message || 'Gagal membatalkan');
+			toastStore.success(`Dokumen ${cancelTarget.code} dibatalkan, stok dikembalikan`);
+			cancelTarget = null;
+			cancelReason = '';
+			await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+		} catch (e: any) {
+			toastStore.error(e?.message || 'Gagal membatalkan dokumen');
+		} finally {
+			isCancelling = false;
+		}
+	}
 
 	import { onMount } from 'svelte';
 </script>
@@ -175,6 +221,8 @@
 								<th>Tujuan</th>
 								<th>Ref</th>
 								<th>Waktu</th>
+								<th>Status</th>
+								<th></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -190,6 +238,20 @@
 									<td class="text-xs">{m.to_warehouse?.name || '-'}</td>
 									<td class="metric text-xs">{m.reference_code || '-'}</td>
 									<td class="text-xs text-base-content/60">{fmtDate(m.created_at)}</td>
+									<td>
+										{#if m.status === 'cancelled'}
+											<span class="badge badge-ghost badge-sm">dibatalkan</span>
+										{:else}
+											<span class="badge badge-outline badge-sm">posted</span>
+										{/if}
+									</td>
+									<td class="text-right">
+										{#if m.status !== 'cancelled' && $authStore.user?.role?.name !== 'staff_gudang'}
+											<button class="btn btn-ghost btn-xs text-error" on:click={() => openCancel(m)}>
+												Batalkan
+											</button>
+										{/if}
+									</td>
 								</tr>
 							{/each}
 						</tbody>
@@ -205,5 +267,26 @@
 				{/if}
 			{/if}
 		</div>
+
+		<ConfirmDialog
+			isOpen={!!cancelTarget}
+			title="Batalkan dokumen?"
+			message={`Dokumen ${cancelTarget?.code ?? ''} akan dibatalkan dan stok dikembalikan ke posisi sebelum dokumen.\nDokumen tetap tersimpan sebagai riwayat.`}
+			confirmLabel="Ya, batalkan"
+			danger
+			isLoading={isCancelling}
+			on:confirm={confirmCancel}
+			on:cancel={closeCancel}
+		>
+			<label class="mt-4 block">
+				<span class="label-text text-xs text-base-content/60">Alasan pembatalan (wajib)</span>
+				<textarea
+					class="textarea textarea-bordered mt-1 w-full"
+					rows="2"
+					placeholder="mis. salah input qty"
+					bind:value={cancelReason}
+				></textarea>
+			</label>
+		</ConfirmDialog>
 	</div>
 </LayoutWrapper>

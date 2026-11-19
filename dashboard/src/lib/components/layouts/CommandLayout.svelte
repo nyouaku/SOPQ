@@ -164,7 +164,7 @@
 		<div class="flex-1 flex flex-col xl:grid xl:grid-cols-[1fr_18rem]">
 			<!-- Center Panel - Main Content -->
 			<main class="bg-base-100 overflow-y-auto">
-				<div class="p-4 md:p-6 pb-24 md:pb-28">
+				<div class="p-4 md:p-6 page-with-bottombar">
 					<!-- Content Header -->
 					<div class="border-l-4 border-primary pl-4 mb-6">
 						<div class="text-xs text-primary font-bold mb-1">[MAIN TERMINAL]</div>

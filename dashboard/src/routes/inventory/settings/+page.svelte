@@ -51,7 +51,7 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page pb-24 md:pb-28">
+	<div class="page page-with-bottombar">
 		<div class="flex items-center gap-3 mb-6">
 			<button class="btn btn-ghost btn-sm" on:click={() => goto('/inventory')}>←</button>
 			<h1 class="page-title">Pengaturan Inventory</h1>

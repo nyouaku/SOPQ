@@ -6,12 +6,13 @@
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
+	import { localMonth } from '$lib/utils/date';
 
 	let isLoading = true;
 	let summary: any = null;
 	let warehouses: any[] = [];
 	let selectedWarehouse = '';
-	let month = new Date().toISOString().slice(0, 7); // YYYY-MM
+	let month = localMonth(); // YYYY-MM, waktu lokal
 
 	async function load() {
 		isLoading = true;
@@ -57,7 +58,7 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page pb-24 md:pb-28">
+	<div class="page page-with-bottombar">
 		<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
 			<div>
 				<h1 class="page-title">Inventory Management</h1>

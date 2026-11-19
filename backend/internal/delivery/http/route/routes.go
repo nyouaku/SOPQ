@@ -87,7 +87,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	notificationUsecase := usecase.NewNotificationUsecase(notificationRepo)
 	dashboardUsecase := usecase.NewDashboardUsecase(repository.NewDashboardRepository(cfg.DB.DB), activityLogRepo)
 	exportUsecase := usecase.NewExportUsecase(stockOpnameDetailRepo, productRepo, repository.NewReportRepository(cfg.DB.DB))
-	importUsecase := usecase.NewImportUsecase(productRepo, categoryRepo, stockRepo, warehouseRepo)
+	importUsecase := usecase.NewImportUsecase(productRepo, stockRepo, warehouseRepo)
 	inventoryUsecase := usecase.NewInventoryUsecase(inventoryRepo, activityLogRepo)
 	inventoryUsecase.SetLowStockDeps(notificationRepo, productRepo, stockRepo)
 	stockLedgerUsecase := usecase.NewStockLedgerUsecase(stockLedgerRepo, stockRepo)
@@ -333,6 +333,8 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				inventoryWrite.POST("/transfer", inventoryHandler.PostTransfer)
 				inventoryWrite.POST("/grid", inventoryHandler.PostGrid)
 				inventoryWrite.POST("/grid/copy", inventoryHandler.CopyGrid)
+				// Pembatalan dokumen: membalik stok, jadi hanya supervisor/admin.
+				inventoryWrite.POST("/:id/cancel", inventoryHandler.CancelMovement)
 			}
 			// Read endpoints grid + summary (supervisor & admin).
 			inventory.GET("/grid", inventoryHandler.GetGrid)

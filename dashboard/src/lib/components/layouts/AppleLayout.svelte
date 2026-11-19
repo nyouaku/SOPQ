@@ -354,7 +354,7 @@
 	.usercard__role {
 		font-size: 0.72rem;
 		color: hsl(var(--bc) / 0.55);
-		capitalize: true;
+		text-transform: capitalize;
 	}
 	.logout {
 		display: flex;

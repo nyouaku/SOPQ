@@ -6,7 +6,24 @@
 
 @tailwind base;
 @tailwind components;
+/* Armada util Tailwind. */
 @tailwind utilities;
+
+/* ============================================================
+   Ruang bawah untuk bottom bar.
+   Satu sumber angka: tinggi bar (ikon + label + padding ≈ 4.5rem) + inset perangkat.
+   Di HP ber-notch env(safe-area-inset-bottom) ±2rem membuat bar jauh lebih tinggi
+   dari pb-24 (6rem) — itu sebabnya konten paling bawah tertutup bar.
+   Ditaruh SETELAH @tailwind utilities supaya tidak dikalahkan p-4/p-6/pb-*.
+   ============================================================ */
+.page-with-bottombar {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px) + 1.5rem);
+}
+@media (min-width: 768px) {
+  .page-with-bottombar {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px) + 1.5rem);
+  }
+}
 
 @layer base {
   * {

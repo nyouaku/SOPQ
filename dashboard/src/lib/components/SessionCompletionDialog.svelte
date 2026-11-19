@@ -12,7 +12,17 @@
   $: minutes = Math.floor(duration / 60000);
   $: seconds = Math.floor((duration % 60000) / 1000);
   $: durationText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+  // Esc menutup dialog. Dipasang di window, bukan di overlay: overlay tidak
+  // pernah menerima fokus sendiri saat dibuka, jadi handler di sana tak pernah jalan.
+  /** @param {KeyboardEvent} e */
+  function onKeydown(e) {
+    if (isOpen && e.key === 'Escape') onClose();
+  }
 </script>
+
+<svelte:window on:keydown={onKeydown} />
+
 
 {#if isOpen}
   <div
@@ -20,11 +30,17 @@
     role="dialog"
     aria-modal="true"
     aria-label="Ringkasan sesi selesai"
-    on:click={onClose}
-    on:keydown={(e) => e.key === 'Escape' && onClose()}
     tabindex="-1"
   >
-    <div class="dialog bg-base-100" role="presentation" on:click|stopPropagation>
+    <!-- Backdrop transparan: klik di luar dialog menutupnya. Elemen <button>
+         (bukan div) supaya bisa difokus & diaktifkan dengan keyboard. -->
+    <button
+      type="button"
+      class="overlay__backdrop"
+      aria-label="Tutup ringkasan"
+      on:click={onClose}
+    ></button>
+    <div class="dialog bg-base-100" role="presentation">
       <div class="icon bg-success text-success-content">✓</div>
       <h2 class="text-base-content">Sesi Selesai</h2>
 
@@ -66,7 +82,19 @@
     z-index: 9999;
   }
 
+  /* Backdrop penuh menutupi overlay; dialog di atasnya. */
+  .overlay__backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: default;
+  }
+
   .dialog {
+    position: relative; /* di atas backdrop */
+    z-index: 1;
     border-radius: 20px;
     padding: 32px;
     max-width: 360px;
