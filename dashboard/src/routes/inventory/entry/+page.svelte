@@ -35,26 +35,30 @@
 	}
 
 	async function loadSettings() {
+		// Selalu muat gudang: warehouseId wajib ada sebelum GridEntry dirender.
+		// Sebelumnya kalau settings ada tapi defaultWarehouseId kosong, loadWarehouses()
+		// tak pernah dipanggil → warehouseId tetap '' → loader tak pernah berhenti.
+		await loadWarehouses();
+
+		const raw = localStorage.getItem(SETTINGS_KEY);
+		if (!raw) return;
+
 		try {
-			const raw = localStorage.getItem(SETTINGS_KEY);
-			if (raw) {
-				const s = JSON.parse(raw);
-				if (typeof s.gridEntryMode === 'string' && ['grid', 'compact', 'quick'].includes(s.gridEntryMode)) {
-					viewMode = s.gridEntryMode as ViewMode;
-				}
-				if (s.defaultMode === 'in' || s.defaultMode === 'out') direction = s.defaultMode;
-				if (typeof s.defaultWarehouseId === 'string' && s.defaultWarehouseId) {
-					// Pilih gudang default hanya bila ada di daftar.
-					await loadWarehouses();
-					if (warehouses.some((w) => w.id === s.defaultWarehouseId)) {
-						warehouseId = s.defaultWarehouseId;
-					}
-				}
-			} else {
-				await loadWarehouses();
+			const s = JSON.parse(raw);
+			if (s.gridEntryMode === 'grid' || s.gridEntryMode === 'compact' || s.gridEntryMode === 'quick') {
+				viewMode = s.gridEntryMode;
+			}
+			if (s.defaultMode === 'in' || s.defaultMode === 'out') direction = s.defaultMode;
+			// Gudang default dipakai hanya bila masih ada di daftar.
+			if (
+				typeof s.defaultWarehouseId === 'string' &&
+				s.defaultWarehouseId &&
+				warehouses.some((w) => w.id === s.defaultWarehouseId)
+			) {
+				warehouseId = s.defaultWarehouseId;
 			}
 		} catch {
-			await loadWarehouses();
+			// JSON rusak: biarkan nilai default.
 		}
 	}
 
@@ -192,8 +196,14 @@
 			</div>
 		</div>
 
-		{#if isLoading || !warehouseId}
+		{#if isLoading}
 			<div class="flex h-64 items-center justify-center"><Loader size={48} /></div>
+		{:else if !warehouseId}
+			<div class="py-16 text-center">
+				<p class="text-sm text-base-content/60">Belum ada gudang.</p>
+				<p class="mt-1 text-xs text-base-content/40">Tambahkan gudang dulu di menu Gudang sebelum mengisi grid.</p>
+				<a href="/warehouses" class="btn btn-primary btn-sm mt-4">Ke halaman Gudang</a>
+			</div>
 		{:else}
 			<GridEntry
 				bind:this={gridEntry}
