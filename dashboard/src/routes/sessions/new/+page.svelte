@@ -84,8 +84,8 @@
 			<h1 class="page-title">New Stock Opname Session</h1>
 		</div>
 
-		<div class="card bg-base-200 shadow-xl">
-			<div class="card-body gap-4">
+		<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
+			<div class="space-y-4">
 				{#if $warehouses.isLoading}
 					<span class="loading loading-spinner loading-md"></span>
 				{:else if $warehouses.isError}
@@ -147,7 +147,7 @@
 							<div>
 								<span class="label-text font-medium">Blind Count Mode</span>
 								<p class="text-xs text-base-content/60">
-									Sembunyikan stok sistem saat scan. Petugas hanya melihat nama produk.
+									Sembunyikan stok awal saat scan. Petugas hanya melihat nama produk.
 								</p>
 							</div>
 							<input
@@ -159,7 +159,7 @@
 						</label>
 					</div>
 
-					<div class="card-actions justify-end mt-2">
+					<div class="flex justify-end gap-2 mt-2">
 						<button class="btn btn-ghost" on:click={() => goto('/sessions')}>Batal</button>
 						<button
 							class="btn btn-primary"

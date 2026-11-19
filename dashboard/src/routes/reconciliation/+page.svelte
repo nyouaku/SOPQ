@@ -68,7 +68,7 @@
 		<div class="mb-6">
 			<h1 class="page-title">Rekonsiliasi Antar Gudang</h1>
 			<p class="mt-1 text-sm text-base-content/60">
-				Bandingkan stok sistem produk di beberapa gudang sekaligus
+				Bandingkan stok awal produk di beberapa gudang sekaligus
 			</p>
 		</div>
 

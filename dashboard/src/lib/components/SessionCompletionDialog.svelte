@@ -64,8 +64,8 @@
       </div>
 
       <div class="actions">
-        <button class="btn-ghost bg-base-100 text-base-content border border-base-300" on:click={onClose}>Close</button>
-        <button class="btn-primary bg-primary text-primary-content" on:click={onReport}>Lihat Report</button>
+        <button class="btn-ghost bg-base-100 text-base-content border border-base-300" on:click={onClose}>Tutup</button>
+        <button class="btn-primary bg-primary text-primary-content" on:click={onReport}>Lihat Laporan</button>
       </div>
     </div>
   </div>

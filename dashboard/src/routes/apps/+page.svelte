@@ -21,7 +21,7 @@
 				{
 					href: '/',
 					name: 'Stock Opname',
-					desc: 'Audit stok fisik berkala, bandingkan dengan stok sistem',
+					desc: 'Audit stok fisik berkala, bandingkan dengan stok awal',
 					icon: 'app-opname',
 					accent: 'var(--p)'
 				},
@@ -37,7 +37,7 @@
 				{
 					href: '/',
 					name: 'Stock Opname',
-					desc: 'Audit stok fisik berkala, bandingkan dengan stok sistem',
+					desc: 'Audit stok fisik berkala, bandingkan dengan stok awal',
 					icon: 'app-opname',
 					accent: 'var(--p)'
 				}

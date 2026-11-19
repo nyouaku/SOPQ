@@ -144,7 +144,7 @@
 	<div class="page">
 		<div class="mb-6">
 			<h1 class="page-title">Laporan Stock Opname</h1>
-			<p class="mt-1 text-sm text-base-content/60">Selisih stok sistem vs fisik per scan</p>
+			<p class="mt-1 text-sm text-base-content/60">Selisih stok awal vs fisik per scan</p>
 		</div>
 
 		<!-- Filter -->
@@ -275,7 +275,7 @@
 					<div class="metric mt-1 text-xl font-semibold">{total}</div>
 				</div>
 				<div class="bg-base-200 p-4">
-					<div class="text-xs text-base-content/60">Stok sistem</div>
+					<div class="text-xs text-base-content/60">Stok Awal</div>
 					<div class="metric mt-1 text-xl font-semibold">{totalSystem}</div>
 				</div>
 				<div class="bg-base-200 p-4">

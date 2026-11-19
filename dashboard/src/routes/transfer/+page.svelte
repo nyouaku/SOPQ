@@ -10,14 +10,11 @@
 	let selected = new Set<string>();
 	let warehouses: any[] = [];
 	let locations: any[] = [];
-	let boxes: any[] = [];
 
 	let selectedWarehouse = '';
 	let selectedLocation = '';
-	let selectedBox = '';
 	let isLoading = true;
 	let isTransferring = false;
-	let loadingBoxes = false;
 	let loadingLocations = false;
 
 	onMount(async () => {
@@ -41,8 +38,6 @@
 
 	async function onWarehouseChange() {
 		selectedLocation = '';
-		selectedBox = '';
-		boxes = [];
 		if (!selectedWarehouse) {
 			locations = [];
 			return;
@@ -62,25 +57,6 @@
 		}
 	}
 
-	async function onLocationChange() {
-		selectedBox = '';
-		if (!selectedLocation) {
-			boxes = [];
-			return;
-		}
-		loadingBoxes = true;
-		try {
-			const res = await apiClient.get<{ boxes: any[] }>(API_ENDPOINTS.locationBoxes(selectedLocation));
-			if (res.success && res.data) {
-				boxes = res.data.boxes || [];
-			}
-		} catch (e: any) {
-			toastStore.error(e.message || 'Gagal memuat rak');
-		} finally {
-			loadingBoxes = false;
-		}
-	}
-
 	function toggle(id: string) {
 		if (selected.has(id)) selected.delete(id);
 		else selected.add(id);
@@ -97,15 +73,15 @@
 	}
 
 	async function transfer() {
-		if (selected.size === 0 || !selectedBox) {
-			toastStore.error('Pilih produk dan rak tujuan');
+		if (selected.size === 0 || !selectedLocation) {
+			toastStore.error('Pilih produk dan lokasi tujuan');
 			return;
 		}
 		isTransferring = true;
 		try {
 			const res = await apiClient.post<{ transferred: number }>(`${API_ENDPOINTS.products}/transfer`, {
 				product_ids: Array.from(selected),
-				to_box_id: selectedBox
+				to_location_id: selectedLocation
 			});
 			if (res.success) {
 				toastStore.success(`${res.data?.transferred || 0} produk berhasil dipindahkan`);
@@ -127,22 +103,22 @@
 </script>
 
 <svelte:head>
-	<title>Pindah Rak - Stock Opname</title>
+	<title>Pindah Lokasi - Stock Opname</title>
 </svelte:head>
 
 <LayoutWrapper>
 	<div class="page">
 		<div class="mb-6">
-			<h1 class="page-title">Pindah Rak (Transfer)</h1>
+			<h1 class="page-title">Pindah Lokasi (Transfer)</h1>
 			<p class="mt-1 text-sm text-base-content/60">
-				Pindahkan beberapa produk ke rak/box tujuan dalam satu operasi
+				Pindahkan beberapa produk ke lokasi/area tujuan dalam satu operasi
 			</p>
 		</div>
 
-		<!-- Pilih Rak Tujuan -->
+		<!-- Pilih Lokasi Tujuan -->
 		<div class="mb-6 rounded-2xl border border-base-300 bg-base-200 p-4 md:p-5">
-			<h2 class="mb-3 font-semibold">Rak Tujuan</h2>
-			<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+			<h2 class="mb-3 font-semibold">Lokasi Tujuan</h2>
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<div>
 					<label class="label py-0" for="warehouse">
 						<span class="label-text text-xs">Gudang</span>
@@ -161,34 +137,17 @@
 				</div>
 				<div>
 					<label class="label py-0" for="location">
-						<span class="label-text text-xs">Lokasi</span>
+						<span class="label-text text-xs">Lokasi / Area</span>
 					</label>
 					<select
 						id="location"
 						class="select select-bordered select-sm w-full"
 						bind:value={selectedLocation}
-						on:change={onLocationChange}
 						disabled={!selectedWarehouse || loadingLocations}
 					>
 						<option value="">{loadingLocations ? 'Memuat...' : 'Pilih lokasi...'}</option>
 						{#each locations as loc}
 							<option value={loc.id}>{loc.code} — {loc.name}</option>
-						{/each}
-					</select>
-				</div>
-				<div>
-					<label class="label py-0" for="box">
-						<span class="label-text text-xs">Rak/Box</span>
-					</label>
-					<select
-						id="box"
-						class="select select-bordered select-sm w-full"
-						bind:value={selectedBox}
-						disabled={!selectedLocation || loadingBoxes}
-					>
-						<option value="">{loadingBoxes ? 'Memuat...' : 'Pilih rak...'}</option>
-						{#each boxes as box}
-							<option value={box.id}>{box.code} — {box.name}</option>
 						{/each}
 					</select>
 				</div>
@@ -226,8 +185,10 @@
 								<div class="min-w-0 flex-1">
 									<p class="truncate text-sm font-medium">{product.name}</p>
 									<p class="metric text-xs text-base-content/60">{product.product_code}</p>
-									{#if product.box?.code}
-										<p class="text-xs text-base-content/40">Rak: {product.box.code}</p>
+									{#if product.location}
+										<p class="text-xs text-base-content/40">
+											Lokasi: {product.location.code}{product.location.name ? ` — ${product.location.name}` : ''}
+										</p>
 									{/if}
 								</div>
 							</label>
@@ -239,7 +200,7 @@
 			<button
 				class="btn btn-primary mt-4 w-full"
 				on:click={transfer}
-				disabled={selected.size === 0 || !selectedBox || isTransferring}
+				disabled={selected.size === 0 || !selectedLocation || isTransferring}
 			>
 				{#if isTransferring}
 					<span class="loading loading-spinner loading-sm"></span>

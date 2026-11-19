@@ -20,9 +20,18 @@
 	});
 
 	$: currentPath = $page.url.pathname;
+
+	// Grid Harian (/inventory/entry) butuh ruang penuh ala spreadsheet Excel:
+	// sidebar & bottom bar disembunyikan, konten mengisi seluruh layar.
+	const FULLSCREEN_ROUTES = ['/inventory/entry'];
+	$: isFullscreen = FULLSCREEN_ROUTES.some(
+		(r) => currentPath === r || currentPath.startsWith(r + '/')
+	);
 </script>
 
-{#if currentLayout === 'apple'}
+{#if isFullscreen}
+	<slot />
+{:else if currentLayout === 'apple'}
 	<AppleLayout {currentPath}>
 		<slot />
 	</AppleLayout>

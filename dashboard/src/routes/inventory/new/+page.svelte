@@ -4,7 +4,7 @@
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
-	import { warehousesQuery, locationsQuery, boxesQuery } from '$lib/api/queries';
+	import { warehousesQuery, locationsQuery } from '$lib/api/queries';
 	import { queryKeys } from '$lib/api/queries';
 	import { toastStore } from '$lib/stores/toast';
 
@@ -16,16 +16,13 @@
 	const warehousesQ = warehousesQuery();
 	$: warehouseList = ($warehousesQ.data as any[]) ?? [];
 
-	// Gudang (asal) + lokasi + box untuk filter produk (opsional di mode in/out).
+	// Gudang (asal) + lokasi untuk filter produk (opsional di mode in/out).
 	let fromWarehouseId = '';
 	let toWarehouseId = '';
 	let locationId = '';
-	let boxId = '';
 
 	const locationsQ = locationsQuery(fromWarehouseId);
 	$: locationList = ($locationsQ.data as any[]) ?? [];
-	const boxesQ = boxesQuery(locationId);
-	$: boxList = ($boxesQ.data as any[]) ?? [];
 
 	// Baris item dinamis.
 	type ItemRow = { product_id: string; product_name: string; quantity: number; unit_cost: number };
@@ -190,8 +187,8 @@
 			</button>
 		</div>
 
-		<div class="card bg-base-200 shadow-xl">
-			<div class="card-body gap-4">
+		<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
+			<div class="space-y-4">
 				<!-- Gudang asal -->
 				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 					<div>
@@ -300,7 +297,7 @@
 					<div class="alert alert-error"><span>{errorMessage}</span></div>
 				{/if}
 
-				<div class="card-actions justify-end mt-2">
+				<div class="flex justify-end gap-2 mt-2">
 					<button class="btn btn-ghost" on:click={() => goto('/inventory')}>Batal</button>
 					<button class="btn btn-primary" disabled={submitting} on:click={submit}>
 						{#if submitting}

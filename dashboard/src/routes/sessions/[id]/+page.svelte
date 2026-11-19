@@ -44,35 +44,35 @@
 	let rejectReason = '';
 	let rejectError = '';
 
-	// Progress scan per rak/box (fetch dari endpoint progress-by-box).
-	let boxProgress: any[] = [];
-	let showBoxProgress = false;
+	// Progress scan per lokasi/area (fetch dari endpoint progress-by-location).
+	let locProgress: any[] = [];
+	let showLocProgress = false;
 
 	$: sessionId = $page.params.id;
 	$: totalPages = Math.ceil(total / filter.limit);
 
-	async function loadBoxProgress() {
+	async function loadLocProgress() {
 		try {
 			const res = await apiClient.get<{ progress: any[] }>(
-				`/stock-opname/sessions/${sessionId}/progress-by-box`
+				`/stock-opname/sessions/${sessionId}/progress-by-location`
 			);
 			if (res.success && res.data) {
-				boxProgress = res.data.progress || [];
+				locProgress = res.data.progress || [];
 			}
 		} catch {
-			boxProgress = [];
+			locProgress = [];
 		}
 	}
 
-	function toggleBoxProgress() {
-		showBoxProgress = !showBoxProgress;
-		if (showBoxProgress) loadBoxProgress();
+	function toggleLocProgress() {
+		showLocProgress = !showLocProgress;
+		if (showLocProgress) loadLocProgress();
 	}
 
 	onMount(async () => {
 		await loadSession();
 		await loadDetails();
-		await loadBoxProgress();
+		await loadLocProgress();
 		connectWebSocket();
 	});
 
@@ -123,8 +123,8 @@
 				details = [data.detail, ...details];
 				total++;
 
-				// Segarkan progress per rak bila panel terbuka.
-				if (showBoxProgress) loadBoxProgress();
+				// Segarkan progress per lokasi bila panel terbuka.
+				if (showLocProgress) loadLocProgress();
 
 				// Show notification toast dengan auto-dismiss
 				scannedCount = total;
@@ -215,7 +215,7 @@
 					<td>${i + 1}</td>
 					<td>${esc(d.product?.product_code || '-')}</td>
 					<td>${esc(d.product?.name || '-')}</td>
-					<td>${esc(d.box?.code || '-')}</td>
+					<td>${esc(d.location?.code || '-')}</td>
 					<td class="num">${d.stock_system}</td>
 					<td></td>
 				</tr>`
@@ -244,7 +244,7 @@
 			</div>
 			<table>
 				<thead><tr>
-					<th>No</th><th>Kode</th><th>Produk</th><th>Rak</th><th>Sistem</th><th>Fisik</th>
+					<th>No</th><th>Kode</th><th>Produk</th><th>Lokasi</th><th>Sistem</th><th>Fisik</th>
 				</tr></thead>
 				<tbody>${rows}</tbody>
 			</table>
@@ -398,7 +398,7 @@
 	message={pendingAction === 'complete'
 		? 'Sesi akan berubah menjadi completed. Langkah ini menandai hitung fisik selesai.'
 		: pendingAction === 'approve'
-		? 'Sesi akan disetujui dan hasil hitung fisik menjadi stok sistem resmi. Tindakan ini tidak dapat dibatalkan.'
+		? 'Sesi akan disetujui dan hasil hitung fisik menjadi stok awal resmi. Tindakan ini tidak dapat dibatalkan.'
 		: 'Sesi yang ditolak akan dibuka kembali untuk dikerjakan ulang.'}
 	confirmLabel={pendingAction === 'complete'
 		? 'Selesaikan'
@@ -444,45 +444,44 @@
 
 		{#if session}
 			<!-- Session Info Card -->
-			<div class="card bg-base-200 shadow-xl mb-6">
-				<div class="card-body">
-					<div class="flex justify-between items-start">
+			<div class="mb-6 rounded-2xl border border-base-300 bg-base-200 p-4">
+				<div class="flex justify-between items-start">
 						<div>
-							<h2 class="card-title text-2xl font-mono">{session.code}</h2>
+							<h2 class="text-2xl font-semibold font-mono">{session.code}</h2>
 							<div class="mt-2 space-y-1">
 								<p class="text-sm">
-									<span class="text-base-content/70">Warehouse:</span>
+									<span class="text-base-content/70">Gudang:</span>
 									<span class="font-semibold ml-2">{session.warehouse?.name || '-'}</span>
 								</p>
 								<p class="text-sm">
-									<span class="text-base-content/70">Location:</span>
-									<span class="font-semibold ml-2">{session.location?.name || 'All'}</span>
+									<span class="text-base-content/70">Lokasi:</span>
+									<span class="font-semibold ml-2">{session.location?.name || 'Semua'}</span>
 								</p>
 								<p class="text-sm">
-									<span class="text-base-content/70">Started by:</span>
+									<span class="text-base-content/70">Dimulai oleh:</span>
 									<span class="font-semibold ml-2"
 										>{session.started_user?.full_name || '-'}</span
 									>
 								</p>
 								<p class="text-sm">
-									<span class="text-base-content/70">Started at:</span>
+									<span class="text-base-content/70">Waktu mulai:</span>
 									<span class="font-semibold ml-2">{formatDate(session.started_at)}</span>
 								</p>
 								{#if session.completed_at}
 									<p class="text-sm">
-										<span class="text-base-content/70">Completed at:</span>
+										<span class="text-base-content/70">Selesai:</span>
 										<span class="font-semibold ml-2">{formatDate(session.completed_at)}</span>
 									</p>
 								{/if}
 								{#if session.approved_at}
 									<p class="text-sm">
-										<span class="text-base-content/70">Approved by:</span>
+										<span class="text-base-content/70">Disetujui oleh:</span>
 										<span class="font-semibold ml-2"
 											>{session.approved_user?.full_name || '-'}</span
 										>
 									</p>
 									<p class="text-sm">
-										<span class="text-base-content/70">Approved at:</span>
+										<span class="text-base-content/70">Waktu setuju:</span>
 										<span class="font-semibold ml-2">{formatDate(session.approved_at)}</span>
 									</p>
 								{/if}
@@ -502,7 +501,7 @@
 									on:click={() => requestAction('complete')}
 								>
 									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
-									Complete Session
+									Selesaikan Sesi
 								</button>
 							{/if}
 							{#if session.status === 'completed' && ($authStore.user?.role?.name === 'supervisor' || $authStore.user?.role?.name === 'admin')}
@@ -512,7 +511,7 @@
 									on:click={() => requestAction('approve')}
 								>
 									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
-									Approve Session
+									Setujui Sesi
 								</button>
 								<button
 									class="btn btn-error btn-sm"
@@ -520,7 +519,7 @@
 									on:click={openRejectDialog}
 								>
 									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
-									Reject Session
+									Tolak Sesi
 								</button>
 							{/if}
 							{#if session.status === 'rejected' && $authStore.user?.role?.name === 'admin'}
@@ -530,12 +529,11 @@
 									on:click={() => requestAction('reopen')}
 								>
 									{#if isMutating}<span class="loading loading-spinner loading-sm"></span>{/if}
-									Reopen Session
+									Buka Ulang Sesi
 								</button>
 							{/if}
 						</div>
 					</div>
-				</div>
 			</div>
 
 			<!-- Stats -->
@@ -573,24 +571,23 @@
 			</div>
 		{/if}
 
-		<!-- Progress per rak/box -->
-		<div class="card bg-base-200 shadow-xl mb-6">
-			<div class="card-body p-4">
+		<!-- Progress per lokasi/area -->
+		<div class="mb-6 rounded-2xl border border-base-300 bg-base-200 p-4">
 				<div class="flex items-center justify-between">
-					<h3 class="font-semibold">Progress per Rak</h3>
-					<button class="btn btn-ghost btn-xs" on:click={toggleBoxProgress}>
-						{showBoxProgress ? 'Sembunyikan' : 'Tampilkan'}
+					<h3 class="font-semibold">Progress per Lokasi</h3>
+					<button class="btn btn-ghost btn-xs" on:click={toggleLocProgress}>
+						{showLocProgress ? 'Sembunyikan' : 'Tampilkan'}
 					</button>
 				</div>
-				{#if showBoxProgress}
-					{#if boxProgress.length === 0}
-						<p class="text-sm text-base-content/50">Belum ada data rak</p>
+				{#if showLocProgress}
+					{#if locProgress.length === 0}
+						<p class="text-sm text-base-content/50">Belum ada data lokasi</p>
 					{:else}
 						<div class="space-y-2">
-							{#each boxProgress as b}
+							{#each locProgress as b}
 								<div>
 									<div class="flex justify-between text-xs">
-										<span>{b.box_code}{b.box_name ? ' — ' + b.box_name : ''}</span>
+										<span>{b.location_code}{b.location_name ? ' — ' + b.location_name : ''}</span>
 										<span class="metric">{b.scanned}/{b.target} ({b.percent}%)</span>
 									</div>
 									<progress class="progress progress-primary progress-xs" value={b.percent} max="100"></progress>
@@ -603,10 +600,9 @@
 		</div>
 
 		<!-- Details Table -->
-		<div class="card bg-base-200 shadow-xl">
-			<div class="card-body p-0">
+		<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
 				<div class="flex flex-wrap items-center justify-between gap-3 p-4">
-					<h3 class="text-xl font-bold">Scan Details</h3>
+					<h3 class="text-xl font-bold">Detail Scan</h3>
 					<div class="flex items-center gap-2">
 						<!-- View Toggle -->
 						<div class="btn-group">
@@ -637,9 +633,9 @@
 								loadDetails();
 							}}
 						>
-							<option value={20}>20 per page</option>
-							<option value={50}>50 per page</option>
-							<option value={100}>100 per page</option>
+							<option value={20}>20 per halaman</option>
+							<option value={50}>50 per halaman</option>
+							<option value={100}>100 per halaman</option>
 						</select>
 					</div>
 				</div>
@@ -649,7 +645,7 @@
 						<Loader size={48} />
 					</div>
 				{:else if details.length === 0}
-					<div class="p-8 text-center text-base-content/50">No scans yet</div>
+					<div class="p-8 text-center text-base-content/50">Belum ada pemindaian</div>
 				{:else if detailView === 'timeline'}
 					<div class="p-4">
 						<ScanTimeline details={details} view="timeline" />
@@ -661,7 +657,7 @@
 								<tr>
 									<th>Scanned At</th>
 									<th>Product</th>
-											<th>Box</th>
+											<th>Lokasi</th>
 									<th>System</th>
 									<th>Physical</th>
 									<th>Difference</th>
@@ -679,7 +675,7 @@
 											{detail.product?.product_code || '-'}
 											</div>
 										</td>
-													<td class="text-xs">{detail.box?.code || '-'}</td>
+													<td class="text-xs">{detail.location?.code || '-'}</td>
 										<td class="text-right">{detail.stock_system}</td>
 										<td class="text-right">{detail.stock_physical}</td>
 										<td class="text-right">
@@ -725,6 +721,4 @@
 					{/if}
 				{/if}
 			</div>
-		</div>
-	</div>
 </LayoutWrapper>

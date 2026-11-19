@@ -51,7 +51,7 @@
 						pointHoverRadius: 6
 					},
 					{
-						label: 'Stok Sistem',
+						label: 'Stok Awal',
 						data: data.map((d) => d.stock_system),
 						borderColor: '#5EEAD4',
 						backgroundColor: 'rgba(94, 234, 212, 0.1)',

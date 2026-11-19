@@ -95,7 +95,7 @@
 						{/if}
 					</div>
 					<div class="text-right">
-						<div class="text-xs text-base-content/60">Stok Sistem</div>
+						<div class="text-xs text-base-content/60">Stok Awal</div>
 						<div class="metric text-3xl font-bold text-primary">{product.stock?.quantity_system ?? '-'}</div>
 					</div>
 				</div>

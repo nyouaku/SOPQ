@@ -66,7 +66,7 @@
 							</div>
 							<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/60">
 								<span>🕐 {formatTime(detail.scanned_at)}</span>
-								<span>📦 Sistem: {detail.stock_system}</span>
+								<span>📦 Stok Awal: {detail.stock_system}</span>
 								<span>📊 Fisik: {detail.stock_physical}</span>
 								<span>👤 {detail.scanned_user?.full_name || '-'}</span>
 							</div>

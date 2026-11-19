@@ -9,29 +9,27 @@
 
 	export let readOnly: boolean = false;
 
-	// Tiga tingkat: gudang -> lokasi/area -> box/rak.
+	// Dua tingkat: gudang -> lokasi/area.
 	// Data asli dari API; tidak ada data contoh.
 
 	type Warehouse = { id: string; code: string; name: string; address?: string; is_active?: boolean };
 
 	let warehouses: Warehouse[] = [];
 	let locations: Record<string, any[]> = {};
-	let boxes: Record<string, any[]> = {};
 
 	let isLoading = true;
 	let loadError = '';
 
 	// Gudang yang sedang dibuka (accordion).
 	let openWarehouse = '';
-	let openLocation = '';
 
-	// Modal: 'warehouse' | 'location' | 'box' | null
-	let modal: 'warehouse' | 'location' | 'box' | null = null;
+	// Modal: 'warehouse' | 'location' | null
+	let modal: 'warehouse' | 'location' | null = null;
 	let isSaving = false;
 	let formError = '';
 	let form = { code: '', name: '', address: '' };
 	let editingId: string | null = null; // untuk edit mode
-	let deleteConfirm: { kind: 'warehouse' | 'location' | 'box'; id: string; name: string } | null = null;
+	let deleteConfirm: { kind: 'warehouse' | 'location'; id: string; name: string } | null = null;
 
 	// Reaktif: user baru terisi setelah checkAuth selesai (penting di mobile).
 	// Backend mengizinkan admin & supervisor mengelola gudang, jadi gate-nya
@@ -61,7 +59,6 @@
 	// Lokasi dimuat saat gudang pertama kali dibuka, lalu di-cache.
 	async function toggleWarehouse(id: string) {
 		openWarehouse = openWarehouse === id ? '' : id;
-		openLocation = '';
 		if (openWarehouse) await fetchLocations(id);
 	}
 
@@ -76,35 +73,21 @@
 		}
 	}
 
-	async function toggleLocation(id: string) {
-		openLocation = openLocation === id ? '' : id;
-		if (openLocation) await fetchBoxes(id);
-	}
-
-	async function fetchBoxes(locationId: string) {
-		try {
-			const res = await apiClient.get<{ boxes: any[] }>(API_ENDPOINTS.locationBoxes(locationId));
-			boxes[locationId] = res.success && res.data ? res.data.boxes || [] : [];
-		} catch {
-			boxes[locationId] = [];
-		}
-	}
-
-	function openCreate(kind: 'warehouse' | 'location' | 'box') {
+	function openCreate(kind: 'warehouse' | 'location') {
 		modal = kind;
 		editingId = null;
 		formError = '';
 		form = { code: '', name: '', address: '' };
 	}
 
-	function openEdit(kind: 'warehouse' | 'location' | 'box', id: string, item: any) {
+	function openEdit(kind: 'warehouse' | 'location', id: string, item: any) {
 		modal = kind;
 		editingId = id;
 		formError = '';
 		form = { code: item.code, name: item.name, address: item.address || '' };
 	}
 
-	function openDelete(kind: 'warehouse' | 'location' | 'box', id: string, name: string) {
+	function openDelete(kind: 'warehouse' | 'location', id: string, name: string) {
 		deleteConfirm = { kind, id, name };
 	}
 
@@ -116,7 +99,6 @@
 		try {
 			let endpoint = `${API_ENDPOINTS.warehouses}/${id}`;
 			if (kind === 'location') endpoint = `${API_ENDPOINTS.warehouseLocations(openWarehouse)}/${id}`;
-			if (kind === 'box') endpoint = `${API_ENDPOINTS.locationBoxes(openLocation)}/${id}`;
 
 			const res = await apiClient.delete(endpoint);
 			if (!res.success) {
@@ -126,7 +108,6 @@
 
 			if (kind === 'warehouse') await loadWarehouses();
 			if (kind === 'location') await fetchLocations(openWarehouse);
-			if (kind === 'box') await fetchBoxes(openLocation);
 
 			toastStore.success('Dihapus');
 			deleteConfirm = null;
@@ -149,7 +130,6 @@
 		try {
 			let endpoint = API_ENDPOINTS.warehouses;
 			if (modal === 'location') endpoint = API_ENDPOINTS.warehouseLocations(openWarehouse);
-			if (modal === 'box') endpoint = API_ENDPOINTS.locationBoxes(openLocation);
 
 			const body: any = { code: form.code.trim(), name: form.name.trim() };
 			if (modal === 'warehouse') body.address = form.address.trim();
@@ -172,20 +152,15 @@
 			// Segarkan cache tingkat yang berubah saja.
 			if (modal === 'warehouse') await loadWarehouses();
 			if (modal === 'location') await fetchLocations(openWarehouse);
-			if (modal === 'box') await fetchBoxes(openLocation);
 
 			toastStore.success(
 				editingId
 					? modal === 'warehouse'
 						? 'Gudang diperbarui'
-						: modal === 'location'
-						? 'Lokasi diperbarui'
-						: 'Box diperbarui'
+						: 'Lokasi diperbarui'
 					: modal === 'warehouse'
 					? 'Gudang ditambahkan'
-					: modal === 'location'
-					? 'Lokasi ditambahkan'
-					: 'Box ditambahkan'
+					: 'Lokasi ditambahkan'
 			);
 			modal = null;
 		} catch (e: any) {
@@ -201,7 +176,7 @@
 			<div class="min-w-0">
 				<h1 class="page-title">Gudang</h1>
 				<p class="mt-1 text-sm text-base-content/60">
-					Gudang, lokasi/area, dan rak penyimpanan
+					Gudang, lokasi/area penyimpanan
 				</p>
 			</div>
 			{#if canManage}
@@ -268,16 +243,6 @@
 							{/if}
 							{#if canManage}
 								<div class="flex shrink-0 gap-1">
-									<a
-										href="/warehouses/{wh.id}/layout"
-										class="btn btn-ghost btn-xs btn-square"
-										title="Layout Editor"
-										aria-label="Edit layout gudang"
-									>
-										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-											<path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-										</svg>
-									</a>
 									<button
 										class="btn btn-ghost btn-xs btn-square"
 										title="Edit"
@@ -327,109 +292,31 @@
 								{:else}
 									<ul class="space-y-2">
 										{#each locations[wh.id] as loc}
-											{@const locOpen = openLocation === loc.id}
-											<li class="rounded-xl border border-base-300 bg-base-100">
-												<button
-													class="flex w-full items-center gap-2 p-3 text-left text-sm hover:bg-base-300/40"
-													aria-expanded={locOpen}
-													on:click={() => toggleLocation(loc.id)}
-												>
-													<svg
-														class="h-3.5 w-3.5 shrink-0 text-base-content/40 transition-transform"
-														class:rotate-90={locOpen}
-														fill="none"
-														viewBox="0 0 24 24"
-														stroke="currentColor"
-														stroke-width="2"
-													>
-														<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-													</svg>
-													<span class="metric text-xs text-base-content/50">{loc.code}</span>
-													<span class="truncate">{loc.name}</span>
-													{#if canManage}
-														<div class="ml-auto flex shrink-0 gap-1">
-															<button
-																class="btn btn-ghost btn-xs btn-square"
-																title="Edit"
-																aria-label="Edit lokasi"
-																on:click|stopPropagation={() => openEdit('location', loc.id, loc)}
-															>
-																<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-																	<path stroke-linecap="round" stroke-linejoin="round" d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z" />
-																</svg>
-															</button>
-															<button
-																class="btn btn-ghost btn-xs btn-square text-error"
-																title="Hapus"
-																aria-label="Hapus lokasi"
-																on:click|stopPropagation={() => openDelete('location', loc.id, loc.name)}
-															>
-																<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-																	<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
-																</svg>
-															</button>
-														</div>
-													{/if}
-												</button>
-
-												{#if locOpen}
-													<div class="border-t border-base-300 p-3">
-														<div class="mb-2 flex items-center justify-between gap-2">
-															<h4 class="text-xs text-base-content/60">Rak / box</h4>
-															{#if canManage}
-																<button
-																	class="btn btn-ghost btn-xs btn-square"
-																	title="Tambah box"
-																	aria-label="Tambah box"
-																	on:click={() => openCreate('box')}
-																>
-																	<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-																		<path stroke-linecap="round" d="M12 5v14M5 12h14" />
-																	</svg>
-																</button>
-															{/if}
-														</div>
-
-														{#if !boxes[loc.id]}
-															<Loader size={14} />
-														{:else if boxes[loc.id].length === 0}
-															<p class="text-xs text-base-content/50">Belum ada rak.</p>
-														{:else}
-															<ul class="space-y-1">
-																{#each boxes[loc.id] as box}
-																	<li class="flex items-center justify-between gap-2 rounded-lg border border-base-300 px-2 py-1.5 text-xs">
-																		<span>
-																			<span class="metric text-base-content/50">{box.code}</span>
-																			{#if box.name}<span class="ml-1">{box.name}</span>{/if}
-																		</span>
-																		{#if canManage}
-																			<div class="flex shrink-0 gap-1">
-																				<button
-																					class="btn btn-ghost btn-xs btn-square"
-																					title="Edit"
-																					aria-label="Edit box"
-																					on:click={() => openEdit('box', box.id, box)}
-																				>
-																					<svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-																						<path stroke-linecap="round" stroke-linejoin="round" d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z" />
-																					</svg>
-																				</button>
-																				<button
-																					class="btn btn-ghost btn-xs btn-square text-error"
-																					title="Hapus"
-																					aria-label="Hapus box"
-																					on:click={() => openDelete('box', box.id, box.code)}
-																				>
-																					<svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-																						<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
-																					</svg>
-																				</button>
-																			</div>
-																		{/if}
-																	</li>
-																{/each}
-															</ul>
-														{/if}
+											<li class="flex items-center gap-2 rounded-xl border border-base-300 bg-base-100 p-3 text-sm">
+												<span class="metric text-xs text-base-content/50">{loc.code}</span>
+												<span class="min-w-0 flex-1 truncate">{loc.name}</span>
+												{#if canManage}
+													<div class="flex shrink-0 gap-1">
+														<button
+															class="btn btn-ghost btn-xs btn-square"
+															title="Edit"
+															aria-label="Edit lokasi"
+															on:click={() => openEdit('location', loc.id, loc)}
+														>
+															<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+																<path stroke-linecap="round" stroke-linejoin="round" d="M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z" />
+															</svg>
+														</button>
+														<button
+															class="btn btn-ghost btn-xs btn-square text-error"
+															title="Hapus"
+															aria-label="Hapus lokasi"
+															on:click={() => openDelete('location', loc.id, loc.name)}
+														>
+															<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+																<path stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+															</svg>
+														</button>
 													</div>
 												{/if}
 											</li>
@@ -450,7 +337,7 @@
 		<div class="modal-box max-w-md">
 			<h3 class="text-lg font-semibold">
 				{editingId ? 'Edit' : 'Tambah'}
-				{modal === 'warehouse' ? 'Gudang' : modal === 'location' ? 'Lokasi' : 'Rak / Box'}
+				{modal === 'warehouse' ? 'Gudang' : 'Lokasi'}
 			</h3>
 
 			<form class="mt-4 space-y-3" on:submit|preventDefault={submit}>
@@ -538,9 +425,7 @@
 				Yakin ingin menghapus <strong>{deleteConfirm.name}</strong>?
 			</p>
 			{#if deleteConfirm.kind === 'warehouse'}
-				<p class="mt-1 text-xs text-base-content/60">Semua lokasi dan rak di gudang ini juga akan dihapus.</p>
-			{:else if deleteConfirm.kind === 'location'}
-				<p class="mt-1 text-xs text-base-content/60">Semua rak di lokasi ini juga akan dihapus.</p>
+				<p class="mt-1 text-xs text-base-content/60">Semua lokasi di gudang ini juga akan dihapus.</p>
 			{/if}
 
 			<div class="modal-action mt-6">

@@ -117,16 +117,15 @@
 		brand: '',
 		unit: '',
 		minimum_stock: 0,
-		box_id: '',
+		location_id: '',
 		initial_warehouse_id: '',
 		initial_stock: 0
 	};
 
-	// --- Cascading pilihan Gudang → Lokasi → Box ---
-	// Produk hanya menyimpan box_id; nama gudang diturunkan dari box.location.warehouse.
+	// --- Cascading pilihan Gudang → Lokasi ---
+	// Produk menyimpan location_id langsung (box/rak sudah dihapus).
 	let warehouses: any[] = [];
 	let formLocations: any[] = [];
-	let formBoxes: any[] = [];
 	let formWarehouseId = '';
 	let formLocationId = '';
 
@@ -141,8 +140,7 @@
 
 	async function onWarehouseChange() {
 		formLocationId = '';
-		formData.box_id = '';
-		formBoxes = [];
+		formData.location_id = '';
 		formLocations = [];
 		if (!formWarehouseId) return;
 		try {
@@ -155,35 +153,21 @@
 		}
 	}
 
-	async function onLocationChange() {
-		formData.box_id = '';
-		formBoxes = [];
-		if (!formLocationId) return;
-		try {
-			const res = await apiClient.get<{ boxes: any[] }>(API_ENDPOINTS.locationBoxes(formLocationId));
-			formBoxes = res.success && res.data ? res.data.boxes || [] : [];
-		} catch {
-			formBoxes = [];
-		}
-	}
-
-	// Isi ulang cascading dari produk yang diedit (box_id → lokasi → gudang).
+	// Isi ulang cascading dari produk yang diedit (location_id → gudang).
 	async function syncWarehouseFrom(product: any) {
-		formWarehouseId = product?.box?.location?.warehouse?.id || '';
+		formWarehouseId = product?.location?.warehouse?.id || '';
 		formLocationId = '';
 		formLocations = [];
-		formBoxes = [];
 		if (formWarehouseId) {
 			await onWarehouseChange();
-			formLocationId = product?.box?.location?.id || '';
-			if (formLocationId) await onLocationChange();
 		}
-		// onWarehouseChange/onLocationChange mengosongkan box_id; kembalikan nilai asli.
-		formData.box_id = product?.box?.id || '';
+		// onWarehouseChange mengosongkan location_id; kembalikan nilai asli.
+		formLocationId = product?.location?.id || '';
+		formData.location_id = product?.location?.id || '';
 	}
 
 	function warehouseName(product: any): string {
-		return product?.box?.location?.warehouse?.name || '-';
+		return product?.location?.warehouse?.name || '-';
 	}
 
 	onMount(async () => {
@@ -257,14 +241,13 @@
 			brand: '',
 			unit: 'pcs',
 			minimum_stock: 0,
-			box_id: '',
+			location_id: '',
 			initial_warehouse_id: '',
 			initial_stock: 0
 		};
 		formWarehouseId = '';
 		formLocationId = '';
 		formLocations = [];
-		formBoxes = [];
 		if (!warehouses.length) loadWarehouses();
 		showModal = true;
 	}
@@ -277,7 +260,7 @@
 			brand: product.brand || '',
 			unit: product.unit || 'pcs',
 			minimum_stock: product.minimum_stock || 0,
-			box_id: product.box_id || '',
+			location_id: product.location_id || '',
 			// Edit tak mengubah stok awal (stok berubah lewat pergerakan/adjustment).
 			initial_warehouse_id: '',
 			initial_stock: 0
@@ -296,14 +279,13 @@
 			brand: '',
 			unit: '',
 			minimum_stock: 0,
-			box_id: '',
+			location_id: '',
 			initial_warehouse_id: '',
 			initial_stock: 0
 		};
 		formWarehouseId = '';
 		formLocationId = '';
 		formLocations = [];
-		formBoxes = [];
 	}
 
 	async function handleSubmit() {
@@ -314,10 +296,10 @@
 
 		isSaving = true;
 		try {
-			// box_id kosong harus null, bukan "" — backend mem-parse UUID.
+			// location_id kosong harus null, bukan "" — backend mem-parse UUID.
 			const payload: any = {
 				...formData,
-				box_id: formData.box_id || null,
+				location_id: formData.location_id || null,
 			};
 			// Stok awal hanya utk produk BARU; edit tak kirim field ini.
 			let response;
@@ -448,9 +430,8 @@
 		</div>
 
 		<!-- Products Table -->
-		<div class="card bg-base-200 shadow-xl">
-			<div class="card-body">
-				{#if isLoading}
+		<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
+			{#if isLoading}
 					<TableSkeleton rows={8} columns={6} />
 				{:else}
 					<div class="overflow-x-auto">
@@ -575,7 +556,6 @@
 						</div>
 					{/if}
 				{/if}
-			</div>
 		</div>
 	</div>
 
@@ -705,7 +685,7 @@
 					</select>
 				</div>
 
-				<!-- Lokasi -->
+				<!-- Lokasi / Area -->
 				<div class="form-control">
 					<label class="label" for="p-location">
 						<span class="label-text font-medium text-sm sm:text-base">Lokasi / Area</span>
@@ -714,39 +694,21 @@
 						id="p-location"
 						class="select select-bordered select-xs sm:select-sm"
 						bind:value={formLocationId}
-						on:change={onLocationChange}
+						on:change={() => (formData.location_id = formLocationId)}
 						disabled={!formWarehouseId}
 					>
 						<option value="">-- {formWarehouseId ? 'Pilih lokasi' : 'Pilih gudang dulu'} --</option>
 						{#each formLocations as loc}
-							<option value={loc.id}>{loc.name}</option>
+							<option value={loc.id}>{loc.code}{loc.name ? ` — ${loc.name}` : ''}</option>
 						{/each}
 					</select>
 				</div>
 
-				<!-- Rak / Box -->
-				<div class="form-control">
-					<label class="label" for="p-box">
-						<span class="label-text font-medium text-sm sm:text-base">Rak / Box</span>
-					</label>
-					<select
-						id="p-box"
-						class="select select-bordered select-xs sm:select-sm"
-						bind:value={formData.box_id}
-						disabled={!formLocationId}
-					>
-						<option value="">-- {formLocationId ? 'Pilih rak' : 'Pilih lokasi dulu'} --</option>
-						{#each formBoxes as box}
-							<option value={box.id}>{box.code}{box.name ? ` — ${box.name}` : ''}</option>
-						{/each}
-					</select>
-				</div>
-
-				<!-- Stok Sistem (read-only) -->
+				<!-- Stok Awal (read-only) -->
 				{#if editingProduct}
 					<div class="form-control">
 						<label class="label" for="p-stock">
-							<span class="label-text font-medium text-sm sm:text-base">Stok Sistem</span>
+							<span class="label-text font-medium text-sm sm:text-base">Stok Awal</span>
 						</label>
 						<input
 							id="p-stock"
@@ -862,7 +824,7 @@
 						<dd>{detailProduct.unit || '-'}</dd>
 					</div>
 					<div>
-						<dt class="text-base-content/60">Stok sistem</dt>
+						<dt class="text-base-content/60">Stok Awal</dt>
 						<dd class="metric">{productStock(detailProduct)}</dd>
 					</div>
 					<div>

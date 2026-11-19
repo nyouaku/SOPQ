@@ -86,7 +86,7 @@
 <LayoutWrapper>
 	<div class="page">
 		<div class="page-header">
-			<h1 class="page-title">Stock Opname Sessions</h1>
+			<h1 class="page-title">Sesi Stock Opname</h1>
 			<button class="btn btn-primary" on:click={() => goto('/sessions/new')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -100,13 +100,12 @@
 						clip-rule="evenodd"
 					/>
 				</svg>
-				New Session
+				Sesi Baru
 			</button>
 		</div>
 
 		<!-- Filters -->
-		<div class="card bg-base-200 shadow-xl mb-6">
-			<div class="card-body">
+		<div class="mb-6 rounded-2xl border border-base-300 bg-base-200 p-4">
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div class="form-control">
 						<label class="label" for="status-filter">
@@ -121,17 +120,17 @@
 								loadSessions();
 							}}
 						>
-							<option value="">All Status</option>
-							<option value="in_progress">In Progress</option>
-							<option value="completed">Completed</option>
-							<option value="approved">Approved</option>
-							<option value="cancelled">Cancelled</option>
+							<option value="">Semua Status</option>
+							<option value="in_progress">Sedang Berjalan</option>
+							<option value="completed">Selesai</option>
+							<option value="approved">Disetujui</option>
+							<option value="cancelled">Dibatalkan</option>
 						</select>
 					</div>
 
 					<div class="form-control">
 						<label class="label" for="limit-filter">
-							<span class="label-text">Items per page</span>
+							<span class="label-text">Item per halaman</span>
 						</label>
 						<select
 							id="limit-filter"
@@ -166,51 +165,47 @@
 									clip-rule="evenodd"
 								/>
 							</svg>
-							Refresh
+							Muat ulang
 						</button>
 					</div>
 				</div>
-			</div>
 		</div>
 
 		<!-- Sessions Table -->
 		{#if isLoading}
 			<TableSkeleton rows={6} columns={7} />
 		{:else if sessions.length === 0}
-			<div class="card bg-base-200 shadow-xl">
-				<div class="card-body items-center text-center">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-16 w-16 text-base-content/30"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-						/>
-					</svg>
-					<h2 class="card-title">No sessions found</h2>
-					<p>Start a new stock opname session to begin scanning</p>
-				</div>
+			<div class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-base-300 py-16 text-center">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="h-16 w-16 text-base-content/30"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+					/>
+				</svg>
+				<h2 class="text-lg font-semibold">Belum ada sesi</h2>
+				<p class="text-sm text-base-content/60">Mulai sesi stock opname untuk memindai barang</p>
 			</div>
 		{:else}
-			<div class="card bg-base-200 shadow-xl">
-				<div class="card-body p-0">
-					<div class="overflow-x-auto">
-						<table class="table table-zebra">
+			<div class="rounded-2xl border border-base-300 bg-base-200 p-4">
+				<div class="overflow-x-auto">
+					<table class="table table-zebra">
 							<thead>
 								<tr>
-									<th>Code</th>
-									<th>Warehouse</th>
+									<th>Kode</th>
+									<th>Gudang</th>
 									<th>Status</th>
-									<th>Started By</th>
-									<th>Started At</th>
-									<th>Completed At</th>
-									<th>Actions</th>
+									<th>Dimulai Oleh</th>
+									<th>Waktu Mulai</th>
+									<th>Waktu Selesai</th>
+									<th>Aksi</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -246,7 +241,7 @@
 														clip-rule="evenodd"
 													/>
 												</svg>
-												View
+												Lihat
 											</button>
 										</td>
 									</tr>
@@ -254,7 +249,6 @@
 							</tbody>
 						</table>
 					</div>
-				</div>
 			</div>
 
 			<!-- Pagination -->

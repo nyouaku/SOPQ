@@ -16,7 +16,7 @@ export interface StockLike {
 	stock?: { quantity_system?: number | null }[] | null;
 }
 
-/** Angka stok sistem produk; 0 bila belum ada data stok. */
+/** Angka stok awal produk; 0 bila belum ada data stok. */
 export function productStock(product: StockLike | null | undefined): number {
 	if (!product) return 0;
 

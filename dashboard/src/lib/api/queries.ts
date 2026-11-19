@@ -14,7 +14,6 @@ import { API_ENDPOINTS } from '$lib/api/config';
 export const queryKeys = {
 	warehouses: ['warehouses'] as const,
 	locations: (warehouseId: string) => ['warehouses', warehouseId, 'locations'] as const,
-	boxes: (locationId: string) => ['locations', locationId, 'boxes'] as const,
 	products: (params: string) => ['products', params] as const,
 	suppliers: ['suppliers'] as const,
 	notifications: ['notifications'] as const,
@@ -48,11 +47,6 @@ export async function fetchLocations(warehouseId: string) {
 		API_ENDPOINTS.warehouseLocations(warehouseId)
 	);
 	return unwrap(res).locations || [];
-}
-
-export async function fetchBoxes(locationId: string) {
-	const res = await apiClient.get<{ boxes: any[] }>(API_ENDPOINTS.locationBoxes(locationId));
-	return unwrap(res).boxes || [];
 }
 
 
@@ -118,17 +112,6 @@ export const locationsQuery = (warehouseId: StringInput) =>
 			...STATIC
 		}))
 	);
-
-export const boxesQuery = (locationId: StringInput) =>
-	createQuery(
-		derived(valStore(locationId), ($id) => ({
-			queryKey: queryKeys.boxes($id),
-			queryFn: () => fetchBoxes($id),
-			enabled: !!$id,
-			...STATIC
-		}))
-	);
-
 
 export const suppliersQuery = () =>
 	createQuery({ queryKey: queryKeys.suppliers, queryFn: fetchSuppliers, ...STATIC });

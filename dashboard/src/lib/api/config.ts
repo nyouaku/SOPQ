@@ -23,7 +23,6 @@ export const API_ENDPOINTS = {
 	// Warehouses
 	warehouses: '/warehouses',
 	warehouseLocations: (id: string) => `/warehouses/${id}/locations`,
-	locationBoxes: (id: string) => `/locations/${id}/boxes`,
 
 	// Stock Opname
 	stockOpnameSessions: '/stock-opname/sessions',

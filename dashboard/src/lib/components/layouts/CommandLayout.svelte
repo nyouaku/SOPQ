@@ -211,7 +211,7 @@
 				<div class="card bg-base-300 mb-4">
 					<div class="card-body p-3">
 						<div class="text-xs text-primary font-bold mb-2">[QUICK STATS]</div>
-						<div class="text-xs text-base-content/50">No data yet</div>
+						<div class="text-xs text-base-content/50">Belum ada data</div>
 					</div>
 				</div>
 

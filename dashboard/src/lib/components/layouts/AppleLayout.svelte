@@ -383,7 +383,7 @@
 		padding-left: 0;
 	}
 	.apple-main__inner {
-		padding: 1rem 1rem 6rem;
+		padding: 1rem 1rem 7.5rem;
 		max-width: 84rem;
 		margin: 0 auto;
 	}
