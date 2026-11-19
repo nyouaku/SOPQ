@@ -53,6 +53,11 @@ type Product struct {
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty" gorm:"index"`
+
+	// Stok agregat untuk daftar produk — TIDAK kolom tabel products (gorm:"-").
+	// Diisi handler ListProducts dari tabel stock agar UI tak tampil 0.
+	StockSystem int     `json:"stock_system" gorm:"-"`
+	Stock       []Stock `json:"stock,omitempty" gorm:"-"`
 }
 
 func (Product) TableName() string {

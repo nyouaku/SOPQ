@@ -393,6 +393,9 @@ type StockRepository interface {
 	// gudang tsb — dipakai sebagai TARGET stock opname sesi di gudang itu. Produk
 	// tanpa baris stock di gudang tsb bukan target (tak dihitung).
 	CountProductsInWarehouse(ctx context.Context, warehouseID uuid.UUID) (int, error)
+	// ListByProductIDs mengembalikan seluruh baris stock untuk sekumpulan produk
+	// (dengan nama gudang) — dipakai daftar produk agar UI tampil stok per gudang.
+	ListByProductIDs(ctx context.Context, productIDs []uuid.UUID) ([]domain.Stock, error)
 }
 
 type stockRepository struct {
@@ -414,6 +417,24 @@ func (r *stockRepository) CountProductsInWarehouse(ctx context.Context, warehous
 		return 0, fmt.Errorf("failed to count products in warehouse: %w", err)
 	}
 	return int(count), nil
+}
+
+// ListByProductIDs mengembalikan seluruh baris stock (dengan nama gudang) untuk
+// sekumpulan produk. Dipakai daftar produk agar UI tampil stok per gudang — tanpa
+// ini endpoint daftar produk tak mengirim stok dan UI selalu tampil 0.
+// productIDs kosong => kembalikan slice kosong (bukan seluruh tabel).
+func (r *stockRepository) ListByProductIDs(ctx context.Context, productIDs []uuid.UUID) ([]domain.Stock, error) {
+	if len(productIDs) == 0 {
+		return []domain.Stock{}, nil
+	}
+	var stocks []domain.Stock
+	if err := r.db.WithContext(ctx).
+		Preload("Warehouse").
+		Where("product_id IN ?", productIDs).
+		Find(&stocks).Error; err != nil {
+		return nil, fmt.Errorf("failed to list stock by products: %w", err)
+	}
+	return stocks, nil
 }
 
 func (r *stockRepository) FindByProductAndWarehouse(ctx context.Context, productID, warehouseID uuid.UUID) (*domain.Stock, error) {

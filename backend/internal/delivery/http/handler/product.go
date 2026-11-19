@@ -340,6 +340,31 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 		return
 	}
 
+	// Lengkapi stok per gudang utk tiap produk — tanpa ini UI daftar produk
+	// selalu tampil 0 karena domain Product tak membawa stok dari query list.
+	if h.stockRepo != nil && len(products) > 0 {
+		ids := make([]uuid.UUID, 0, len(products))
+		for i := range products {
+			ids = append(ids, products[i].ID)
+		}
+		stocks, serr := h.stockRepo.ListByProductIDs(c.Request.Context(), ids)
+		if serr == nil {
+			byProduct := make(map[uuid.UUID][]domain.Stock)
+			for _, s := range stocks {
+				byProduct[s.ProductID] = append(byProduct[s.ProductID], s)
+			}
+			for i := range products {
+				rows := byProduct[products[i].ID]
+				sum := 0
+				for _, s := range rows {
+					sum += s.QuantitySystem
+				}
+				products[i].Stock = rows
+				products[i].StockSystem = sum
+			}
+		}
+	}
+
 	response := ProductListResponse{
 		Products: products,
 		Total:    total,
