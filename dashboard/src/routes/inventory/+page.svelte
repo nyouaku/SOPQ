@@ -58,7 +58,7 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page page-with-bottombar">
+	<div class="page">
 		<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
 			<div>
 				<h1 class="page-title">Inventory Management</h1>

@@ -115,8 +115,7 @@
 
 	<!-- Main Content -->
 	<main class="flex-1 overflow-y-auto min-h-screen">
-		<!-- konten: padding bawah untuk bottom bar -->
-		<div class="page-with-bottombar">
+		<div>
 			<slot />
 		</div>
 	</main>

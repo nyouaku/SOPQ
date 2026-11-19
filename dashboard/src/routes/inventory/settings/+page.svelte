@@ -13,13 +13,16 @@
 		defaultSubTypeOut: string;
 		showInOutColumns: boolean;
 		lowStockAlert: boolean;
+		/** Mode tampilan grid harian saat halaman /inventory/entry dibuka. */
+		gridEntryMode: 'grid' | 'compact' | 'quick';
 	}
 	let settings: InvSettings = {
 		defaultWarehouseId: '',
 		defaultMode: 'out',
 		defaultSubTypeOut: 'sale',
 		showInOutColumns: true,
-		lowStockAlert: true
+		lowStockAlert: true,
+		gridEntryMode: 'grid'
 	};
 
 	let warehouses: any[] = [];
@@ -51,7 +54,7 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page page-with-bottombar">
+	<div class="page">
 		<div class="flex items-center gap-3 mb-6">
 			<button class="btn btn-ghost btn-sm" on:click={() => goto('/inventory')}>←</button>
 			<h1 class="page-title">Pengaturan Inventory</h1>
@@ -120,6 +123,21 @@
 					</div>
 					<input type="checkbox" class="toggle toggle-primary" bind:checked={settings.lowStockAlert} />
 				</label>
+			</div>
+
+			<!-- Pilihan mode grid harian -->
+			<div class="mb-4">
+				<label class="label py-0" for="inv-grid-mode">
+					<span class="label-text text-sm">Tampilan default Grid Harian</span>
+				</label>
+				<select id="inv-grid-mode" class="select select-bordered w-full max-w-sm" bind:value={settings.gridEntryMode}>
+					<option value="grid">Grid penuh (31 kolom, ala Excel)</option>
+					<option value="compact">Ringkas (hanya tanggal berisian)</option>
+					<option value="quick">Cepat (form per-transaksi)</option>
+				</select>
+				<p class="mt-1 text-xs text-base-content/50">
+					Digunakan saat membuka Grid Harian. Bisa diganti lagi lewat tab di atas grid.
+				</p>
 			</div>
 
 			<div class="mt-6">
