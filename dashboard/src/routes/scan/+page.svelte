@@ -468,7 +468,7 @@
 {/if}
 
 <LayoutWrapper>
-	<div class="page page-with-bottombar">
+	<div class="page">
 		<div class="page-header">
 			<div>
 				<h1 class="page-title">Scan</h1>

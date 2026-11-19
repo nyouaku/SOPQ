@@ -82,7 +82,7 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page page-with-bottombar">
+	<div class="page">
 		<div class="flex items-center gap-3 mb-6">
 			<button class="btn btn-ghost btn-sm" on:click={() => history.back()}>←</button>
 			<h1 class="page-title">{movement?.code || 'Detail Pergerakan'}</h1>

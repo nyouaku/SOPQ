@@ -77,7 +77,7 @@
 	</header>
 
 	<!-- Main Content -->
-	<main class="container mx-auto p-4 md:p-6 page-with-bottombar">
+	<main class="container mx-auto p-4 md:p-6">
 		<slot />
 	</main>
 
