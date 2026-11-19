@@ -47,6 +47,10 @@ type InventoryRepository interface {
 	GridCells(ctx context.Context, warehouseID uuid.UUID, month time.Time, movementType string) ([]domain.GridCell, error)
 	// Summary menghitung KPI dashboard inventory per gudang + bulan.
 	Summary(ctx context.Context, warehouseID uuid.UUID, month time.Time) (*domain.InventorySummary, error)
+	// CancelMovement membalik efek dokumen (stok & ledger) lalu menandainya
+	// 'cancelled' — semuanya dalam satu transaksi. Dokumen tidak dihapus supaya
+	// audit trail utuh; pembalikan dicatat sebagai baris ledger terpisah.
+	CancelMovement(ctx context.Context, movementID uuid.UUID, userID uuid.UUID, reason string) error
 }
 
 type inventoryRepository struct {
@@ -144,16 +148,25 @@ func (r *inventoryRepository) PostMovementTx(ctx context.Context, movement *doma
 		}
 
 		// 2. Terapkan efek stok per item dengan optimistic lock.
-		for _, eff := range effects {
-			if err := applyStockDeltaTx(tx, eff); err != nil {
+		//    Saldo baru dikembalikan agar baris ledger mencatat balance_after yang benar
+		//    (kolomnya NOT NULL — tanpa ini kartu stok selalu 0).
+		balances := make([]int, len(effects))
+		for i, eff := range effects {
+			balance, err := applyStockDeltaTx(tx, eff)
+			if err != nil {
 				return err
 			}
+			balances[i] = balance
 		}
 
 		// 3. Tulis baris ledger (referensi ke dokumen ini).
-		for _, entry := range ledgerEntries {
+		//    effects dan ledgerEntries dibangun berdampingan, indeksnya sejajar.
+		for i, entry := range ledgerEntries {
 			entry.ReferenceID = &movement.ID
 			entry.ReferenceCode = movement.Code
+			if i < len(balances) {
+				entry.BalanceAfter = balances[i]
+			}
 			if err := tx.Create(entry).Error; err != nil {
 				return fmt.Errorf("failed to write ledger entry: %w", err)
 			}
@@ -164,8 +177,8 @@ func (r *inventoryRepository) PostMovementTx(ctx context.Context, movement *doma
 
 // applyStockDeltaTx mengubah quantity_system satu (produk, gudang) dengan optimistic
 // lock. Membuat baris stock bila belum ada (hanya untuk delta positif). Menolak bila
-// hasil akhir negatif.
-func applyStockDeltaTx(tx *gorm.DB, eff StockEffect) error {
+// hasil akhir negatif. Mengembalikan saldo setelah perubahan (untuk balance_after ledger).
+func applyStockDeltaTx(tx *gorm.DB, eff StockEffect) (int, error) {
 	var stock domain.Stock
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("product_id = ? AND warehouse_id = ?", eff.ProductID, eff.WarehouseID).
@@ -173,7 +186,7 @@ func applyStockDeltaTx(tx *gorm.DB, eff StockEffect) error {
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			if eff.Delta < 0 {
-				return fmt.Errorf("stok %s di gudang tsb belum ada, tidak bisa dikurangi", eff.ProductID)
+				return 0, fmt.Errorf("stok %s di gudang tsb belum ada, tidak bisa dikurangi", eff.ProductID)
 			}
 			stock = domain.Stock{
 				ProductID:      eff.ProductID,
@@ -182,16 +195,16 @@ func applyStockDeltaTx(tx *gorm.DB, eff StockEffect) error {
 				Version:        0,
 			}
 			if err := tx.Create(&stock).Error; err != nil {
-				return fmt.Errorf("failed to create stock row: %w", err)
+				return 0, fmt.Errorf("failed to create stock row: %w", err)
 			}
 		} else {
-			return fmt.Errorf("failed to load stock: %w", err)
+			return 0, fmt.Errorf("failed to load stock: %w", err)
 		}
 	}
 
 	newQty := stock.QuantitySystem + eff.Delta
 	if newQty < 0 {
-		return fmt.Errorf("stok tidak boleh negatif (stok %d, perubahan %+d)", stock.QuantitySystem, eff.Delta)
+		return 0, fmt.Errorf("stok tidak boleh negatif (stok %d, perubahan %+d)", stock.QuantitySystem, eff.Delta)
 	}
 
 	result := tx.Model(&domain.Stock{}).
@@ -201,12 +214,12 @@ func applyStockDeltaTx(tx *gorm.DB, eff StockEffect) error {
 			"version":         stock.Version + 1,
 		})
 	if result.Error != nil {
-		return fmt.Errorf("failed to update stock: %w", result.Error)
+		return 0, fmt.Errorf("failed to update stock: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("stok berubah oleh proses lain, coba lagi")
+		return 0, fmt.Errorf("stok berubah oleh proses lain, coba lagi")
 	}
-	return nil
+	return newQty, nil
 }
 
 // GridCells mengembalikan agregat isian per produk × tanggal untuk pre-fill grid
@@ -322,4 +335,120 @@ func (r *inventoryRepository) Summary(ctx context.Context, warehouseID uuid.UUID
 	summary.LowStock = low
 
 	return summary, nil
+}
+
+// CancelMovement membalik seluruh efek dokumen lalu menandainya 'cancelled'.
+// Dokumen TIDAK dihapus — audit trail wajib utuh. Pembalikan efek:
+//   - in       : stok gudang turun sebesar qty
+//   - out      : stok gudang naik sebesar qty
+//   - transfer : gudang asal naik, gudang tujuan turun
+// Tiap efek dibalik lewat applyStockDeltaTx, lalu ditulis satu baris ledger
+// 'adjustment' yang mereferensikan dokumen asal, sehingga kartu stok menunjukkan
+// pasangan masuk/keluar yang bisa ditelusuri.
+func (r *inventoryRepository) CancelMovement(ctx context.Context, movementID, userID uuid.UUID, reason string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var mv domain.StockMovement
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Preload("Items").
+			Where("id = ?", movementID).
+			First(&mv).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return domain.ErrMovementNotFound
+			}
+			return fmt.Errorf("failed to load movement: %w", err)
+		}
+		switch mv.Status {
+		case domain.MovementStatusCancelled:
+			return domain.ErrMovementAlreadyCancelled
+		case domain.MovementStatusPosted:
+		default:
+			return domain.ErrMovementNotCancellable
+		}
+
+		note := "koreksi " + mv.Code
+		if reason != "" {
+			note += ": " + reason
+		}
+
+		for _, it := range mv.Items {
+			// Sisi-sisi yang harus dibalik: (gudang, arah ledger). Arah ledger adalah
+			// kebalikan dari dokumen: IN asli -> qty masuk dibalik jadi keluar.
+			type side struct {
+				warehouseID uuid.UUID
+				qtyIn       int
+				qtyOut      int
+			}
+			var sides []side
+			switch mv.MovementType {
+			case domain.MovementTypeIn:
+				sides = []side{{mv.WarehouseID, 0, it.Quantity}}
+			case domain.MovementTypeOut:
+				sides = []side{{mv.WarehouseID, it.Quantity, 0}}
+			case domain.MovementTypeTransfer:
+				sides = []side{{mv.WarehouseID, it.Quantity, 0}}
+				if mv.ToWarehouseID != nil {
+					sides = append(sides, side{*mv.ToWarehouseID, 0, it.Quantity})
+				}
+			default:
+				return fmt.Errorf("tipe pergerakan tidak dikenal: %s", mv.MovementType)
+			}
+
+			for _, s := range sides {
+				delta := s.qtyIn - s.qtyOut // positif = stok naik
+				if _, err := applyStockDeltaTx(tx, StockEffect{
+					ProductID:   it.ProductID,
+					WarehouseID: s.warehouseID,
+					Delta:       delta,
+				}); err != nil {
+					return fmt.Errorf("gagal membalik stok %s: %w", it.ProductID, err)
+				}
+
+				var balance int
+				if err := tx.Model(&domain.Stock{}).
+					Select("quantity_system").
+					Where("product_id = ? AND warehouse_id = ?", it.ProductID, s.warehouseID).
+					Scan(&balance).Error; err != nil {
+					return fmt.Errorf("failed to read stock balance: %w", err)
+				}
+
+				entry := &domain.StockLedger{
+					ProductID:       it.ProductID,
+					WarehouseID:     s.warehouseID,
+					TransactionType: domain.LedgerTypeAdjustment,
+					ReferenceType:   "inventory_cancel",
+					ReferenceID:     &mv.ID,
+					ReferenceCode:   mv.Code,
+					QuantityIn:      s.qtyIn,
+					QuantityOut:     s.qtyOut,
+					BalanceAfter:    balance,
+					UnitCost:        it.UnitCost,
+					TotalCost:       float64(it.Quantity) * it.UnitCost,
+					Note:            note,
+					CreatedBy:       &userID,
+				}
+				if err := tx.Create(entry).Error; err != nil {
+					return fmt.Errorf("failed to write reversal ledger: %w", err)
+				}
+			}
+		}
+
+		update := map[string]any{
+			"status":     domain.MovementStatusCancelled,
+			"updated_at": time.Now(),
+		}
+		if reason != "" {
+			if mv.Note != "" {
+				update["note"] = mv.Note + "\n[dibatalkan] " + reason
+			} else {
+				update["note"] = "[dibatalkan] " + reason
+			}
+		}
+		if err := tx.Model(&domain.StockMovement{}).
+			Where("id = ?", mv.ID).
+			Updates(update).Error; err != nil {
+			return fmt.Errorf("failed to mark movement cancelled: %w", err)
+		}
+		return nil
+	})
 }

@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
 	// Inventory movement (Stock IN/OUT/transfer antar gudang)
 	inventory: '/inventory',
 	inventoryById: (id: string) => `/inventory/${id}`,
+	inventoryCancel: (id: string) => `/inventory/${id}/cancel`,
 	inventoryIn: '/inventory/in',
 	inventoryOut: '/inventory/out',
 	inventoryTransfer: '/inventory/transfer',

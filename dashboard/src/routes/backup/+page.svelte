@@ -6,6 +6,7 @@
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
 	import { authStore } from '$lib/stores/auth';
+	import { localDate } from '$lib/utils/date';
 
 	let status: any = null;
 	let isLoading = true;
@@ -42,7 +43,7 @@
 			const url = window.URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `stock_opname_backup_${new Date().toISOString().slice(0, 10)}.sql`;
+			a.download = `stock_opname_backup_${localDate()}.sql`;
 			document.body.appendChild(a);
 			a.click();
 			window.URL.revokeObjectURL(url);

@@ -54,7 +54,7 @@
 	</header>
 
 	<!-- Main Content: padding bawah agar tak tertutup bottom bar -->
-	<main class="flex-1 overflow-y-auto pb-24 md:pb-28">
+	<main class="flex-1 overflow-y-auto page-with-bottombar">
 		<slot />
 	</main>
 

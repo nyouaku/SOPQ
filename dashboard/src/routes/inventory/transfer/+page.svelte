@@ -89,7 +89,7 @@
 					items
 				}
 			);
-			if (!res.success) throw new Error(res.error?.message || 'Gagal transfer');
+			if (!res.success || !res.data) throw new Error(res.error?.message || 'Gagal transfer');
 			toastStore.success(`${res.data.items_posted} produk dipindahkan antar gudang`);
 			selected = new Set();
 			quantities = {};
@@ -107,7 +107,7 @@
 </svelte:head>
 
 <LayoutWrapper>
-	<div class="page pb-24 md:pb-28">
+	<div class="page page-with-bottombar">
 		<div class="flex items-center gap-3 mb-6">
 			<button class="btn btn-ghost btn-sm" on:click={() => goto('/inventory')}>←</button>
 			<h1 class="page-title">Transfer Antar Gudang</h1>

@@ -140,7 +140,6 @@
 		transform: translateZ(0);
 		will-change: transform;
 	}
-
 	.bottombar__list {
 		pointer-events: auto;
 		display: grid;

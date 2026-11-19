@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/nyouaku/SOPQ/backend/internal/domain"
 	"github.com/nyouaku/SOPQ/backend/internal/repository"
 	"github.com/xuri/excelize/v2"
+	"gorm.io/datatypes"
 )
 
 // InventoryUsecase mencatat pergerakan stok harian (IN/OUT/transfer antar gudang).
@@ -37,6 +39,9 @@ type InventoryUsecase interface {
 	SetLowStockDeps(notifRepo repository.NotificationRepository, productRepo repository.ProductRepository, stockRepo repository.StockRepository)
 	// ExportGridToExcel menghasilkan file Excel grid (produk × tanggal) utk unduh.
 	ExportGridToExcel(ctx context.Context, q GridQuery) (*excelize.File, string, error)
+	// CancelMovement membatalkan dokumen pergerakan: stok dikembalikan ke posisi
+	// sebelum dokumen, dan dokumen ditandai 'cancelled'. Dokumen tidak dihapus.
+	CancelMovement(ctx context.Context, movementID, userID uuid.UUID, reason, ip string) error
 }
 
 type inventoryUsecase struct {
@@ -591,8 +596,30 @@ func (u *inventoryUsecase) ExportGridToExcel(ctx context.Context, q GridQuery) (
 	return f, filename, nil
 }
 
-func (u *inventoryUsecase) log(ctx context.Context, userID uuid.UUID, ip string, movement *domain.StockMovement) {
-	if u.activityLogRepo == nil {
+// CancelMovement membatalkan dokumen pergerakan. Stok dikembalikan ke posisi
+// sebelum dokumen dan dokumen ditandai 'cancelled' (tidak dihapus, agar audit utuh).
+// Alasan wajib diisi — pembatalan menyentuh stok dan harus bisa dipertanggungjawabkan.
+func (u *inventoryUsecase) CancelMovement(ctx context.Context, movementID, userID uuid.UUID, reason, ip string) error {
+	if strings.TrimSpace(reason) == "" {
+		return fmt.Errorf("alasan pembatalan wajib diisi")
+	}
+	if err := u.repo.CancelMovement(ctx, movementID, userID, strings.TrimSpace(reason)); err != nil {
+		return err
+	}
+	if u.activityLogRepo != nil {
+		_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{
+			UserID:     &userID,
+			Action:     "inventory_cancel",
+			EntityType: "stock_movement",
+			EntityID:   &movementID,
+			NewValue:   datatypes.JSON(fmt.Sprintf(`{"reason":%q}`, strings.TrimSpace(reason))),
+			IPAddress:  ip,
+		})
+	}
+	return nil
+}
+
+func (u *inventoryUsecase) log(ctx context.Context, userID uuid.UUID, ip string, movement *domain.StockMovement) {	if u.activityLogRepo == nil {
 		return
 	}
 	_ = u.activityLogRepo.Create(ctx, &domain.ActivityLog{

@@ -2,11 +2,14 @@
 package handler
 
 import (
+	"errors"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/nyouaku/SOPQ/backend/internal/domain"
 	"github.com/nyouaku/SOPQ/backend/internal/middleware"
 	"github.com/nyouaku/SOPQ/backend/internal/repository"
 	"github.com/nyouaku/SOPQ/backend/internal/usecase"
@@ -237,6 +240,62 @@ func (h *InventoryHandler) GetMovement(c *gin.Context) {
 		return
 	}
 	utils.RespondOK(c, movement)
+}
+
+// CancelMovementRequest — body pembatalan dokumen pergerakan.
+type CancelMovementRequest struct {
+	Reason string `json:"reason" validate:"required,min=3,max=500"`
+}
+
+// CancelMovement godoc
+// @Summary Batalkan dokumen pergerakan stok
+// @Description Membalik seluruh efek dokumen (stok & ledger) lalu menandainya 'cancelled'.
+// @Description Dokumen TIDAK dihapus agar audit trail utuh. Hanya dokumen 'posted' bisa dibatalkan.
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Movement ID"
+// @Param body body CancelMovementRequest true "Alasan pembatalan"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/inventory/{id}/cancel [post]
+func (h *InventoryHandler) CancelMovement(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "Invalid movement ID")
+		return
+	}
+	var req CancelMovementRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondBadRequest(c, "Invalid request body")
+		return
+	}
+	if err := validator.Validate(req); err != nil {
+		utils.RespondValidationError(c, validator.FormatValidationError(err))
+		return
+	}
+	uid, ok := h.userID(c)
+	if !ok {
+		utils.RespondUnauthorized(c, "Unauthorized")
+		return
+	}
+
+	err = h.inventoryUsecase.CancelMovement(c.Request.Context(), id, uid, req.Reason, c.ClientIP())
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrMovementNotFound):
+			utils.RespondNotFound(c, err.Error())
+		case errors.Is(err, domain.ErrMovementAlreadyCancelled):
+			utils.RespondConflict(c, err.Error())
+		case errors.Is(err, domain.ErrMovementNotCancellable):
+			utils.RespondError(c, http.StatusBadRequest, "CANCEL_FAILED", err.Error())
+		default:
+			utils.RespondBadRequest(c, err.Error())
+		}
+		return
+	}
+
+	utils.RespondOK(c, gin.H{"status": domain.MovementStatusCancelled})
 }
 
 // ListMovements godoc

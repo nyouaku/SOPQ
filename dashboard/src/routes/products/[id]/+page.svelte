@@ -7,6 +7,7 @@
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
+	import { localDateTime } from '$lib/utils/date';
 
 	$: productId = $page.params.id;
 
@@ -39,7 +40,7 @@
 				const days = parseInt(range);
 				const from = new Date();
 				from.setDate(from.getDate() - days);
-				query += `&from=${from.toISOString()}`;
+				query += `&from=${localDateTime(from)}`;
 			}
 			const res = await apiClient.get<{ trend: any[] }>(
 				`${API_ENDPOINTS.products}/${productId}/stock-history${query}`

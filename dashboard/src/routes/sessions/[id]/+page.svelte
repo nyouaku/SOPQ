@@ -53,7 +53,7 @@
 
 	async function loadBoxProgress() {
 		try {
-			const res = await apiClient.get(
+			const res = await apiClient.get<{ progress: any[] }>(
 				`/stock-opname/sessions/${sessionId}/progress-by-box`
 			);
 			if (res.success && res.data) {

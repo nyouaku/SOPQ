@@ -9,6 +9,7 @@
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { productStock } from '$lib/utils/stock';
+	import { localDate } from '$lib/utils/date';
 
 	export let readOnly: boolean = false;
 
@@ -232,7 +233,7 @@
 				const url = window.URL.createObjectURL(blob);
 				const a = document.createElement('a');
 				a.href = url;
-				a.download = `products_${new Date().toISOString().split('T')[0]}.xlsx`;
+				a.download = `products_${localDate()}.xlsx`;
 				document.body.appendChild(a);
 				a.click();
 				window.URL.revokeObjectURL(url);

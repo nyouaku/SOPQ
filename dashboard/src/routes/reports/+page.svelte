@@ -9,6 +9,7 @@
 	import { toastStore } from '$lib/stores/toast';
 	import { stockOpnameReportQuery, warehousesQuery, suppliersQuery } from '$lib/api/queries';
 	import { API_ENDPOINTS } from '$lib/api/config';
+	import { localDate } from '$lib/utils/date';
 
 	const limit = 25;
 		const init = new URLSearchParams($pageStore.url.search);
@@ -112,7 +113,7 @@
 			});
 			if (!res.ok) throw new Error('Gagal export');
 			const blob = await res.blob();
-			download(blob, `stock_opname_${new Date().toISOString().split('T')[0]}.${ext}`);
+			download(blob, `stock_opname_${localDate()}.${ext}`);
 			toastStore.success('File berhasil diunduh');
 		} catch (e: any) {
 			toastStore.error(e.message || 'Gagal export data');

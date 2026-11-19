@@ -6,6 +6,7 @@
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
+	import { localDate, localDateTime } from '$lib/utils/date';
 
 	let warehouses: any[] = [];
 	let selectedWarehouse = '';
@@ -44,8 +45,10 @@
 			} else if (filterMode === 'warehouse') {
 				url = API_ENDPOINTS.stockLedgerWarehouse(selectedWarehouse);
 			} else {
-				const from = fromDate || new Date(Date.now() - 30 * 864e5).toISOString();
-				const to = toDate || new Date().toISOString();
+				// Waktu lokal: toISOString() memakai UTC, memotong transaksi 00:00–07:00 WIB
+				// dari rentang yang dipilih user.
+				const from = fromDate || `${localDate(new Date(Date.now() - 30 * 864e5))}T00:00:00`;
+				const to = toDate || localDateTime();
 				url = `${API_ENDPOINTS.stockLedgerRange}?from=${from}&to=${to}`;
 				if (selectedWarehouse) url += `&warehouse_id=${selectedWarehouse}`;
 			}
