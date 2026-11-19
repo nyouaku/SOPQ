@@ -203,9 +203,9 @@ type StockOpnameDetailRepository interface {
 	FindByIdempotencyKey(ctx context.Context, sessionID uuid.UUID, key string) (*domain.StockOpnameDetail, error)
 	FindByStockOpnameID(ctx context.Context, stockOpnameID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
 	CountByStockOpnameID(ctx context.Context, stockOpnameID uuid.UUID) (int64, error)
-	// ProgressByBox mengembalikan progress scan per rak/box dalam satu sesi:
-	// jumlah produk di-scan vs target produk di box tsb.
-	ProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error)
+	// ProgressByLocation mengembalikan progress scan per lokasi/area dalam satu sesi:
+	// jumlah produk di-scan vs target produk di lokasi tsb.
+	ProgressByLocation(ctx context.Context, sessionID uuid.UUID) ([]domain.LocationProgress, error)
 	// CompareSessions membandingkan hasil fisik 2 sesi SO per produk.
 	CompareSessions(ctx context.Context, prevID, currID uuid.UUID) ([]domain.SessionCompareRow, error)
 	// FindProductTrend mengembalikan riwayat stok fisik satu produk di seluruh
@@ -224,7 +224,7 @@ func NewStockOpnameDetailRepository(db *gorm.DB) StockOpnameDetailRepository {
 // stockOpnameDetailInsertFields = kolom yang boleh ditulis saat INSERT.
 // `difference` (generated column) dan kolom relasi sengaja tidak ada di sini.
 var stockOpnameDetailInsertFields = []string{
-	"id", "stock_opname_id", "product_id", "box_id",
+	"id", "stock_opname_id", "product_id", "location_id",
 	"stock_system", "stock_physical", "input_method", "note",
 	"photo_url", "scanned_by", "device_id", "scanned_at", "sync_status",
 	"idempotency_key",
@@ -251,7 +251,7 @@ func (r *stockOpnameDetailRepository) FindByID(ctx context.Context, id uuid.UUID
 	var detail domain.StockOpnameDetail
 	if err := r.db.WithContext(ctx).
 		Preload("Product").
-		Preload("Box").
+		Preload("Location").
 		Preload("ScannedUser").
 		Where("id = ?", id).
 		First(&detail).Error; err != nil {
@@ -290,7 +290,7 @@ func (r *stockOpnameDetailRepository) FindByStockOpnameID(ctx context.Context, s
 
 	if err := query.
 		Preload("Product").
-		Preload("Box").
+		Preload("Location").
 		Preload("ScannedUser").
 		Limit(limit).
 		Offset(offset).
@@ -313,38 +313,37 @@ func (r *stockOpnameDetailRepository) CountByStockOpnameID(ctx context.Context, 
 	return count, nil
 }
 
-// ProgressByBox mengembalikan progress scan per rak/box: jumlah produk sudah
-// di-scan vs target (jumlah produk yg box_id-nya sama). Target dihitung dari
-// tabel products (bukan hanya yg sudah ter-scan), agar bar yang belum ter-scan
-// tetap muncul dgn 0%.
-func (r *stockOpnameDetailRepository) ProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error) {
-	var rows []domain.BoxProgress
+// ProgressByLocation mengembalikan progress scan per lokasi/area: jumlah produk
+// sudah di-scan vs target (jumlah produk yg location_id-nya sama). Target
+// dihitung dari tabel products (bukan hanya yg sudah ter-scan), agar bar yang
+// belum ter-scan tetap muncul dgn 0%.
+func (r *stockOpnameDetailRepository) ProgressByLocation(ctx context.Context, sessionID uuid.UUID) ([]domain.LocationProgress, error) {
+	var rows []domain.LocationProgress
 	err := r.db.WithContext(ctx).Raw(`
 		WITH scanned AS (
-			SELECT box_id, COUNT(*) AS scanned
+			SELECT location_id, COUNT(*) AS scanned
 			FROM stock_opname_detail
-			WHERE stock_opname_id = ? AND box_id IS NOT NULL
-			GROUP BY box_id
+			WHERE stock_opname_id = ? AND location_id IS NOT NULL
+			GROUP BY location_id
 		),
 		targets AS (
-			SELECT b.id AS box_id, b.code AS box_code, b.name AS box_name,
+			SELECT l.id AS location_id, l.code AS location_code, l.name AS location_name,
 				COUNT(p.id) AS target
-			FROM boxes b
-			JOIN products p ON p.box_id = b.id AND p.deleted_at IS NULL
-			JOIN locations l ON l.id = b.location_id
+			FROM locations l
+			JOIN products p ON p.location_id = l.id AND p.deleted_at IS NULL
 			JOIN stock_opname so ON so.warehouse_id = l.warehouse_id
 			WHERE so.id = ?
-			GROUP BY b.id, b.code, b.name
+			GROUP BY l.id, l.code, l.name
 		)
-		SELECT t.box_id, t.box_code, t.box_name, t.target,
+		SELECT t.location_id, t.location_code, t.location_name, t.target,
 			COALESCE(s.scanned, 0)::int AS scanned,
 			ROUND(COALESCE(s.scanned,0)::numeric * 100.0 / NULLIF(t.target,0), 1)::float8 AS percent
 		FROM targets t
-		LEFT JOIN scanned s ON s.box_id = t.box_id
-		ORDER BY t.box_code ASC
+		LEFT JOIN scanned s ON s.location_id = t.location_id
+		ORDER BY t.location_code ASC
 	`, sessionID, sessionID).Scan(&rows).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to load progress by box: %w", err)
+		return nil, fmt.Errorf("failed to load progress by location: %w", err)
 	}
 	return rows, nil
 }

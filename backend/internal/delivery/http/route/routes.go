@@ -64,7 +64,6 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	supplierRepo := repository.NewSupplierRepository(cfg.DB.DB)
 	warehouseRepo := repository.NewWarehouseRepository(cfg.DB.DB)
 	locationRepo := repository.NewLocationRepository(cfg.DB.DB)
-	boxRepo := repository.NewBoxRepository(cfg.DB.DB)
 	productRepo := repository.NewProductRepository(cfg.DB.DB)
 	stockOpnameRepo := repository.NewStockOpnameRepository(cfg.DB.DB)
 	stockOpnameDetailRepo := repository.NewStockOpnameDetailRepository(cfg.DB.DB)
@@ -78,7 +77,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	authUsecase := usecase.NewAuthUsecase(userRepo, sessionRepo, activityLogRepo, cfg.Config)
 	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
 	supplierUsecase := usecase.NewSupplierUsecase(supplierRepo)
-	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, locationRepo, boxRepo)
+	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, locationRepo)
 	productUsecase := usecase.NewProductUsecase(productRepo)
 	stockOpnameUsecase := usecase.NewStockOpnameUsecase(stockOpnameRepo, stockOpnameDetailRepo, stockRepo, productRepo, activityLogRepo, websocket.NewPublisher())
 	// Suntikkan ledger repo agar adjustment & approve SO ikut mencatat stock_ledger.
@@ -220,28 +219,12 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		locations := v1.Group("/locations")
 		locations.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
 		{
-			locations.GET("/:id/boxes", warehouseHandler.GetBoxes)
-
 			// Admin only
 			locationsAdmin := locations.Group("")
 			locationsAdmin.Use(middleware.RequireRole("admin"))
 			{
-				locationsAdmin.POST("/:id/boxes", warehouseHandler.CreateBox)
 				locationsAdmin.PUT("/:id", warehouseHandler.UpdateLocation)
 				locationsAdmin.DELETE("/:id", warehouseHandler.DeleteLocation)
-			}
-		}
-
-		// Boxes routes (for direct update/delete)
-		boxes := v1.Group("/boxes")
-		boxes.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
-		{
-			// Admin only
-			boxesAdmin := boxes.Group("")
-			boxesAdmin.Use(middleware.RequireRole("admin"))
-			{
-				boxesAdmin.PUT("/:id", warehouseHandler.UpdateBox)
-				boxesAdmin.DELETE("/:id", warehouseHandler.DeleteBox)
 			}
 		}
 
@@ -254,7 +237,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stockOpname.GET("/sessions/:id", stockOpnameHandler.GetSession)
 			stockOpname.GET("/sessions/:id/details", stockOpnameHandler.GetSessionDetails)
 			stockOpname.GET("/sessions/:id/summary", stockOpnameHandler.GetSessionSummary)
-			stockOpname.GET("/sessions/:id/progress-by-box", stockOpnameHandler.GetProgressByBox)
+			stockOpname.GET("/sessions/:id/progress-by-location", stockOpnameHandler.GetProgressByLocation)
 			stockOpname.GET("/compare", stockOpnameHandler.CompareSessions)
 			stockOpname.POST("/sessions/:id/scan", stockOpnameHandler.SubmitScan)
 			stockOpname.POST("/sessions/:id/complete", stockOpnameHandler.CompleteSession)

@@ -23,8 +23,8 @@ type StockOpnameUsecase interface {
 	GetSessionByID(ctx context.Context, sessionID uuid.UUID) (*domain.StockOpname, error)
 	GetSessionDetails(ctx context.Context, sessionID uuid.UUID, limit, offset int) ([]domain.StockOpnameDetail, int64, error)
 	GetSessionSummary(ctx context.Context, sessionID uuid.UUID) (*domain.SessionSummary, error)
-	// GetProgressByBox mengembalikan progress scan per rak/box dalam satu sesi.
-	GetProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error)
+	// GetProgressByLocation mengembalikan progress scan per lokasi/area dalam satu sesi.
+	GetProgressByLocation(ctx context.Context, sessionID uuid.UUID) ([]domain.LocationProgress, error)
 	// CompareSessions membandingkan hasil fisik 2 sesi SO per produk.
 	CompareSessions(ctx context.Context, prevID, currID uuid.UUID) (*domain.SessionCompare, error)
 	ListSessions(ctx context.Context, filter repository.StockOpnameFilter) ([]domain.StockOpname, int64, error)
@@ -222,7 +222,7 @@ func (u *stockOpnameUsecase) SubmitScan(ctx context.Context, input SubmitScanInp
 	detail := &domain.StockOpnameDetail{
 		StockOpnameID: input.SessionID,
 		ProductID:     product.ID,
-		BoxID:         product.BoxID,
+		LocationID:    product.LocationID,
 		StockSystem:   stockSystem,
 		StockPhysical: input.StockPhysical,
 		InputMethod:   input.InputMethod,
@@ -498,9 +498,9 @@ func (u *stockOpnameUsecase) GetSessionSummary(ctx context.Context, sessionID uu
 	}, nil
 }
 
-// GetProgressByBox mengembalikan progress scan per rak/box dalam satu sesi.
-func (u *stockOpnameUsecase) GetProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error) {
-	return u.stockOpnameDetailRepo.ProgressByBox(ctx, sessionID)
+// GetProgressByLocation mengembalikan progress scan per lokasi/area dalam satu sesi.
+func (u *stockOpnameUsecase) GetProgressByLocation(ctx context.Context, sessionID uuid.UUID) ([]domain.LocationProgress, error) {
+	return u.stockOpnameDetailRepo.ProgressByLocation(ctx, sessionID)
 }
 
 // CompareSessions membandingkan hasil fisik 2 sesi SO per produk + ringkasan.

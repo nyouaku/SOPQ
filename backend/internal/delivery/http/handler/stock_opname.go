@@ -309,23 +309,23 @@ func (h *StockOpnameHandler) GetSessionSummary(c *gin.Context) {
 	utils.RespondOK(c, summary)
 }
 
-// GetProgressByBox godoc
-// @Summary Get stock opname progress per box
-// @Description Progress scan per rak/box: jumlah ter-scan vs target produk di box tsb.
+// GetProgressByLocation godoc
+// @Summary Get stock opname progress per location
+// @Description Progress scan per lokasi/area: jumlah ter-scan vs target produk di lokasi tsb.
 // @Tags stock-opname
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Session ID"
 // @Success 200 {object} utils.SuccessResponse
-// @Router /api/v1/stock-opname/sessions/{id}/progress-by-box [get]
-func (h *StockOpnameHandler) GetProgressByBox(c *gin.Context) {
+// @Router /api/v1/stock-opname/sessions/{id}/progress-by-location [get]
+func (h *StockOpnameHandler) GetProgressByLocation(c *gin.Context) {
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		utils.RespondBadRequest(c, "Invalid session ID")
 		return
 	}
 
-	progress, err := h.stockOpnameUsecase.GetProgressByBox(c.Request.Context(), sessionID)
+	progress, err := h.stockOpnameUsecase.GetProgressByLocation(c.Request.Context(), sessionID)
 	if err != nil {
 		utils.RespondInternalError(c, err.Error())
 		return

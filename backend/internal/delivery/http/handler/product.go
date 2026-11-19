@@ -44,7 +44,7 @@ type CreateProductRequest struct {
 	Color        string     `json:"color"`
 	Size         string     `json:"size"`
 	Unit         string     `json:"unit" validate:"required"`
-	BoxID        *uuid.UUID `json:"box_id"`
+	LocationID   *uuid.UUID `json:"location_id"`
 	MinimumStock int        `json:"minimum_stock"`
 	SupplierID   *uuid.UUID `json:"supplier_id"`
 	Status       string     `json:"status"`
@@ -59,7 +59,7 @@ type UpdateProductRequest struct {
 	Color        string     `json:"color"`
 	Size         string     `json:"size"`
 	Unit         string     `json:"unit" validate:"required"`
-	BoxID        *uuid.UUID `json:"box_id"`
+	LocationID   *uuid.UUID `json:"location_id"`
 	MinimumStock int        `json:"minimum_stock"`
 	SupplierID   *uuid.UUID `json:"supplier_id"`
 	Status       string     `json:"status"`
@@ -101,7 +101,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		Color:        req.Color,
 		Size:         req.Size,
 		Unit:         req.Unit,
-		BoxID:        req.BoxID,
+		LocationID:   req.LocationID,
 		MinimumStock: req.MinimumStock,
 		SupplierID:   req.SupplierID,
 		Status:       req.Status,
@@ -249,7 +249,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	product.Color = req.Color
 	product.Size = req.Size
 	product.Unit = req.Unit
-	product.BoxID = req.BoxID
+	product.LocationID = req.LocationID
 	product.MinimumStock = req.MinimumStock
 	product.SupplierID = req.SupplierID
 	if req.Status != "" {
@@ -351,8 +351,8 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 }
 
 // TransferProducts godoc
-// @Summary Transfer products to a different box/rack
-// @Description Move multiple products to a new storage box in one operation
+// @Summary Transfer products to a different location/area
+// @Description Move multiple products to a new storage location in one operation
 // @Tags products
 // @Accept json
 // @Produce json
@@ -362,8 +362,8 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 // @Router /api/v1/products/transfer [post]
 func (h *ProductHandler) TransferProducts(c *gin.Context) {
 	var req struct {
-		ProductIDs []string `json:"product_ids" validate:"required,min=1"`
-		ToBoxID    string   `json:"to_box_id" validate:"required"`
+		ProductIDs   []string `json:"product_ids" validate:"required,min=1"`
+		ToLocationID string   `json:"to_location_id" validate:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.RespondBadRequest(c, "Invalid request body")
@@ -383,9 +383,9 @@ func (h *ProductHandler) TransferProducts(c *gin.Context) {
 		return
 	}
 
-	toBoxID, err := uuid.Parse(req.ToBoxID)
+	toLocationID, err := uuid.Parse(req.ToLocationID)
 	if err != nil {
-		utils.RespondBadRequest(c, "Invalid target box ID")
+		utils.RespondBadRequest(c, "Invalid target location ID")
 		return
 	}
 
@@ -399,7 +399,7 @@ func (h *ProductHandler) TransferProducts(c *gin.Context) {
 		productIDs = append(productIDs, id)
 	}
 
-	affected, err := h.productUsecase.TransferProducts(c.Request.Context(), productIDs, toBoxID, userUUID)
+	affected, err := h.productUsecase.TransferProducts(c.Request.Context(), productIDs, toLocationID, userUUID)
 	if err != nil {
 		utils.RespondInternalError(c, err.Error())
 		return

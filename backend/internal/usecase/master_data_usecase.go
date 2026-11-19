@@ -110,28 +110,20 @@ type WarehouseUsecase interface {
 	GetLocationsByWarehouse(ctx context.Context, warehouseID uuid.UUID) ([]domain.Location, error)
 	UpdateLocation(ctx context.Context, location *domain.Location) error
 	DeleteLocation(ctx context.Context, id uuid.UUID) error
-
-	CreateBox(ctx context.Context, box *domain.Box) error
-	GetBoxesByLocation(ctx context.Context, locationID uuid.UUID) ([]domain.Box, error)
-	UpdateBox(ctx context.Context, box *domain.Box) error
-	DeleteBox(ctx context.Context, id uuid.UUID) error
 }
 
 type warehouseUsecase struct {
 	warehouseRepo repository.WarehouseRepository
 	locationRepo  repository.LocationRepository
-	boxRepo       repository.BoxRepository
 }
 
 func NewWarehouseUsecase(
 	warehouseRepo repository.WarehouseRepository,
 	locationRepo repository.LocationRepository,
-	boxRepo repository.BoxRepository,
 ) WarehouseUsecase {
 	return &warehouseUsecase{
 		warehouseRepo: warehouseRepo,
 		locationRepo:  locationRepo,
-		boxRepo:       boxRepo,
 	}
 }
 
@@ -176,21 +168,5 @@ func (u *warehouseUsecase) UpdateLocation(ctx context.Context, location *domain.
 
 func (u *warehouseUsecase) DeleteLocation(ctx context.Context, id uuid.UUID) error {
 	return u.locationRepo.Delete(ctx, id)
-}
-
-func (u *warehouseUsecase) CreateBox(ctx context.Context, box *domain.Box) error {
-	return u.boxRepo.Create(ctx, box)
-}
-
-func (u *warehouseUsecase) GetBoxesByLocation(ctx context.Context, locationID uuid.UUID) ([]domain.Box, error) {
-	return u.boxRepo.FindByLocationID(ctx, locationID)
-}
-
-func (u *warehouseUsecase) UpdateBox(ctx context.Context, box *domain.Box) error {
-	return u.boxRepo.Update(ctx, box)
-}
-
-func (u *warehouseUsecase) DeleteBox(ctx context.Context, id uuid.UUID) error {
-	return u.boxRepo.Delete(ctx, id)
 }
 // ===== END FILE =====

@@ -43,8 +43,8 @@ type Product struct {
 	Color        string     `json:"color"`
 	Size         string     `json:"size"`
 	Unit         string     `json:"unit" gorm:"not null;default:'PCS'"`
-	BoxID        *uuid.UUID `json:"box_id,omitempty" gorm:"type:uuid"`
-	Box          *Box       `json:"box,omitempty" gorm:"foreignKey:BoxID"`
+	LocationID   *uuid.UUID `json:"location_id,omitempty" gorm:"type:uuid"`
+	Location     *Location  `json:"location,omitempty" gorm:"foreignKey:LocationID"`
 	MinimumStock int        `json:"minimum_stock" gorm:"default:0"`
 	SupplierID   *uuid.UUID `json:"supplier_id,omitempty" gorm:"type:uuid"`
 	Supplier     *Supplier  `json:"supplier,omitempty" gorm:"foreignKey:SupplierID"`

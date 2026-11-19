@@ -174,11 +174,6 @@ type CreateLocationRequest struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type CreateBoxRequest struct {
-	Code string `json:"code" validate:"required"`
-	Name string `json:"name"`
-}
-
 func (h *WarehouseHandler) CreateWarehouse(c *gin.Context) {
 	var req CreateWarehouseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -377,98 +372,4 @@ func (h *WarehouseHandler) GetLocations(c *gin.Context) {
 	utils.RespondOK(c, gin.H{"locations": locations})
 }
 
-func (h *WarehouseHandler) CreateBox(c *gin.Context) {
-	locationID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.RespondBadRequest(c, "Invalid location ID")
-		return
-	}
-
-	var req CreateBoxRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondBadRequest(c, "Invalid request body")
-		return
-	}
-
-	if err := validator.Validate(req); err != nil {
-		utils.RespondValidationError(c, validator.FormatValidationError(err))
-		return
-	}
-
-	box := &domain.Box{
-		LocationID: locationID,
-		Code:       req.Code,
-		Name:       req.Name,
-	}
-
-	if err := h.warehouseUsecase.CreateBox(c.Request.Context(), box); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "CREATE_FAILED", err.Error())
-		return
-	}
-
-	utils.RespondCreated(c, box)
-}
-
-func (h *WarehouseHandler) UpdateBox(c *gin.Context) {
-	boxID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.RespondBadRequest(c, "Invalid box ID")
-		return
-	}
-
-	var req CreateBoxRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.RespondBadRequest(c, "Invalid request body")
-		return
-	}
-
-	if err := validator.Validate(req); err != nil {
-		utils.RespondValidationError(c, validator.FormatValidationError(err))
-		return
-	}
-
-	box := &domain.Box{
-		ID:   boxID,
-		Code: req.Code,
-		Name: req.Name,
-	}
-
-	if err := h.warehouseUsecase.UpdateBox(c.Request.Context(), box); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "UPDATE_FAILED", err.Error())
-		return
-	}
-
-	utils.RespondOK(c, box)
-}
-
-func (h *WarehouseHandler) DeleteBox(c *gin.Context) {
-	boxID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.RespondBadRequest(c, "Invalid box ID")
-		return
-	}
-
-	if err := h.warehouseUsecase.DeleteBox(c.Request.Context(), boxID); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "DELETE_FAILED", err.Error())
-		return
-	}
-
-	utils.RespondOK(c, gin.H{"message": "Box deleted"})
-}
-
-func (h *WarehouseHandler) GetBoxes(c *gin.Context) {
-	locationID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		utils.RespondBadRequest(c, "Invalid location ID")
-		return
-	}
-
-	boxes, err := h.warehouseUsecase.GetBoxesByLocation(c.Request.Context(), locationID)
-	if err != nil {
-		utils.RespondInternalError(c, err.Error())
-		return
-	}
-
-	utils.RespondOK(c, gin.H{"boxes": boxes})
-}
 // ===== END FILE =====

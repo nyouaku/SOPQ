@@ -128,7 +128,7 @@ func (m *mockStockOpnameDetailRepository) CountByStockOpnameID(ctx context.Conte
 	return n, nil
 }
 
-func (m *mockStockOpnameDetailRepository) ProgressByBox(ctx context.Context, sessionID uuid.UUID) ([]domain.BoxProgress, error) {
+func (m *mockStockOpnameDetailRepository) ProgressByLocation(ctx context.Context, sessionID uuid.UUID) ([]domain.LocationProgress, error) {
 	return nil, nil
 }
 
@@ -228,7 +228,7 @@ func (m *mockProductRepository) List(ctx context.Context, filter repository.Prod
 	return nil, 0, nil
 }
 
-func (m *mockProductRepository) BulkUpdateBoxID(ctx context.Context, productIDs []uuid.UUID, boxID *uuid.UUID) (int64, error) {
+func (m *mockProductRepository) BulkUpdateLocationID(ctx context.Context, productIDs []uuid.UUID, locationID *uuid.UUID) (int64, error) {
 	return int64(len(productIDs)), nil
 }
 

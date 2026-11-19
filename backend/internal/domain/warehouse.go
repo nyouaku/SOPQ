@@ -36,16 +36,4 @@ func (Location) TableName() string {
 	return "locations"
 }
 
-type Box struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	LocationID uuid.UUID `json:"location_id" gorm:"type:uuid;not null"`
-	Location   *Location `json:"location,omitempty" gorm:"foreignKey:LocationID"`
-	Code       string    `json:"code" gorm:"not null"`
-	Name       string    `json:"name"`
-	CreatedAt  time.Time `json:"created_at"`
-}
-
-func (Box) TableName() string {
-	return "boxes"
-}
 // ===== END FILE =====

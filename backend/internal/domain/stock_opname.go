@@ -71,9 +71,9 @@ type StockOpnameDetail struct {
 	StockOpname   *StockOpname `json:"stock_opname,omitempty" gorm:"foreignKey:StockOpnameID"`
 	ProductID     uuid.UUID    `json:"product_id" gorm:"type:uuid;not null;index:idx_so_detail_product"`
 	Product       *Product     `json:"product,omitempty" gorm:"foreignKey:ProductID"`
-	BoxID         *uuid.UUID   `json:"box_id,omitempty" gorm:"type:uuid"`
-	Box           *Box         `json:"box,omitempty" gorm:"foreignKey:BoxID"`
-	StockSystem   int          `json:"stock_system" gorm:"not null"`
+	LocationID    *uuid.UUID  `json:"location_id,omitempty" gorm:"type:uuid"`
+	Location      *Location   `json:"location,omitempty" gorm:"foreignKey:LocationID"`
+	StockSystem   int         `json:"stock_system" gorm:"not null"`
 	StockPhysical int          `json:"stock_physical" gorm:"not null"`
 	Difference    int          `json:"difference" gorm:"->"`                          // generated column di DB — hanya dibaca, jangan pernah ditulis
 	InputMethod   string       `json:"input_method" gorm:"not null;default:'manual'"` // manual, voice
@@ -93,14 +93,14 @@ func (StockOpnameDetail) TableName() string {
 	return "stock_opname_detail"
 }
 
-// BoxProgress — progress scan satu rak/box dalam sesi SO.
-type BoxProgress struct {
-	BoxID     uuid.UUID `json:"box_id"`
-	BoxCode   string    `json:"box_code"`
-	BoxName   string    `json:"box_name"`
-	Scanned   int       `json:"scanned"`   // jumlah produk sudah di-scan di box tsb
-	Target    int       `json:"target"`    // jumlah produk seharusnya ada di box tsb
-	Percent   float64   `json:"percent"`   // scanned/target * 100
+// LocationProgress — progress scan satu lokasi/area dalam sesi SO.
+type LocationProgress struct {
+	LocationID   uuid.UUID `json:"location_id"`
+	LocationCode string    `json:"location_code"`
+	LocationName string    `json:"location_name"`
+	Scanned      int       `json:"scanned"`   // jumlah produk sudah di-scan di lokasi tsb
+	Target       int       `json:"target"`    // jumlah produk seharusnya ada di lokasi tsb
+	Percent      float64   `json:"percent"`   // scanned/target * 100
 }
 
 // SessionCompareRow — perbandingan 1 produk antara 2 sesi SO.

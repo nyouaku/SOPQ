@@ -17,10 +17,9 @@ type ProductUsecase interface {
 	UpdateProduct(ctx context.Context, product *domain.Product) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	ListProducts(ctx context.Context, filter repository.ProductFilter) ([]domain.Product, int64, error)
-	// TransferProducts memindahkan beberapa produk ke box tujuan dalam satu transaksi.
-	// Box tujuan harus valid dan berada dalam lokasi yang sama dengan produk asal,
-	// atau boleh beda lokasi asalkan masih dalam gudang yang sama.
-	TransferProducts(ctx context.Context, productIDs []uuid.UUID, toBoxID uuid.UUID, userID uuid.UUID) (int, error)
+	// TransferProducts memindahkan beberapa produk ke lokasi/area tujuan dalam
+	// satu transaksi.
+	TransferProducts(ctx context.Context, productIDs []uuid.UUID, toLocationID uuid.UUID, userID uuid.UUID) (int, error)
 }
 
 type productUsecase struct {
@@ -86,15 +85,15 @@ func (u *productUsecase) ListProducts(ctx context.Context, filter repository.Pro
 	return u.productRepo.List(ctx, filter)
 }
 
-func (u *productUsecase) TransferProducts(ctx context.Context, productIDs []uuid.UUID, toBoxID uuid.UUID, userID uuid.UUID) (int, error) {
+func (u *productUsecase) TransferProducts(ctx context.Context, productIDs []uuid.UUID, toLocationID uuid.UUID, userID uuid.UUID) (int, error) {
 	if len(productIDs) == 0 {
 		return 0, fmt.Errorf("no products selected")
 	}
-	if toBoxID == uuid.Nil {
-		return 0, fmt.Errorf("target box is required")
+	if toLocationID == uuid.Nil {
+		return 0, fmt.Errorf("target location is required")
 	}
 
-	affected, err := u.productRepo.BulkUpdateBoxID(ctx, productIDs, &toBoxID)
+	affected, err := u.productRepo.BulkUpdateLocationID(ctx, productIDs, &toLocationID)
 	if err != nil {
 		return 0, err
 	}

@@ -55,7 +55,7 @@ CREATE TABLE warehouses (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE locations ( -- Area di dalam gudang
+CREATE TABLE locations ( -- Area/rak di dalam gudang
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     warehouse_id UUID NOT NULL REFERENCES warehouses(id) ON DELETE CASCADE,
     code VARCHAR(30) NOT NULL,
@@ -64,14 +64,7 @@ CREATE TABLE locations ( -- Area di dalam gudang
     UNIQUE(warehouse_id, code)
 );
 
-CREATE TABLE boxes ( -- Lokasi rak/box detail di dalam area
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
-    code VARCHAR(30) NOT NULL,
-    name VARCHAR(150),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(location_id, code)
-);
+-- boxes dihapus (migration 000014). Hierarki kini 2 level: gudang → lokasi/area.
 
 -- ============================
 -- MASTER DATA
@@ -106,7 +99,7 @@ CREATE TABLE products (
     color VARCHAR(50),
     size VARCHAR(50),
     unit VARCHAR(20) NOT NULL DEFAULT 'PCS',
-    box_id UUID REFERENCES boxes(id),          -- lokasi default
+    location_id UUID REFERENCES locations(id), -- lokasi/area default
     minimum_stock INT DEFAULT 0,
     supplier_id UUID REFERENCES suppliers(id),
     photo_url TEXT,
@@ -156,7 +149,7 @@ CREATE TABLE stock_opname_detail (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     stock_opname_id UUID NOT NULL REFERENCES stock_opname(id) ON DELETE CASCADE,
     product_id UUID NOT NULL REFERENCES products(id),
-    box_id UUID REFERENCES boxes(id),
+    location_id UUID REFERENCES locations(id),
     stock_system INT NOT NULL,                     -- snapshot saat scan
     stock_physical INT NOT NULL,
     difference INT GENERATED ALWAYS AS (stock_physical - stock_system) STORED,

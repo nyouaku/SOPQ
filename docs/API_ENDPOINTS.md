@@ -27,8 +27,7 @@ Format response standar:
 | GET/POST | `/categories` | admin | Kategori |
 | GET/POST | `/suppliers` | admin | Supplier |
 | GET/POST | `/warehouses` | admin | Gudang |
-| GET/POST | `/warehouses/:id/locations` | admin | Area dalam gudang |
-| GET/POST | `/locations/:id/boxes` | admin | Rak/box dalam area |
+| GET/POST | `/warehouses/:id/locations` | admin | Area/rak dalam gudang |
 
 ## Stock Opname
 | Method | Endpoint | Role | Deskripsi |
