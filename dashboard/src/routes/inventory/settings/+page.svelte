@@ -13,8 +13,8 @@
 		defaultSubTypeOut: string;
 		showInOutColumns: boolean;
 		lowStockAlert: boolean;
-		/** Mode tampilan grid harian saat halaman /inventory/entry dibuka. */
-		gridEntryMode: 'grid' | 'compact' | 'quick';
+		/** Tampilan grid harian saat halaman /inventory/entry dibuka. */
+		gridEntryMode: 'spreadsheet' | 'quick';
 	}
 	let settings: InvSettings = {
 		defaultWarehouseId: '',
@@ -22,7 +22,7 @@
 		defaultSubTypeOut: 'sale',
 		showInOutColumns: true,
 		lowStockAlert: true,
-		gridEntryMode: 'grid'
+		gridEntryMode: 'spreadsheet'
 	};
 
 	let warehouses: any[] = [];
@@ -131,12 +131,11 @@
 					<span class="label-text text-sm">Tampilan default Grid Harian</span>
 				</label>
 				<select id="inv-grid-mode" class="select select-bordered w-full max-w-sm" bind:value={settings.gridEntryMode}>
-					<option value="grid">Grid penuh (31 kolom, ala Excel)</option>
-					<option value="compact">Ringkas (hanya tanggal berisian)</option>
+					<option value="spreadsheet">Spreadsheet (tabel ala Excel, bisa fullscreen)</option>
 					<option value="quick">Cepat (form per-transaksi)</option>
 				</select>
 				<p class="mt-1 text-xs text-base-content/50">
-					Digunakan saat membuka Grid Harian. Bisa diganti lagi lewat tab di atas grid.
+					Digunakan saat membuka Grid Harian. Bisa diganti lagi lewat tab di atas.
 				</p>
 			</div>
 
