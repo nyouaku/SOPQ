@@ -292,21 +292,21 @@
 
 	<!-- Ringkasan -->
 	<div class="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-		<div class="card-apple p-3">
-			<div class="text-xs text-base-content/60">Total Masuk</div>
-			<div class="metric text-xl font-semibold text-success">{totalIn}</div>
+		<div class="card-apple min-w-0 p-3">
+			<div class="truncate text-xs text-base-content/60">Total Masuk</div>
+			<div class="metric truncate text-xl font-semibold text-success">{totalIn}</div>
 		</div>
-		<div class="card-apple p-3">
-			<div class="text-xs text-base-content/60">Total Keluar</div>
-			<div class="metric text-xl font-semibold text-error">{totalOut}</div>
+		<div class="card-apple min-w-0 p-3">
+			<div class="truncate text-xs text-base-content/60">Total Keluar</div>
+			<div class="metric truncate text-xl font-semibold text-error">{totalOut}</div>
 		</div>
-		<div class="card-apple p-3">
-			<div class="text-xs text-base-content/60">Nilai Masuk</div>
-			<div class="metric text-sm font-medium text-success">{fmtRp(totalValueIn)}</div>
+		<div class="card-apple min-w-0 p-3">
+			<div class="truncate text-xs text-base-content/60">Nilai Masuk</div>
+			<div class="metric truncate text-sm font-medium text-success" title={fmtRp(totalValueIn)}>{fmtRp(totalValueIn)}</div>
 		</div>
-		<div class="card-apple p-3">
-			<div class="text-xs text-base-content/60">Nilai Keluar</div>
-			<div class="metric text-sm font-medium text-error">{fmtRp(totalValueOut)}</div>
+		<div class="card-apple min-w-0 p-3">
+			<div class="truncate text-xs text-base-content/60">Nilai Keluar</div>
+			<div class="metric truncate text-sm font-medium text-error" title={fmtRp(totalValueOut)}>{fmtRp(totalValueOut)}</div>
 		</div>
 	</div>
 
