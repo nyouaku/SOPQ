@@ -619,6 +619,7 @@
 				{:else if scanMode === 'camera'}
 					<!-- Camera Scanner -->
 					{#if isCameraActive}
+						<!-- Camera feed needs a true black backdrop for decoder contrast — intentional exception. -->
 						<div class="relative mx-auto w-full max-w-sm overflow-hidden rounded-xl bg-black">
 							<video
 								bind:this={videoElement}

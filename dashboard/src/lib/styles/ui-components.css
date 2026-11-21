@@ -1,151 +1,288 @@
-/* Theme-aware content components — R3.
-   Scope: [data-ui="..."] pada <html>. Menimpa DaisyUI dasar tanpa mengubah
-   markup 100+ halaman. Prioritas diatur dengan specificity + !important
-   hanya pada properti yang benar-benar perlu. */
+/* ============================================================
+   GLOBAL THEME TOKENS — SOPQ
+   Semua warna komponen berasal dari token. Tidak ada hex statis
+   di aturan komponen. Scope: [data-ui="..."] pada <html>.
+   ============================================================ */
 
-/* ============ RETRO ============ */
+:root,
+[data-ui='apple'], [data-ui='focus'], [data-ui='workspace'] {
+  --ui-app: oklch(98% 0.005 250);
+  --ui-workspace: oklch(97% 0.005 250);
+  --ui-panel: oklch(100% 0 0);
+  --ui-card: oklch(100% 0 0);
+  --ui-card-hover: oklch(96% 0.005 250);
+  --ui-input: oklch(100% 0 0);
+  --ui-modal: oklch(100% 0 0);
+  --ui-dropdown: oklch(100% 0 0);
+  --ui-nav: oklch(97% 0.005 250);
+  --ui-floating: oklch(100% 0 0);
+  --ui-text: oklch(22% 0.02 255);
+  --ui-text-muted: oklch(55% 0.02 255);
+  --ui-text-inverse: oklch(100% 0 0);
+  --ui-accent: oklch(60% 0.14 255);
+  --ui-border: oklch(88% 0.01 250);
+  --ui-border-strong: oklch(70% 0.02 250);
+  --ui-border-focus: var(--ui-accent);
+  --ui-edge-light: oklch(100% 0 0);
+  --ui-table-head: var(--ui-card-hover);
+  --ui-success-bg: oklch(92% 0.12 150);
+  --ui-error-bg: oklch(65% 0.2 25);
+  --ui-shadow-dark: var(--ui-border-strong);
+  --ui-shadow-light: oklch(100% 0 0);
+  --ui-shadow-card: 0 8px 24px oklch(20% 0.02 250 / 0.08);
+  --ui-shadow-panel: 0 4px 16px oklch(20% 0.02 250 / 0.06);
+  --ui-shadow-floating: 0 18px 40px oklch(20% 0.02 250 / 0.18);
+  --ui-shadow-inset: inset 0 1px 3px oklch(20% 0.02 250 / 0.12);
+  --ui-radius: 0.75rem;
+  --ui-font: 'Inter', system-ui, sans-serif;
+  --ui-icon-stroke: 1.8;
+}
+
+/* ===== RETRO — beige, bevel, monospace ===== */
+[data-ui='retro'] {
+  --ui-app: #d8d0bb;
+  --ui-workspace: #e8e2cf;
+  --ui-panel: #e8e2cf;
+  --ui-card: #f0ead6;
+  --ui-card-hover: #ded6bd;
+  --ui-input: #f3eedb;
+  --ui-modal: #e8e2cf;
+  --ui-dropdown: #e8e2cf;
+  --ui-nav: #cfc7ad;
+  --ui-floating: #e8e2cf;
+  --ui-text: #2b2a22;
+  --ui-text-muted: #6b6550;
+  --ui-text-inverse: #f4f1e2;
+  --ui-accent: #6b7043;
+  --ui-border: #b0a88f;
+  --ui-border-strong: #4a4638;
+  --ui-border-focus: #b5651d;
+  --ui-edge-light: #fff;
+  --ui-table-head: #ded6bd;
+  --ui-success-bg: #c8d99a;
+  --ui-error-bg: #b34b3f;
+  --ui-shadow-dark: #4a4638;
+  --ui-shadow-light: #fff;
+  --ui-shadow-card: 4px 4px 0 #4a4638;
+  --ui-shadow-panel: 3px 3px 0 rgba(74,70,56,0.25);
+  --ui-shadow-floating: 5px 5px 0 #4a4638;
+  --ui-shadow-inset: inset 2px 2px 0 #4a4638;
+  --ui-radius: 0;
+  --ui-font: 'Courier New', monospace;
+}
 [data-ui='retro'] .btn {
-  border-radius: 0 !important;
+  border-radius: var(--ui-radius) !important;
   border: 2px solid !important;
-  border-color: #fff #4a4638 #4a4638 #fff !important;
-  background: #e8e2cf !important;
-  color: #2b2a22 !important;
-  box-shadow: 2px 2px 0 #4a4638 !important;
-  font-family: 'Courier New', monospace !important;
+  border-color: var(--ui-edge-light) var(--ui-border-strong) var(--ui-border-strong) var(--ui-edge-light) !important;
+  background: var(--ui-card) !important;
+  color: var(--ui-text) !important;
+  box-shadow: 2px 2px 0 var(--ui-border-strong) !important;
+  font-family: var(--ui-font) !important;
   font-weight: 700 !important;
 }
-[data-ui='retro'] .btn:active { box-shadow: inset 2px 2px 0 #4a4638 !important; transform: translate(1px, 1px); }
+[data-ui='retro'] .btn:active { box-shadow: var(--ui-shadow-inset) !important; transform: translate(1px,1px); }
 [data-ui='retro'] .input, [data-ui='retro'] .select, [data-ui='retro'] .textarea {
   border-radius: 0 !important;
   border: 2px solid !important;
-  border-color: #4a4638 #fff #fff #4a4638 !important;
-  background: #f0ead6 !important;
-  color: #2b2a22 !important;
-  font-family: 'Courier New', monospace !important;
+  border-color: var(--ui-border-strong) var(--ui-edge-light) var(--ui-edge-light) var(--ui-border-strong) !important;
+  background: var(--ui-input) !important;
+  color: var(--ui-text) !important;
+  font-family: var(--ui-font) !important;
 }
-[data-ui='retro'] .badge { border-radius: 0 !important; border: 1px solid #4a4638 !important; font-family: 'Courier New', monospace !important; }
-[data-ui='retro'] .table th, [data-ui='retro'] .table td { border-color: #b0a88f !important; font-family: 'Courier New', monospace !important; }
-[data-ui='retro'] .modal-box { border-radius: 0 !important; border: 2px solid #4a4638 !important; box-shadow: 6px 6px 0 #4a4638 !important; background: #e8e2cf !important; color: #2b2a22 !important; }
-[data-ui='retro'] .toast {
-  border-radius: 0 !important;
-  border: 2px solid #4a4638 !important;
-  box-shadow: 4px 4px 0 #4a4638 !important;
-  background: #e8e2cf !important;
-  color: #2b2a22 !important;
-  backdrop-filter: none !important;
+[data-ui='retro'] .badge { border-radius: 0 !important; border: 1px solid var(--ui-border-strong) !important; font-family: var(--ui-font) !important; }
+[data-ui='retro'] .table th, [data-ui='retro'] .table td { border-color: var(--ui-border) !important; font-family: var(--ui-font) !important; }
+[data-ui='retro'] .modal-box { border-radius: 0 !important; border: 2px solid var(--ui-border-strong) !important; box-shadow: var(--ui-shadow-floating) !important; background: var(--ui-modal) !important; color: var(--ui-text) !important; }
+[data-ui='retro'] .toast { border-radius: 0 !important; border: 2px solid var(--ui-border-strong) !important; box-shadow: var(--ui-shadow-card) !important; background: var(--ui-floating) !important; color: var(--ui-text) !important; backdrop-filter: none !important; }
+
+/* ===== NEOBRUTALISM — bold, hard shadow ===== */
+[data-ui='neo'] {
+  --ui-app: #f7f3dc;
+  --ui-workspace: #fffdf2;
+  --ui-panel: #fff;
+  --ui-card: #fff;
+  --ui-card-hover: #fff9d6;
+  --ui-input: #fff;
+  --ui-modal: #fff;
+  --ui-dropdown: #fff;
+  --ui-nav: #ffe23d;
+  --ui-floating: #fff;
+  --ui-text: #0d0d0d;
+  --ui-text-muted: #565656;
+  --ui-text-inverse: #fff;
+  --ui-accent: #2f5bff;
+  --ui-border: #0d0d0d;
+  --ui-border-strong: #0d0d0d;
+  --ui-border-focus: #ff4d3d;
+  --ui-edge-light: #fff;
+  --ui-table-head: #ffe23d;
+  --ui-success-bg: #b7f35b;
+  --ui-error-bg: #ff4d3d;
+  --ui-shadow-dark: #0d0d0d;
+  --ui-shadow-light: #fff;
+  --ui-shadow-card: 6px 6px 0 #0d0d0d;
+  --ui-shadow-panel: 4px 4px 0 #0d0d0d;
+  --ui-shadow-floating: 8px 8px 0 #0d0d0d;
+  --ui-shadow-inset: 2px 2px 0 #0d0d0d;
+  --ui-radius: 0;
+  --ui-font: 'Inter', 'Arial Black', sans-serif;
+}
+[data-ui='neo'] .btn { border-radius: 0 !important; border: 3px solid var(--ui-border-strong) !important; box-shadow: 3px 3px 0 var(--ui-border-strong) !important; font-weight: 900 !important; text-transform: uppercase !important; }
+[data-ui='neo'] .btn:active { box-shadow: 1px 1px 0 var(--ui-border-strong) !important; transform: translate(2px,2px); }
+[data-ui='neo'] .input, [data-ui='neo'] .select, [data-ui='neo'] .textarea { border-radius: 0 !important; border: 3px solid var(--ui-border-strong) !important; background: var(--ui-input) !important; color: var(--ui-text) !important; font-weight: 700 !important; }
+[data-ui='neo'] .badge { border-radius: 0 !important; border: 2px solid var(--ui-border-strong) !important; font-weight: 900 !important; }
+[data-ui='neo'] .table { border: 3px solid var(--ui-border-strong) !important; }
+[data-ui='neo'] .table th { background: var(--ui-table-head) !important; color: var(--ui-text) !important; border-color: var(--ui-border-strong) !important; }
+[data-ui='neo'] .table td { border-color: var(--ui-border-strong) !important; }
+[data-ui='neo'] .modal-box { border-radius: 0 !important; border: 3px solid var(--ui-border-strong) !important; box-shadow: var(--ui-shadow-floating) !important; background: var(--ui-modal) !important; color: var(--ui-text) !important; }
+[data-ui='neo'] .toast { border-radius: 0 !important; border: 3px solid var(--ui-border-strong) !important; box-shadow: 5px 5px 0 var(--ui-border-strong) !important; background: var(--ui-floating) !important; color: var(--ui-text) !important; backdrop-filter: none !important; font-weight: 800 !important; }
+[data-ui='neo'] .toast.toast-item--success { background: var(--ui-success-bg) !important; color: var(--ui-text) !important; }
+[data-ui='neo'] .toast.toast-item--error { background: var(--ui-error-bg) !important; color: var(--ui-text-inverse) !important; }
+
+/* ===== ACRYLIC — translucent, atmospheric ===== */
+[data-ui='acrylic'] {
+  --ui-app: oklch(19% 0.05 270);
+  --ui-workspace: oklch(24% 0.06 270 / 0.72);
+  --ui-panel: oklch(30% 0.06 270 / 0.42);
+  --ui-card: oklch(32% 0.05 270 / 0.38);
+  --ui-card-hover: oklch(40% 0.06 270 / 0.5);
+  --ui-input: oklch(28% 0.05 270 / 0.45);
+  --ui-modal: oklch(24% 0.05 270 / 0.92);
+  --ui-dropdown: oklch(28% 0.05 270 / 0.9);
+  --ui-nav: oklch(24% 0.06 270 / 0.55);
+  --ui-floating: oklch(26% 0.06 270 / 0.7);
+  --ui-text: oklch(97% 0.01 230);
+  --ui-text-muted: oklch(80% 0.02 230);
+  --ui-text-inverse: oklch(20% 0.05 270);
+  --ui-accent: oklch(82% 0.11 225);
+  --ui-border: oklch(90% 0.02 230 / 0.28);
+  --ui-border-strong: oklch(90% 0.02 230 / 0.5);
+  --ui-border-focus: oklch(82% 0.11 225);
+  --ui-edge-light: oklch(100% 0 0 / 0.3);
+  --ui-table-head: var(--ui-card-hover);
+  --ui-success-bg: oklch(85% 0.12 160 / 0.2);
+  --ui-error-bg: oklch(65% 0.2 25 / 0.2);
+  --ui-shadow-dark: oklch(10% 0.04 270);
+  --ui-shadow-light: oklch(100% 0 0 / 0.2);
+  --ui-shadow-card: 0 18px 40px oklch(10% 0.04 270 / 0.35);
+  --ui-shadow-panel: 0 10px 30px oklch(10% 0.04 270 / 0.3);
+  --ui-shadow-floating: 0 24px 60px oklch(10% 0.04 270 / 0.5);
+  --ui-shadow-inset: inset 0 1px 0 oklch(100% 0 0 / 0.2);
+  --ui-radius: 1rem;
+  --ui-font: 'Inter', system-ui, sans-serif;
+}
+[data-ui='acrylic'] .btn { border-radius: 9999px !important; border: 1px solid var(--ui-border-strong) !important; background: var(--ui-card) !important; color: var(--ui-text) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+[data-ui='acrylic'] .btn:hover { background: var(--ui-card-hover) !important; }
+[data-ui='acrylic'] .input, [data-ui='acrylic'] .select, [data-ui='acrylic'] .textarea { border-radius: 0.8rem !important; border: 1px solid var(--ui-border) !important; background: var(--ui-input) !important; color: var(--ui-text) !important; }
+[data-ui='acrylic'] .input::placeholder { color: var(--ui-text-muted) !important; }
+[data-ui='acrylic'] .badge { border-radius: 9999px !important; border: 1px solid var(--ui-border) !important; background: var(--ui-card) !important; color: var(--ui-text) !important; }
+[data-ui='acrylic'] .table { background: var(--ui-panel) !important; border-radius: 0.9rem !important; overflow: hidden; color: var(--ui-text) !important; }
+[data-ui='acrylic'] .table th, [data-ui='acrylic'] .table td { border-color: var(--ui-border) !important; color: var(--ui-text) !important; }
+[data-ui='acrylic'] .modal-box { border-radius: var(--ui-radius) !important; border: 1px solid var(--ui-border-strong) !important; background: var(--ui-modal) !important; color: var(--ui-text) !important; backdrop-filter: blur(18px); }
+[data-ui='acrylic'] .toast { border-radius: 9999px !important; border: 1px solid var(--ui-border-strong) !important; background: var(--ui-floating) !important; color: var(--ui-text) !important; backdrop-filter: blur(18px); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-ui='acrylic'] { --ui-panel: oklch(20% 0.05 270); --ui-card: oklch(22% 0.05 270); --ui-floating: oklch(20% 0.05 270); --ui-modal: oklch(18% 0.05 270); }
 }
 
-/* ============ NEOBRUTALISM ============ */
-[data-ui='neo'] .btn {
-  border-radius: 0 !important;
-  border: 3px solid #0d0d0d !important;
-  box-shadow: 3px 3px 0 #0d0d0d !important;
-  font-weight: 900 !important;
-  text-transform: uppercase !important;
+/* ===== NEUMORPHISM — soft raised / inset ===== */
+[data-ui='neumo'] {
+  --ui-app: #e8e9ee;
+  --ui-workspace: #e8e9ee;
+  --ui-panel: #e8e9ee;
+  --ui-card: #e8e9ee;
+  --ui-card-hover: #e2e4ea;
+  --ui-input: #e8e9ee;
+  --ui-modal: #e8e9ee;
+  --ui-dropdown: #e8e9ee;
+  --ui-nav: #e8e9ee;
+  --ui-floating: #e8e9ee;
+  --ui-text: #33384a;
+  --ui-text-muted: #6c7286;
+  --ui-text-inverse: #fff;
+  --ui-accent: #6f7fc1;
+  --ui-border: #d5d7df;
+  --ui-border-strong: #c4c7d1;
+  --ui-border-focus: #6f7fc1;
+  --ui-edge-light: #fff;
+  --ui-table-head: var(--ui-card-hover);
+  --ui-success-bg: #cbdcc6;
+  --ui-error-bg: #d6aaa7;
+  --ui-shadow-dark: #c4c7d1;
+  --ui-shadow-light: #fff;
+  --ui-shadow-card: 8px 8px 18px #c4c7d1, -8px -8px 18px #fff;
+  --ui-shadow-panel: 6px 6px 14px #c4c7d1, -6px -6px 14px #fff;
+  --ui-shadow-floating: 10px 10px 24px #c4c7d1, -10px -10px 24px #fff;
+  --ui-shadow-inset: inset 5px 5px 11px #c4c7d1, inset -5px -5px 11px #fff;
+  --ui-radius: 1.2rem;
+  --ui-font: 'Inter', system-ui, sans-serif;
 }
-[data-ui='neo'] .btn:active { box-shadow: 1px 1px 0 #0d0d0d !important; transform: translate(2px, 2px); }
-[data-ui='neo'] .input, [data-ui='neo'] .select, [data-ui='neo'] .textarea {
-  border-radius: 0 !important;
-  border: 3px solid #0d0d0d !important;
-  background: #fff !important;
-  color: #0d0d0d !important;
-  font-weight: 700 !important;
-}
-[data-ui='neo'] .badge { border-radius: 0 !important; border: 2px solid #0d0d0d !important; font-weight: 900 !important; }
-[data-ui='neo'] .table { border: 3px solid #0d0d0d !important; }
-[data-ui='neo'] .table th { background: #ffe23d !important; color: #0d0d0d !important; border-color: #0d0d0d !important; }
-[data-ui='neo'] .table td { border-color: #0d0d0d !important; }
-[data-ui='neo'] .modal-box { border-radius: 0 !important; border: 3px solid #0d0d0d !important; box-shadow: 8px 8px 0 #0d0d0d !important; }
-[data-ui='neo'] .toast { border-radius: 0 !important; border: 3px solid #0d0d0d !important; box-shadow: 5px 5px 0 #0d0d0d !important; backdrop-filter: none !important; font-weight: 800 !important; }
-[data-ui='neo'] .toast.toast-item--success { background: #b7f35b !important; color: #0d0d0d !important; }
-[data-ui='neo'] .toast.toast-item--error { background: #ff4d3d !important; color: #fff !important; }
+[data-ui='neumo'] .btn { border-radius: 9999px !important; border: 1px solid var(--ui-edge-light) !important; background: var(--ui-card) !important; color: var(--ui-text) !important; box-shadow: 4px 4px 9px var(--ui-shadow-dark), -4px -4px 9px var(--ui-shadow-light) !important; }
+[data-ui='neumo'] .btn:active { box-shadow: var(--ui-shadow-inset) !important; }
+[data-ui='neumo'] .input, [data-ui='neumo'] .select, [data-ui='neumo'] .textarea { border-radius: 0.9rem !important; border: 1px solid var(--ui-edge-light) !important; background: var(--ui-input) !important; color: var(--ui-text) !important; box-shadow: var(--ui-shadow-inset) !important; }
+[data-ui='neumo'] .badge { border-radius: 9999px !important; border: 1px solid var(--ui-edge-light) !important; background: var(--ui-card) !important; color: var(--ui-text) !important; box-shadow: 2px 2px 5px var(--ui-border-strong) !important; }
+[data-ui='neumo'] .table { border-radius: 1rem !important; background: var(--ui-panel) !important; color: var(--ui-text) !important; box-shadow: var(--ui-shadow-panel) !important; }
+[data-ui='neumo'] .table th, [data-ui='neumo'] .table td { border-color: var(--ui-border) !important; color: var(--ui-text) !important; }
+[data-ui='neumo'] .modal-box { border-radius: 1.4rem !important; border: 1px solid var(--ui-edge-light) !important; background: var(--ui-modal) !important; color: var(--ui-text) !important; box-shadow: var(--ui-shadow-floating) !important; }
+[data-ui='neumo'] .toast { border-radius: 1rem !important; border: 1px solid var(--ui-edge-light) !important; background: var(--ui-floating) !important; color: var(--ui-text) !important; box-shadow: var(--ui-shadow-card) !important; backdrop-filter: none !important; }
 
-/* ============ ACRYLIC ============ */
-[data-ui='acrylic'] .btn {
-  border-radius: 9999px !important;
-  border: 1px solid rgba(255,255,255,0.35) !important;
-  background: rgba(255,255,255,0.12) !important;
-  color: #f7fbff !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* ===== EDITORIAL — ivory, serif, thin rules ===== */
+[data-ui='editorial'] {
+  --ui-app: #faf8f2;
+  --ui-workspace: #faf8f2;
+  --ui-panel: #fffdf7;
+  --ui-card: #fffdf7;
+  --ui-card-hover: #f5f1e6;
+  --ui-input: #fffdf7;
+  --ui-modal: #faf8f2;
+  --ui-dropdown: #fffdf7;
+  --ui-nav: #faf8f2;
+  --ui-floating: #faf8f2;
+  --ui-text: #1b1b1b;
+  --ui-text-muted: #5e5e5e;
+  --ui-text-inverse: #faf8f2;
+  --ui-accent: #7b2d3a;
+  --ui-border: #cfcbc0;
+  --ui-border-strong: #1b1b1b;
+  --ui-border-focus: #7b2d3a;
+  --ui-edge-light: #fff;
+  --ui-table-head: var(--ui-card-hover);
+  --ui-success-bg: #d5dfc9;
+  --ui-error-bg: #e0c0bd;
+  --ui-shadow-dark: oklch(20% 0.02 80);
+  --ui-shadow-light: #fff;
+  --ui-shadow-card: none;
+  --ui-shadow-panel: none;
+  --ui-shadow-floating: 0 6px 20px oklch(20% 0.02 80 / 0.12);
+  --ui-shadow-inset: none;
+  --ui-radius: 0;
+  --ui-font: 'Inter', system-ui, sans-serif;
 }
-[data-ui='acrylic'] .btn:hover { background: rgba(255,255,255,0.2) !important; }
-[data-ui='acrylic'] .input, [data-ui='acrylic'] .select, [data-ui='acrylic'] .textarea {
-  border-radius: 0.8rem !important;
-  border: 1px solid rgba(255,255,255,0.3) !important;
-  background: rgba(255,255,255,0.1) !important;
-  color: #f7fbff !important;
-}
-[data-ui='acrylic'] .input::placeholder { color: rgba(247,251,255,0.6) !important; }
-[data-ui='acrylic'] .badge { border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.3) !important; background: rgba(125,211,252,0.2) !important; color: #f7fbff !important; }
-[data-ui='acrylic'] .table { background: rgba(14,28,56,0.72) !important; border-radius: 0.9rem !important; overflow: hidden; }
-[data-ui='acrylic'] .table th, [data-ui='acrylic'] .table td { border-color: rgba(255,255,255,0.14) !important; color: #f7fbff !important; }
-[data-ui='acrylic'] .modal-box { border-radius: 1.3rem !important; border: 1px solid rgba(255,255,255,0.3) !important; background: rgba(16,32,64,0.9) !important; color: #f7fbff !important; backdrop-filter: blur(18px); }
-[data-ui='acrylic'] .toast { border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.3) !important; background: rgba(16,32,64,0.9) !important; color: #f7fbff !important; backdrop-filter: blur(18px); }
+[data-ui='editorial'] .btn { border-radius: 0 !important; border: 0 !important; border-bottom: 1px solid var(--ui-border-strong) !important; background: transparent !important; color: var(--ui-text) !important; font-family: var(--ui-font) !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.04em !important; }
+[data-ui='editorial'] .btn:hover { color: var(--ui-accent) !important; border-bottom-color: var(--ui-accent) !important; }
+[data-ui='editorial'] .input, [data-ui='editorial'] .select, [data-ui='editorial'] .textarea { border-radius: 0 !important; border: 0 !important; border-bottom: 1px solid var(--ui-border-strong) !important; background: transparent !important; color: var(--ui-text) !important; font-family: Georgia, 'Times New Roman', serif !important; }
+[data-ui='editorial'] .badge { border-radius: 0 !important; border: 0 !important; border-bottom: 1px solid var(--ui-accent) !important; background: transparent !important; color: var(--ui-accent) !important; font-weight: 800 !important; }
+[data-ui='editorial'] .table { border-radius: 0 !important; border-top: 3px double var(--ui-border-strong) !important; background: var(--ui-panel) !important; color: var(--ui-text) !important; }
+[data-ui='editorial'] .table th { border-bottom: 1px solid var(--ui-border-strong) !important; font-family: Georgia, serif !important; font-size: 1.05rem !important; color: var(--ui-text) !important; }
+[data-ui='editorial'] .table td { border-color: var(--ui-border) !important; color: var(--ui-text) !important; }
+[data-ui='editorial'] .modal-box { border-radius: 0 !important; border-top: 3px double var(--ui-border-strong) !important; box-shadow: none !important; background: var(--ui-modal) !important; color: var(--ui-text) !important; }
+[data-ui='editorial'] .toast { border-radius: 0 !important; border: 0 !important; border-left: 4px solid var(--ui-accent) !important; box-shadow: none !important; background: var(--ui-floating) !important; color: var(--ui-text) !important; backdrop-filter: none !important; }
 
-/* ============ NEUMORPHISM ============ */
-[data-ui='neumo'] .btn {
-  border-radius: 9999px !important;
-  border: 1px solid rgba(255,255,255,0.6) !important;
-  background: #e8e9ee !important;
-  color: #33384a !important;
-  box-shadow: 4px 4px 9px #c4c7d1, -4px -4px 9px #fff !important;
-}
-[data-ui='neumo'] .btn:active { box-shadow: inset 4px 4px 9px #c4c7d1, inset -4px -4px 9px #fff !important; }
-[data-ui='neumo'] .input, [data-ui='neumo'] .select, [data-ui='neumo'] .textarea {
-  border-radius: 0.9rem !important;
-  border: 1px solid rgba(255,255,255,0.6) !important;
-  background: #e8e9ee !important;
-  color: #33384a !important;
-  box-shadow: inset 4px 4px 9px #c4c7d1, inset -4px -4px 9px #fff !important;
-}
-[data-ui='neumo'] .badge { border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.7) !important; color: #33384a !important; box-shadow: 2px 2px 5px #c4c7d1 !important; }
-[data-ui='neumo'] .table { border-radius: 1rem !important; background: #e8e9ee !important; box-shadow: 6px 6px 14px #c4c7d1, -6px -6px 14px #fff !important; }
-[data-ui='neumo'] .table th, [data-ui='neumo'] .table td { border-color: #d5d7df !important; color: #33384a !important; }
-[data-ui='neumo'] .modal-box { border-radius: 1.4rem !important; border: 1px solid rgba(255,255,255,0.7) !important; background: #e8e9ee !important; color: #33384a !important; box-shadow: 10px 10px 24px #c4c7d1, -10px -10px 24px #fff !important; }
-[data-ui='neumo'] .toast { border-radius: 1rem !important; border: 1px solid rgba(255,255,255,0.7) !important; background: #e8e9ee !important; color: #33384a !important; box-shadow: 5px 5px 12px #c4c7d1, -5px -5px 12px #fff !important; backdrop-filter: none !important; }
-
-/* ============ EDITORIAL ============ */
-[data-ui='editorial'] .btn {
-  border-radius: 0 !important;
-  border: 0 !important;
-  border-bottom: 1px solid #1b1b1b !important;
-  background: transparent !important;
-  color: #1b1b1b !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-}
-[data-ui='editorial'] .btn:hover { color: #7b2d3a !important; border-bottom-color: #7b2d3a !important; }
-[data-ui='editorial'] .input, [data-ui='editorial'] .select, [data-ui='editorial'] .textarea {
-  border-radius: 0 !important;
-  border: 0 !important;
-  border-bottom: 1px solid #1b1b1b !important;
-  background: transparent !important;
-  color: #1b1b1b !important;
-  font-family: Georgia, 'Times New Roman', serif !important;
-}
-[data-ui='editorial'] .badge { border-radius: 0 !important; border: 0 !important; border-bottom: 1px solid #7b2d3a !important; background: transparent !important; color: #7b2d3a !important; font-weight: 800 !important; }
-[data-ui='editorial'] .table { border-radius: 0 !important; border-top: 3px double #1b1b1b !important; }
-[data-ui='editorial'] .table th { border-bottom: 1px solid #1b1b1b !important; font-family: Georgia, serif !important; font-size: 1.05rem !important; }
-[data-ui='editorial'] .table td { border-color: #cfcbc0 !important; }
-[data-ui='editorial'] .modal-box { border-radius: 0 !important; border-top: 3px double #1b1b1b !important; box-shadow: none !important; background: #faf8f2 !important; color: #1b1b1b !important; }
-[data-ui='editorial'] .toast { border-radius: 0 !important; border: 0 !important; border-left: 4px solid #7b2d3a !important; box-shadow: none !important; background: #faf8f2 !important; color: #1b1b1b !important; backdrop-filter: none !important; }
-
-/* Fokus ring konsisten untuk semua tema */
-[data-ui] :is(.btn, .input, .select, .textarea, a):focus-visible {
-  outline: 2px solid currentColor !important;
-  outline-offset: 2px;
-}
-
-/* ============ AUTH / APP SELECTOR mengikuti layout ============
-   Login & /apps memakai token DaisyUI langsung. Override token
-   pada root scoped per layout supaya keduanya ikut warna UI. */
-/* DaisyUI v4 memakai OKLCH: `oklch(var(--b2))`. Nilai HARUS format
-   "L% C H" (contoh: 90% 0.03 70), bukan HSL. Salah format ⇒ token diabaikan. */
-[data-ui='retro'] { --b2: 84% 0.035 80; --b1: 91% 0.03 85; --bc: 25% 0.02 70; --p: 42% 0.06 120; }
+/* ===== GLOBAL SURFACE TOKENS → DaisyUI utilities =====
+   utility bg-base-* / text-base-* mengikuti layout aktif; token ditulis
+   sekali di sini, bukan diduplikasi di masing-masing layout component. */
+:root { --b2: 98% 0.005 250; --b1: 100% 0 0; --bc: 22% 0.02 255; --p: 60% 0.14 255; }
+[data-ui='retro'] { --b2: 86% 0.035 80; --b1: 91% 0.03 85; --bc: 25% 0.02 70; --p: 42% 0.06 120; }
 [data-ui='neo'] { --b2: 96% 0.12 100; --b1: 100% 0 0; --bc: 12% 0 0; --p: 58% 0.19 265; }
 [data-ui='acrylic'] { --b2: 19% 0.05 270; --b1: 24% 0.06 270; --bc: 96% 0.01 230; --p: 82% 0.11 225; }
 [data-ui='neumo'] { --b2: 91% 0.008 275; --b1: 94% 0.006 275; --bc: 32% 0.03 275; --p: 62% 0.08 275; }
 [data-ui='editorial'] { --b2: 97% 0.012 85; --b1: 99% 0.008 85; --bc: 15% 0.01 60; --p: 38% 0.1 15; }
+
+/* Nested containers & sections ikut surface tema */
+[data-ui] :is(.bg-base-100, .bg-base-200, .bg-base-300) { color: var(--ui-text); }
+[data-ui] .border-base-300 { border-color: var(--ui-border); }
+[data-ui] .divider { border-color: var(--ui-border); }
+
+/* Focus ring konsisten */
+[data-ui] :is(.btn, .input, .select, .textarea, a):focus-visible {
+  outline: 2px solid var(--ui-border-focus) !important;
+  outline-offset: 2px;
+}

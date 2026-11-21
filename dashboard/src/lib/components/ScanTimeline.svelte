@@ -42,7 +42,7 @@
 						<span
 							class="absolute left-0 top-1 h-8 w-8 rounded-full border-2 border-base-100 {getDotColor(detail.difference)} flex items-center justify-center"
 						>
-							<svg class="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-4 w-4 text-base-100" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
 							</svg>
 						</span>
