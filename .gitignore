@@ -33,3 +33,6 @@ Thumbs.db
 *.xlsx
 !docs/*.xlsx
 vite.config.ts.timestamp-*.mjs
+
+# sensitive business data
+docs/EXAMPLE_INVENTORY.xlsx
