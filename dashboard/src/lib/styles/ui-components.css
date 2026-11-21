@@ -6,22 +6,22 @@
 
 :root,
 [data-ui='apple'], [data-ui='focus'], [data-ui='workspace'] {
-  --ui-app: oklch(98% 0.005 250);
-  --ui-workspace: oklch(97% 0.005 250);
-  --ui-panel: oklch(100% 0 0);
-  --ui-card: oklch(100% 0 0);
-  --ui-card-hover: oklch(96% 0.005 250);
-  --ui-input: oklch(100% 0 0);
-  --ui-modal: oklch(100% 0 0);
-  --ui-dropdown: oklch(100% 0 0);
-  --ui-nav: oklch(97% 0.005 250);
-  --ui-floating: oklch(100% 0 0);
-  --ui-text: oklch(22% 0.02 255);
-  --ui-text-muted: oklch(55% 0.02 255);
-  --ui-text-inverse: oklch(100% 0 0);
-  --ui-accent: oklch(60% 0.14 255);
-  --ui-border: oklch(88% 0.01 250);
-  --ui-border-strong: oklch(70% 0.02 250);
+  --ui-app: oklch(var(--b2));
+  --ui-workspace: oklch(var(--b2));
+  --ui-panel: oklch(var(--b1));
+  --ui-card: oklch(var(--b1));
+  --ui-card-hover: oklch(var(--b3));
+  --ui-input: oklch(var(--b1));
+  --ui-modal: oklch(var(--b1));
+  --ui-dropdown: oklch(var(--b1));
+  --ui-nav: oklch(var(--b2));
+  --ui-floating: oklch(var(--b1));
+  --ui-text: oklch(var(--bc));
+  --ui-text-muted: oklch(var(--bc) / 0.6);
+  --ui-text-inverse: oklch(var(--b1));
+  --ui-accent: oklch(var(--p));
+  --ui-border: oklch(var(--bc) / 0.18);
+  --ui-border-strong: oklch(var(--bc) / 0.35);
   --ui-border-focus: var(--ui-accent);
   --ui-edge-light: oklch(100% 0 0);
   --ui-table-head: var(--ui-card-hover);
