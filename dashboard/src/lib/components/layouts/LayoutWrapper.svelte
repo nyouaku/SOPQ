@@ -9,6 +9,7 @@
 	import WorkspaceLayout from './WorkspaceLayout.svelte';
 	import RetroLayout from './RetroLayout.svelte';
 	import NeoLayout from './NeoLayout.svelte';
+	import AcrylicLayout from './AcrylicLayout.svelte';
 
 	let currentLayout: ThemeLayout = 'apple';
 	let currentPath = '';
@@ -30,6 +31,8 @@
 	<RetroLayout><slot /></RetroLayout>
 {:else if currentLayout === 'neo'}
 	<NeoLayout><slot /></NeoLayout>
+{:else if currentLayout === 'acrylic'}
+	<AcrylicLayout><slot /></AcrylicLayout>
 {:else}
 	<AppleLayout {currentPath}><slot /></AppleLayout>
 {/if}
