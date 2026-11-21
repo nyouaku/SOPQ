@@ -278,8 +278,8 @@ func (r *inventoryRepository) Summary(ctx context.Context, warehouseID uuid.UUID
 			COUNT(DISTINCT sm.id) AS count,
 			COALESCE(SUM(smi.quantity) FILTER (WHERE sm.movement_type='in'),0)::int AS total_in,
 			COALESCE(SUM(smi.quantity) FILTER (WHERE sm.movement_type='out'),0)::int AS total_out,
-			COALESCE(SUM(smi.total_cost) FILTER (WHERE sm.movement_type='in'),0) AS value_in,
-			COALESCE(SUM(smi.total_cost) FILTER (WHERE sm.movement_type='out'),0) AS value_out`).
+			COALESCE(SUM(smi.quantity * smi.unit_cost) FILTER (WHERE sm.movement_type='in'),0) AS value_in,
+			COALESCE(SUM(smi.quantity * smi.unit_cost) FILTER (WHERE sm.movement_type='out'),0) AS value_out`).
 		Joins("LEFT JOIN stock_movement_item smi ON smi.movement_id = sm.id").
 		Where("sm.warehouse_id = ? AND sm.created_at >= ? AND sm.created_at < ? AND sm.deleted_at IS NULL",
 			warehouseID, monthStart, monthEnd).
