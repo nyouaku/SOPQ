@@ -65,6 +65,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	warehouseRepo := repository.NewWarehouseRepository(cfg.DB.DB)
 	locationRepo := repository.NewLocationRepository(cfg.DB.DB)
 	productRepo := repository.NewProductRepository(cfg.DB.DB)
+	changeRequestRepo := repository.NewProductChangeRequestRepository(cfg.DB.DB)
 	stockOpnameRepo := repository.NewStockOpnameRepository(cfg.DB.DB)
 	stockOpnameDetailRepo := repository.NewStockOpnameDetailRepository(cfg.DB.DB)
 	stockRepo := repository.NewStockRepository(cfg.DB.DB)
@@ -79,6 +80,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	supplierUsecase := usecase.NewSupplierUsecase(supplierRepo)
 	warehouseUsecase := usecase.NewWarehouseUsecase(warehouseRepo, locationRepo)
 	productUsecase := usecase.NewProductUsecase(productRepo)
+	changeRequestUsecase := usecase.NewProductChangeRequestUsecase(changeRequestRepo, productUsecase, activityLogRepo)
 	stockOpnameUsecase := usecase.NewStockOpnameUsecase(stockOpnameRepo, stockOpnameDetailRepo, stockRepo, productRepo, activityLogRepo, websocket.NewPublisher())
 	// Suntikkan ledger repo agar adjustment & approve SO ikut mencatat stock_ledger.
 	stockOpnameUsecase.SetLedgerRepo(stockLedgerRepo)
@@ -97,6 +99,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 	supplierHandler := handler.NewSupplierHandler(supplierUsecase)
 	warehouseHandler := handler.NewWarehouseHandler(warehouseUsecase)
 	productHandler := handler.NewProductHandler(productUsecase)
+	changeRequestHandler := handler.NewProductChangeRequestHandler(changeRequestUsecase)
 	productHandler.SetStockRepos(stockRepo, stockLedgerRepo)
 	stockOpnameHandler := handler.NewStockOpnameHandler(stockOpnameUsecase)
 	reportHandler := handler.NewReportHandler(reportUsecase, notificationUsecase)
@@ -164,6 +167,21 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				productsAdmin.PUT("/:id", productHandler.UpdateProduct)
 				productsAdmin.DELETE("/:id", productHandler.DeleteProduct)
 				productsAdmin.POST("/transfer", productHandler.TransferProducts)
+			}
+		}
+
+		// Product change requests (approval master produk)
+		// Staff bisa mengajukan; list & keputusan hanya supervisor/admin.
+		changeRequests := v1.Group("/product-change-requests")
+		changeRequests.Use(middleware.AuthMiddleware(cfg.Config.JWT.AccessSecret))
+		{
+			changeRequests.POST("", changeRequestHandler.Submit)
+			changeRequestsReview := changeRequests.Group("")
+			changeRequestsReview.Use(middleware.RequireRole("supervisor", "admin"))
+			{
+				changeRequestsReview.GET("", changeRequestHandler.List)
+				changeRequestsReview.POST("/:id/approve", changeRequestHandler.Approve)
+				changeRequestsReview.POST("/:id/reject", changeRequestHandler.Reject)
 			}
 		}
 

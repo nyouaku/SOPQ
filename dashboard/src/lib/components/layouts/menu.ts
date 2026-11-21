@@ -69,6 +69,7 @@ export const MENU_ITEMS: MenuItem[] = [
 	// Products & Gudang: KENDALI PENUH di Inventory (tambah/ubah/hapus).
 	// SO hanya punya versi lihat-saja di atas.
 	{ href: '/products', label: 'Products', icon: '📦', shortcut: 'P', app: 'inventory', access: 'full' },
+	{ href: '/inventory/approvals', label: 'Persetujuan', icon: '✅', shortcut: 'V', app: 'inventory', access: 'full' },
 	{ href: '/inventory/transfer', label: 'Transfer', icon: '🔁', shortcut: 'F', roles: MANAGER, app: 'inventory', access: 'full' },
 	{ href: '/warehouses', label: 'Gudang', icon: '🏭', shortcut: 'G', roles: MANAGER, app: 'inventory', access: 'full' },
 	{ href: '/inventory/settings', label: 'Settings', icon: '⚙️', shortcut: 'X', app: 'inventory', access: 'full' }

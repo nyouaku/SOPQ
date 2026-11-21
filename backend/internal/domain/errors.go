@@ -23,4 +23,7 @@ var (
 	ErrMovementNotFound         = errors.New("dokumen pergerakan tidak ditemukan")
 	ErrMovementAlreadyCancelled = errors.New("dokumen pergerakan sudah dibatalkan")
 	ErrMovementNotCancellable   = errors.New("hanya dokumen berstatus posted yang bisa dibatalkan")
+
+	ErrChangeRequestNotFound   = errors.New("pengajuan perubahan tidak ditemukan")
+	ErrChangeRequestNotPending = errors.New("pengajuan sudah diproses")
 )

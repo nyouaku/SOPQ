@@ -27,10 +27,16 @@
 	// Guard role: Inventory Management tak untuk staff gudang (UI-only; backend
 	// tetap proteksi via RequireRole). Staff yang memaksa URL dialihkan ke /apps.
 	// Inventory = /inventory*, /products*, /warehouses*, /transfer*.
+	// Staff tetap boleh membuka /inventory/approvals untuk mengajukan perubahan
+	// produk (tombol Approve/Reject tetap disembunyikan UI & diproteksi backend).
+	const STAFF_APPROVAL_PATH = '/inventory/approvals';
 	const INVENTORY_ROOTS = ['/inventory', '/products', '/warehouses', '/transfer'];
-	$: isInventory = INVENTORY_ROOTS.some(
-		(r) => $page.url.pathname === r || $page.url.pathname.startsWith(r + '/')
-	);
+	$: isInventory =
+		$page.url.pathname !== STAFF_APPROVAL_PATH &&
+		!($page.url.pathname.startsWith(STAFF_APPROVAL_PATH + '/')) &&
+		INVENTORY_ROOTS.some(
+			(r) => $page.url.pathname === r || $page.url.pathname.startsWith(r + '/')
+		);
 	$: if (
 		!$authStore.isLoading &&
 		$authStore.isAuthenticated &&
