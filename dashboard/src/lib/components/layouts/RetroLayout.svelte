@@ -532,6 +532,13 @@
 			color: #d8d0bb;
 			font-size: 0.62rem;
 		}
+		/* START menu jadi panel bawah penuh di mobile */
+		.start-menu {
+			left: 0; right: 0; bottom: 1.7rem; width: auto;
+			border-radius: 0.8rem 0.8rem 0 0;
+			box-shadow: 0 -4px 0 var(--r-shadow);
+		}
+		.start-menu__item { padding: 0.75rem 0.6rem; min-height: 44px; }
 	}
 
 	@media (prefers-reduced-motion: reduce) {

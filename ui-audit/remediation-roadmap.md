@@ -1,6 +1,6 @@
 # Remediation Roadmap — UI Audit
 
-Status: **R1 SELESAI. R2–R4 masih draft.**
+Status: **R1 + R2 SELESAI. R3–R4 masih draft.**
 
 ## Ringkasan masalah berulang
 
@@ -28,7 +28,7 @@ Status: **R1 SELESAI. R2–R4 masih draft.**
 - Profile Acrylic → `goto('/settings')`.
 - Acceptance: semua tombol-layout punya aksi nyata; tidak ada `TODO` di layout.
 
-### Phase R2 — Mobile component gaps (risiko sedang)
+### Phase R2 — Mobile component gaps ✅ SELESAI
 - Acrylic bottom-sheet (dipakaiMobile menu & context).
 - Editorial mobile data slot + horizontal scroll table.
 - Retro mobile START menu full-width.
@@ -55,4 +55,4 @@ Status: **R1 SELESAI. R2–R4 masih draft.**
 | R4 | Sedang | test + docs |
 
 ## Tunggu persetujuan
-R1 dikerjakan & disetujui. R2–R4 menunggu persetujuan berikutnya.
+R1 + R2 dikerjakan & disetujui. R3–R4 menunggu persetujuan berikutnya.

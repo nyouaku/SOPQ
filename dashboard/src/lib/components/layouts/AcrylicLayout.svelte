@@ -158,13 +158,20 @@
 	</header>
 
 	{#if mobileMenu}
-		<nav class="acr-mobile-menu acrylic" aria-label="Menu">
+		<button class="sheet-backdrop" aria-label="Tutup menu" on:click={() => (mobileMenu = false)}></button>
+		<nav class="acr-mobile-menu acrylic" aria-label="Menu" role="dialog" aria-modal="true">
+			<div class="sheet-handle" aria-hidden="true"></div>
+			<div class="sheet-title">MENU / {activeApp.toUpperCase()}</div>
 			{#each visible as item (item.href)}
 				<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}>
 					<svg viewBox="0 0 24 24" class="acr-ico"><path d={acrylicIconFor(item.href)} /></svg>
 					{item.label}
 				</a>
 			{/each}
+			<a href="/settings" class="sheet-foot">
+				<svg viewBox="0 0 24 24" class="acr-ico"><path d={ACRYLIC_ICONS.profile} /></svg>
+				Profil & pengaturan
+			</a>
 		</nav>
 	{/if}
 
@@ -333,10 +340,18 @@
 		.mobile-brand { font-weight: 900; }
 		.acr-mobile-top .quick-time { margin-left: auto; }
 		.acr-mobile-menu {
-			position: sticky; top: 4.2rem; z-index: 49;
+			position: fixed; left: 0; right: 0; bottom: 0; z-index: 62;
 			display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;
-			margin: 0.5rem; padding: 0.6rem; border-radius: 1rem;
+			padding: 0.7rem 0.8rem calc(5.2rem + env(safe-area-inset-bottom, 0px));
+			border-radius: 1.4rem 1.4rem 0 0;
+			max-height: 75dvh; overflow-y: auto;
+			animation: sheet-in 200ms ease-out;
 		}
+		@keyframes sheet-in { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+		.sheet-handle { grid-column: 1 / -1; justify-self: center; width: 2.6rem; height: 0.28rem; border-radius: 9999px; background: rgba(255,255,255,0.45); }
+		.sheet-title { grid-column: 1 / -1; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.14em; color: var(--a-accent); padding-bottom: 0.3rem; }
+		.sheet-foot { grid-column: 1 / -1; border-top: 1px solid var(--a-line); margin-top: 0.3rem; padding-top: 0.6rem !important; }
+		.sheet-backdrop { position: fixed; inset: 0; z-index: 61; border: 0; background: rgba(4,10,28,0.55); cursor: default; }
 		.acr-mobile-menu a {
 			display: flex; align-items: center; gap: 0.4rem;
 			padding: 0.5rem; border-radius: 0.6rem;
@@ -373,6 +388,6 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.acr-root * { transition: none !important; }
+		.acr-root * { transition: none !important; animation: none !important; }
 	}
 </style>

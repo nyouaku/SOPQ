@@ -165,6 +165,9 @@
 				<li><span class="hl-num">{String(i + 1).padStart(2, '0')}</span><a href={item.href}>{item.label}</a></li>
 			{/each}
 		</ul>
+		<div class="ed-rule"></div>
+		<div class="section-label"><span>03</span> DATA &amp; TABULASI</div>
+		<div class="ed-mobile-data"><slot name="data"><p class="ed-muted">Data tidak tersedia untuk halaman ini.</p></slot></div>
 	</main>
 
 	<nav class="ed-mobile-nav" aria-label="Navigasi bawah">
@@ -305,6 +308,9 @@
 		.ed-mobile-body { font-size: 0.9rem; line-height: 1.7; }
 		.ed-mobile-highlights li { display: flex; gap: 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--e-line); }
 		.ed-mobile-highlights li a { flex: 1; font-size: 0.85rem; font-weight: 700; color: var(--e-ink); text-decoration: none; }
+		.ed-mobile-data { overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 0.84rem; }
+		.ed-mobile-data :global(table) { min-width: 36rem; border-collapse: collapse; }
+		.ed-mobile-data :global(th), .ed-mobile-data :global(td) { border-bottom: 1px solid var(--e-line); padding: 0.4rem 0.5rem; text-align: left; }
 		.ed-mobile-nav {
 			position: fixed; left: 0; right: 0; bottom: 0; z-index: 55;
 			display: flex; justify-content: space-around;
