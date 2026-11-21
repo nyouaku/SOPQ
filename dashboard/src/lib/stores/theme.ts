@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type ThemeLayout = 'apple' | 'focus' | 'workspace' | 'retro' | 'neo' | 'acrylic';
+export type ThemeLayout = 'apple' | 'focus' | 'workspace' | 'retro' | 'neo' | 'acrylic' | 'neumo';
 export type ThemeColor =
 	| 'apple-light'
 	| 'apple-dark'
@@ -235,6 +235,12 @@ export const THEME_LAYOUTS = [
 		name: 'Acrylic UI',
 		description: 'Layered control center — translucent acrylic, depth blur',
 		icon: '🪟'
+	},
+	{
+		id: 'neumo' as ThemeLayout,
+		name: 'Neumorphism',
+		description: 'Soft tactile UI — raised panels, inset fields, muted accent',
+		icon: '🔘'
 	}
 ] as const;
 

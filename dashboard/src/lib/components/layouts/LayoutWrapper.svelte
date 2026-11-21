@@ -10,6 +10,7 @@
 	import RetroLayout from './RetroLayout.svelte';
 	import NeoLayout from './NeoLayout.svelte';
 	import AcrylicLayout from './AcrylicLayout.svelte';
+	import NeumoLayout from './NeumoLayout.svelte';
 
 	let currentLayout: ThemeLayout = 'apple';
 	let currentPath = '';
@@ -33,6 +34,8 @@
 	<NeoLayout><slot /></NeoLayout>
 {:else if currentLayout === 'acrylic'}
 	<AcrylicLayout><slot /></AcrylicLayout>
+{:else if currentLayout === 'neumo'}
+	<NeumoLayout><slot /></NeumoLayout>
 {:else}
 	<AppleLayout {currentPath}><slot /></AppleLayout>
 {/if}

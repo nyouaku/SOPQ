@@ -13,7 +13,7 @@ Konteks: setelah layout lama dihapus, tersisa **Apple** sebagai satu-satunya lay
 | 3 | Retro UI | **SELESAI** (commit `retro`) | Vintage OS desktop: title bar, window, taskbar; mobile beda |
 | 4 | Neobrutalism | **SELESAI** | Asymmetric bento; thick border; hard shadow; warna cerah |
 | 5 | Acrylic UI | **SELESAI** | Layered control center, acrylic rail + command + inspector |
-| 6 | Neumorphism | **Antre — tunggu prompt user** | prompt khusus menyusul |
+| 6 | Neumorphism | **SELESAI** | Central soft control panel; raised/inset surfaces |
 | 7 | Editorial UI | **Antre — tunggu prompt user** | prompt khusus menyusul |
 
 Aturan antrean: **jangan memulai layout #3–#7 sebelum user mengirim prompt spesifik untuk layout itu.**
