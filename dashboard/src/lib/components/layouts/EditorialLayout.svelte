@@ -23,7 +23,7 @@
 	function searchSubmit(e: Event) {
 		e.preventDefault();
 		if (!searchQuery.trim()) return;
-		goto('/products');
+		goto(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
 		searchOpen = false;
 	}
 

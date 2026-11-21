@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/theme';
 	import type { ThemeLayout } from '$lib/stores/theme';
+	import { applyUiTheme } from '$lib/stores/ui-theme';
 
 	import AppleLayout from './AppleLayout.svelte';
 	import FocusLayout from './FocusLayout.svelte';
@@ -23,6 +24,7 @@
 	});
 
 	$: currentPath = $page.url.pathname;
+	$: if (typeof document !== 'undefined') applyUiTheme(currentLayout);
 </script>
 
 {#if currentLayout === 'focus'}

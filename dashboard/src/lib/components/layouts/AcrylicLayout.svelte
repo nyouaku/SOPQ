@@ -24,9 +24,11 @@
 
 	function searchSubmit(e: Event) {
 		e.preventDefault();
-		// Halaman Products sudah punya field search; arahkan ke sana.
-		// (Layout tidak boleh mengubah logika pencarian bisnis.)
-		goto('/products');
+		if (!search.trim()) {
+			goto('/products');
+			return;
+		}
+		goto(`/products?search=${encodeURIComponent(search.trim())}`);
 	}
 
 	onMount(() => {

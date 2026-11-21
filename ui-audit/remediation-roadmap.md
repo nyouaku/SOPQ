@@ -1,6 +1,6 @@
 # Remediation Roadmap — UI Audit
 
-Status: **R1 + R2 SELESAI. R3–R4 masih draft.**
+Status: **R1 + R2 + R3 SELESAI. R4 masih draft.**
 
 ## Ringkasan masalah berulang
 
@@ -34,7 +34,7 @@ Status: **R1 + R2 SELESAI. R3–R4 masih draft.**
 - Retro mobile START menu full-width.
 - Acceptance: sesuai BAB 3 mobile tiap desain; uji 360×800 & 430×932.
 
-### Phase R3 — Theme-aware content components (risiko tinggi, dampak besar)
+### Phase R3 — Theme-aware content components ✅ SELESAI
 - Buat wrapper komponen per desain: button, input, table, modal, toast, badge, pagination.
 - Scoped styling: `.retro-scope`, `.neo-scope`, `.acr-scope`, `.neumo-scope`, `.ed-scope`.
 - Hindari duplication: gunakan satu komponen `UiButton` dengan `variant` prop.
@@ -55,4 +55,4 @@ Status: **R1 + R2 SELESAI. R3–R4 masih draft.**
 | R4 | Sedang | test + docs |
 
 ## Tunggu persetujuan
-R1 + R2 dikerjakan & disetujui. R3–R4 menunggu persetujuan berikutnya.
+R1–R3 dikerjakan & disetujui. R4 menunggu persetujuan berikutnya.

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { authStore } from '$lib/stores/auth';
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
@@ -171,6 +172,8 @@
 	}
 
 	onMount(async () => {
+		// Search dari command bar layout: /products?search=…
+		searchQuery = $page.url.searchParams.get('search') || '';
 		await loadProducts();
 		await loadWarehouses();
 	});

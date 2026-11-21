@@ -1,0 +1,140 @@
+/* Theme-aware content components — R3.
+   Scope: [data-ui="..."] pada <html>. Menimpa DaisyUI dasar tanpa mengubah
+   markup 100+ halaman. Prioritas diatur dengan specificity + !important
+   hanya pada properti yang benar-benar perlu. */
+
+/* ============ RETRO ============ */
+[data-ui='retro'] .btn {
+  border-radius: 0 !important;
+  border: 2px solid !important;
+  border-color: #fff #4a4638 #4a4638 #fff !important;
+  background: #e8e2cf !important;
+  color: #2b2a22 !important;
+  box-shadow: 2px 2px 0 #4a4638 !important;
+  font-family: 'Courier New', monospace !important;
+  font-weight: 700 !important;
+}
+[data-ui='retro'] .btn:active { box-shadow: inset 2px 2px 0 #4a4638 !important; transform: translate(1px, 1px); }
+[data-ui='retro'] .input, [data-ui='retro'] .select, [data-ui='retro'] .textarea {
+  border-radius: 0 !important;
+  border: 2px solid !important;
+  border-color: #4a4638 #fff #fff #4a4638 !important;
+  background: #f0ead6 !important;
+  color: #2b2a22 !important;
+  font-family: 'Courier New', monospace !important;
+}
+[data-ui='retro'] .badge { border-radius: 0 !important; border: 1px solid #4a4638 !important; font-family: 'Courier New', monospace !important; }
+[data-ui='retro'] .table th, [data-ui='retro'] .table td { border-color: #b0a88f !important; font-family: 'Courier New', monospace !important; }
+[data-ui='retro'] .modal-box { border-radius: 0 !important; border: 2px solid #4a4638 !important; box-shadow: 6px 6px 0 #4a4638 !important; background: #e8e2cf !important; color: #2b2a22 !important; }
+[data-ui='retro'] .toast {
+  border-radius: 0 !important;
+  border: 2px solid #4a4638 !important;
+  box-shadow: 4px 4px 0 #4a4638 !important;
+  background: #e8e2cf !important;
+  color: #2b2a22 !important;
+  backdrop-filter: none !important;
+}
+
+/* ============ NEOBRUTALISM ============ */
+[data-ui='neo'] .btn {
+  border-radius: 0 !important;
+  border: 3px solid #0d0d0d !important;
+  box-shadow: 3px 3px 0 #0d0d0d !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+[data-ui='neo'] .btn:active { box-shadow: 1px 1px 0 #0d0d0d !important; transform: translate(2px, 2px); }
+[data-ui='neo'] .input, [data-ui='neo'] .select, [data-ui='neo'] .textarea {
+  border-radius: 0 !important;
+  border: 3px solid #0d0d0d !important;
+  background: #fff !important;
+  color: #0d0d0d !important;
+  font-weight: 700 !important;
+}
+[data-ui='neo'] .badge { border-radius: 0 !important; border: 2px solid #0d0d0d !important; font-weight: 900 !important; }
+[data-ui='neo'] .table { border: 3px solid #0d0d0d !important; }
+[data-ui='neo'] .table th { background: #ffe23d !important; color: #0d0d0d !important; border-color: #0d0d0d !important; }
+[data-ui='neo'] .table td { border-color: #0d0d0d !important; }
+[data-ui='neo'] .modal-box { border-radius: 0 !important; border: 3px solid #0d0d0d !important; box-shadow: 8px 8px 0 #0d0d0d !important; }
+[data-ui='neo'] .toast { border-radius: 0 !important; border: 3px solid #0d0d0d !important; box-shadow: 5px 5px 0 #0d0d0d !important; backdrop-filter: none !important; font-weight: 800 !important; }
+[data-ui='neo'] .toast.toast-item--success { background: #b7f35b !important; color: #0d0d0d !important; }
+[data-ui='neo'] .toast.toast-item--error { background: #ff4d3d !important; color: #fff !important; }
+
+/* ============ ACRYLIC ============ */
+[data-ui='acrylic'] .btn {
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255,255,255,0.35) !important;
+  background: rgba(255,255,255,0.12) !important;
+  color: #f7fbff !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+[data-ui='acrylic'] .btn:hover { background: rgba(255,255,255,0.2) !important; }
+[data-ui='acrylic'] .input, [data-ui='acrylic'] .select, [data-ui='acrylic'] .textarea {
+  border-radius: 0.8rem !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  background: rgba(255,255,255,0.1) !important;
+  color: #f7fbff !important;
+}
+[data-ui='acrylic'] .input::placeholder { color: rgba(247,251,255,0.6) !important; }
+[data-ui='acrylic'] .badge { border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.3) !important; background: rgba(125,211,252,0.2) !important; color: #f7fbff !important; }
+[data-ui='acrylic'] .table { background: rgba(14,28,56,0.72) !important; border-radius: 0.9rem !important; overflow: hidden; }
+[data-ui='acrylic'] .table th, [data-ui='acrylic'] .table td { border-color: rgba(255,255,255,0.14) !important; color: #f7fbff !important; }
+[data-ui='acrylic'] .modal-box { border-radius: 1.3rem !important; border: 1px solid rgba(255,255,255,0.3) !important; background: rgba(16,32,64,0.9) !important; color: #f7fbff !important; backdrop-filter: blur(18px); }
+[data-ui='acrylic'] .toast { border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.3) !important; background: rgba(16,32,64,0.9) !important; color: #f7fbff !important; backdrop-filter: blur(18px); }
+
+/* ============ NEUMORPHISM ============ */
+[data-ui='neumo'] .btn {
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255,255,255,0.6) !important;
+  background: #e8e9ee !important;
+  color: #33384a !important;
+  box-shadow: 4px 4px 9px #c4c7d1, -4px -4px 9px #fff !important;
+}
+[data-ui='neumo'] .btn:active { box-shadow: inset 4px 4px 9px #c4c7d1, inset -4px -4px 9px #fff !important; }
+[data-ui='neumo'] .input, [data-ui='neumo'] .select, [data-ui='neumo'] .textarea {
+  border-radius: 0.9rem !important;
+  border: 1px solid rgba(255,255,255,0.6) !important;
+  background: #e8e9ee !important;
+  color: #33384a !important;
+  box-shadow: inset 4px 4px 9px #c4c7d1, inset -4px -4px 9px #fff !important;
+}
+[data-ui='neumo'] .badge { border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.7) !important; color: #33384a !important; box-shadow: 2px 2px 5px #c4c7d1 !important; }
+[data-ui='neumo'] .table { border-radius: 1rem !important; background: #e8e9ee !important; box-shadow: 6px 6px 14px #c4c7d1, -6px -6px 14px #fff !important; }
+[data-ui='neumo'] .table th, [data-ui='neumo'] .table td { border-color: #d5d7df !important; color: #33384a !important; }
+[data-ui='neumo'] .modal-box { border-radius: 1.4rem !important; border: 1px solid rgba(255,255,255,0.7) !important; background: #e8e9ee !important; color: #33384a !important; box-shadow: 10px 10px 24px #c4c7d1, -10px -10px 24px #fff !important; }
+[data-ui='neumo'] .toast { border-radius: 1rem !important; border: 1px solid rgba(255,255,255,0.7) !important; background: #e8e9ee !important; color: #33384a !important; box-shadow: 5px 5px 12px #c4c7d1, -5px -5px 12px #fff !important; backdrop-filter: none !important; }
+
+/* ============ EDITORIAL ============ */
+[data-ui='editorial'] .btn {
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid #1b1b1b !important;
+  background: transparent !important;
+  color: #1b1b1b !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+[data-ui='editorial'] .btn:hover { color: #7b2d3a !important; border-bottom-color: #7b2d3a !important; }
+[data-ui='editorial'] .input, [data-ui='editorial'] .select, [data-ui='editorial'] .textarea {
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid #1b1b1b !important;
+  background: transparent !important;
+  color: #1b1b1b !important;
+  font-family: Georgia, 'Times New Roman', serif !important;
+}
+[data-ui='editorial'] .badge { border-radius: 0 !important; border: 0 !important; border-bottom: 1px solid #7b2d3a !important; background: transparent !important; color: #7b2d3a !important; font-weight: 800 !important; }
+[data-ui='editorial'] .table { border-radius: 0 !important; border-top: 3px double #1b1b1b !important; }
+[data-ui='editorial'] .table th { border-bottom: 1px solid #1b1b1b !important; font-family: Georgia, serif !important; font-size: 1.05rem !important; }
+[data-ui='editorial'] .table td { border-color: #cfcbc0 !important; }
+[data-ui='editorial'] .modal-box { border-radius: 0 !important; border-top: 3px double #1b1b1b !important; box-shadow: none !important; background: #faf8f2 !important; color: #1b1b1b !important; }
+[data-ui='editorial'] .toast { border-radius: 0 !important; border: 0 !important; border-left: 4px solid #7b2d3a !important; box-shadow: none !important; background: #faf8f2 !important; color: #1b1b1b !important; backdrop-filter: none !important; }
+
+/* Fokus ring konsisten untuk semua tema */
+[data-ui] :is(.btn, .input, .select, .textarea, a):focus-visible {
+  outline: 2px solid currentColor !important;
+  outline-offset: 2px;
+}

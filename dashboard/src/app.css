@@ -1,5 +1,6 @@
 /* Import custom themes - MUST be first */
 @import './lib/styles/themes.css';
+@import './lib/styles/ui-components.css';
 
 /* Google Fonts dimuat via <link> di app.html (bukan @import) agar tidak
    render-blocking dan tidak diblokir CSP style-src. */
