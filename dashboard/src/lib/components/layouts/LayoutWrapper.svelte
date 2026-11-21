@@ -8,6 +8,7 @@
 	import FocusLayout from './FocusLayout.svelte';
 	import WorkspaceLayout from './WorkspaceLayout.svelte';
 	import RetroLayout from './RetroLayout.svelte';
+	import NeoLayout from './NeoLayout.svelte';
 
 	let currentLayout: ThemeLayout = 'apple';
 	let currentPath = '';
@@ -27,6 +28,8 @@
 	<WorkspaceLayout><slot /></WorkspaceLayout>
 {:else if currentLayout === 'retro'}
 	<RetroLayout><slot /></RetroLayout>
+{:else if currentLayout === 'neo'}
+	<NeoLayout><slot /></NeoLayout>
 {:else}
 	<AppleLayout {currentPath}><slot /></AppleLayout>
 {/if}

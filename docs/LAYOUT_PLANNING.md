@@ -11,7 +11,7 @@ Konteks: setelah layout lama dihapus, tersisa **Apple** sebagai satu-satunya lay
 | 1 | **Focus** | **Dikerjakan sekarang** | Canvas mode, tanpa chrome |
 | 2 | **Workspace** | **Dikerjakan sekarang** | Rail + context panel |
 | 3 | Retro UI | **SELESAI** (commit `retro`) | Vintage OS desktop: title bar, window, taskbar; mobile beda |
-| 4 | Neobrutalism | **Antre — tunggu prompt user** | prompt khusus menyusul |
+| 4 | Neobrutalism | **SELESAI** | Asymmetric bento; thick border; hard shadow; warna cerah |
 | 5 | Acrylic UI | **Antre — tunggu prompt user** | prompt khusus menyusul |
 | 6 | Neumorphism | **Antre — tunggu prompt user** | prompt khusus menyusul |
 | 7 | Editorial UI | **Antre — tunggu prompt user** | prompt khusus menyusul |

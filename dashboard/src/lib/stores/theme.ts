@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type ThemeLayout = 'apple' | 'focus' | 'workspace' | 'retro';
+export type ThemeLayout = 'apple' | 'focus' | 'workspace' | 'retro' | 'neo';
 export type ThemeColor =
 	| 'apple-light'
 	| 'apple-dark'
@@ -223,6 +223,12 @@ export const THEME_LAYOUTS = [
 		name: 'Retro UI',
 		description: 'Vintage computer UI — beige, pixel icon, window panel',
 		icon: '🖥️'
+	},
+	{
+		id: 'neo' as ThemeLayout,
+		name: 'Neobrutalism',
+		description: 'Bold bento workspace — thick border, hard shadow, loud color',
+		icon: '🟨'
 	}
 ] as const;
 
