@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
+	import { applyUiTheme } from '$lib/stores/ui-theme';
 	import { QueryClientProvider } from '@tanstack/svelte-query';
 	import { getQueryClient } from '$lib/api/queryClient';
 	import LoadingBar from '$lib/components/LoadingBar.svelte';
@@ -50,6 +51,9 @@
 		authStore.checkAuth();
 		themeStore.init();
 	});
+
+	// Seluruh halaman (termasuk /login & /apps) mengikuti warna layout aktif.
+	$: applyUiTheme($themeStore.layout);
 </script>
 
 <ErrorBoundary />

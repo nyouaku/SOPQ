@@ -138,3 +138,12 @@
   outline: 2px solid currentColor !important;
   outline-offset: 2px;
 }
+
+/* ============ AUTH / APP SELECTOR mengikuti layout ============
+   Login & /apps memakai token DaisyUI langsung. Override token
+   pada root scoped per layout supaya keduanya ikut warna UI. */
+[data-ui='retro'] { --b2: 36deg 24% 83%; --b1: 40deg 30% 90%; --bc: 40deg 12% 18%; --p: 84deg 22% 35%; }
+[data-ui='neo'] { --b2: 52deg 96% 60%; --b1: 0deg 0% 100%; --bc: 0deg 0% 5%; --p: 227deg 100% 58%; }
+[data-ui='acrylic'] { --b2: 222deg 55% 12%; --b1: 222deg 45% 18%; --bc: 210deg 100% 96%; --p: 199deg 94% 76%; }
+[data-ui='neumo'] { --b2: 228deg 12% 90%; --b1: 228deg 12% 93%; --bc: 230deg 18% 24%; --p: 232deg 40% 59%; }
+[data-ui='editorial'] { --b2: 42deg 47% 96%; --b1: 42deg 47% 98%; --bc: 0deg 0% 11%; --p: 353deg 49% 33%; }

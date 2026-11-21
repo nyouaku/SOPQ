@@ -50,12 +50,10 @@
 		return 'Selamat malam';
 	}
 
-	function toggleTheme() {
-		const next = $themeStore.color === 'apple-dark' ? 'apple-light' : 'apple-dark';
-		themeStore.setColor(next);
-	}
-
-	$: isDark = $themeStore.color === 'apple-dark';
+	$: activeLayout = $themeStore.layout;
+	$: isAcrylic = activeLayout === 'acrylic';
+	$: isRetro = activeLayout === 'retro';
+	$: isNeo = activeLayout === 'neo';
 
 	// Guard tambahan: staff mencoba akses inventory lewat URL langsung.
 	let blocked = false;
@@ -94,18 +92,9 @@
 			</div>
 		</div>
 		<div class="sel-actions">
-			<button class="iconbtn press" aria-label="Ganti tema" on:click={toggleTheme}>
-				{#if isDark}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-						<circle cx="12" cy="12" r="4" />
-						<path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4" />
-					</svg>
-				{:else}
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-						<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />
-					</svg>
-				{/if}
-			</button>
+			<a href="/settings" class="layout-chip press" aria-label="Ubah layout di Pengaturan" title="Ubah layout di Pengaturan">
+				{isRetro ? 'RETRO' : isNeo ? 'NEO' : isAcrylic ? 'ACRYLIC' : activeLayout.toUpperCase()}
+			</a>
 			<button class="iconbtn press" aria-label="Keluar" on:click={logout}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
 					<path d="M15 12H4m0 0l3-3m-3 3l3 3M10 4h8a2 2 0 012 2v12a2 2 0 01-2 2h-8" />
@@ -253,6 +242,18 @@
 	.iconbtn svg {
 		width: 1.3rem;
 		height: 1.3rem;
+	}
+	.layout-chip {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.35rem 0.65rem;
+		border: 1px solid hsl(var(--bc) / 0.2);
+		border-radius: 9999px;
+		font-size: 0.65rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: hsl(var(--bc));
+		text-decoration: none;
 	}
 
 	.sel-main {

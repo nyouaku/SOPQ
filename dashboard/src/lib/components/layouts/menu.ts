@@ -85,5 +85,19 @@ export function menuForRole(items: MenuItem[], roleName: string | undefined): Me
  * agar fitur Stock Opname dan Inventory Management benar-benar terpisah.
  */
 export function menuForApp(items: MenuItem[], app: AppId, roleName: string | undefined): MenuItem[] {
-	return menuForRole(items, roleName).filter((item) => (item.app ?? 'opname') === app || item.app === 'shared');
+	const scoped = menuForRole(items, roleName).filter((item) => (item.app ?? 'opname') === app || item.app === 'shared');
+
+	// Akses lintas-app wajib tersedia di SEMUA layout, bukan hanya Apple/Workspace.
+	// Staff tidak melihat switch Inventory (role backend tetap memblokir).
+	const manager = roleName === 'admin' || roleName === 'supervisor';
+	const switches: MenuItem[] = manager
+		? [
+				{ href: '/', label: 'Stock Opname', icon: '📸', shortcut: 'O', app: 'shared', access: 'view' },
+				{ href: '/inventory', label: 'Inventory', icon: '📦', shortcut: 'I', app: 'shared', access: 'full' }
+			]
+		: [{ href: '/', label: 'Stock Opname', icon: '📸', shortcut: 'O', app: 'shared', access: 'view' }];
+
+	// Hindari duplikat bila item dengan href sama sudah ada di daftar scoped.
+	const seen = new Set(scoped.map((i) => i.href));
+	return [...switches.filter((s) => !seen.has(s.href)), ...scoped];
 }

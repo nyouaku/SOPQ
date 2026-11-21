@@ -218,7 +218,7 @@
 					<p class="text-xs text-base-content/60">Perubahan langsung diterapkan</p>
 				</header>
 				<div class="p-4 md:p-5">
-					<ThemeSelector currentLayout={currentTheme.layout} currentColor={currentTheme.color} />
+					<ThemeSelector currentLayout={currentTheme.layout} />
 				</div>
 			</section>
 
