@@ -14,7 +14,9 @@ Konteks: setelah layout lama dihapus, tersisa **Apple** sebagai satu-satunya lay
 | 4 | Neobrutalism | **SELESAI** | Asymmetric bento; thick border; hard shadow; warna cerah |
 | 5 | Acrylic UI | **SELESAI** | Layered control center, acrylic rail + command + inspector |
 | 6 | Neumorphism | **SELESAI** | Central soft control panel; raised/inset surfaces |
-| 7 | Editorial UI | **Antre — tunggu prompt user** | prompt khusus menyusul |
+| 7 | Editorial UI | **SELESAI** | Publication masthead, two-column reading, serif typography |
+
+## Status akhir: semua 8 layout selesai (Apple, Focus, Workspace, Retro, Neo, Acrylic, Neumo, Editorial).
 
 Aturan antrean: **jangan memulai layout #3–#7 sebelum user mengirim prompt spesifik untuk layout itu.**
 Satu prompt = satu layout = satu fase implementasi + test + commit terpisah.

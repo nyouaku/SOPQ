@@ -11,6 +11,7 @@
 	import NeoLayout from './NeoLayout.svelte';
 	import AcrylicLayout from './AcrylicLayout.svelte';
 	import NeumoLayout from './NeumoLayout.svelte';
+	import EditorialLayout from './EditorialLayout.svelte';
 
 	let currentLayout: ThemeLayout = 'apple';
 	let currentPath = '';
@@ -36,6 +37,8 @@
 	<AcrylicLayout><slot /></AcrylicLayout>
 {:else if currentLayout === 'neumo'}
 	<NeumoLayout><slot /></NeumoLayout>
+{:else if currentLayout === 'editorial'}
+	<EditorialLayout><slot /></EditorialLayout>
 {:else}
 	<AppleLayout {currentPath}><slot /></AppleLayout>
 {/if}
