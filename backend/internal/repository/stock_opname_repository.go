@@ -165,6 +165,16 @@ func (r *stockOpnameRepository) ApproveWithStock(ctx context.Context, sessionID,
 		}
 
 		for _, d := range rows {
+			// Saldo sebelum koreksi — diambil dari stock saat ini di dalam transaksi
+			// yang sama (bukan snapshot scan, yang bisa sudah berubah).
+			var before int
+			if err := tx.Model(&domain.Stock{}).
+				Select("quantity_system").
+				Where("product_id = ? AND warehouse_id = ?", d.ProductID, session.WarehouseID).
+				Scan(&before).Error; err != nil {
+				return fmt.Errorf("failed to read stock before opname: %w", err)
+			}
+
 			// UPSERT: qty fisik jadi qty sistem baru; version naik untuk optimistic locking.
 			if err := tx.Exec(`
 				INSERT INTO stock (product_id, warehouse_id, quantity_system, version, updated_at)
@@ -175,6 +185,34 @@ func (r *stockOpnameRepository) ApproveWithStock(ctx context.Context, sessionID,
 				    updated_at      = now()`,
 				d.ProductID, session.WarehouseID, d.StockPhysical).Error; err != nil {
 				return fmt.Errorf("failed to write stock for product %s: %w", d.ProductID, err)
+			}
+
+			// Catat koreksi ke stock_ledger di transaksi yang sama — ini jembatan
+			// agar LedgerSummary.closing tetap cocok dengan stock.quantity_system
+			// setelah SO approve (tidak ada selisih antar dashboard & grid).
+			qtyIn, qtyOut := 0, 0
+			delta := d.StockPhysical - before
+			if delta > 0 {
+				qtyIn = delta
+			} else if delta < 0 {
+				qtyOut = -delta
+			}
+			refType := "stock_opname"
+			ledger := &domain.StockLedger{
+				ProductID:       d.ProductID,
+				WarehouseID:     session.WarehouseID,
+				TransactionType: domain.LedgerTypeOpnameCorrect,
+				ReferenceType:   refType,
+				ReferenceID:     &session.ID,
+				ReferenceCode:   session.Code,
+				QuantityIn:      qtyIn,
+				QuantityOut:     qtyOut,
+				BalanceAfter:    d.StockPhysical,
+				Note:            "koreksi hasil stock opname",
+				CreatedBy:       &approverID,
+			}
+			if err := tx.Create(ledger).Error; err != nil {
+				return fmt.Errorf("failed to write opname ledger for product %s: %w", d.ProductID, err)
 			}
 		}
 
