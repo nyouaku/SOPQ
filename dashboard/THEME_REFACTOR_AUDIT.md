@@ -52,3 +52,10 @@ Catatan: screenshot sebelum/sesudah **tidak tersedia** (no browser automation). 
 - Browser visual verification: Playwright Chromium, 1440×900. Full sweep: 28 routes × 5 layouts = 140 screenshots, 0 contrast failures.
 - Root cause cascade fix: `html[data-ui='…']` token selectors outrank `[data-theme='apple-dark']`; added `--b3` per layout so `bg-base-300` no longer inherits apple-dark on Retro/Neo/Neumo/Editorial/Acrylic.
 - Contrast regression: all five layouts pass computed-token check. Temporary screenshots and test scripts removed after verification.
+
+## Apple sidebar + Apple/Focus/Workspace text colors (follow-up)
+
+- Root cause sidebar: `navMode='hidden'` set `.sidebar { display:none }`; toggle button lived inside sidebar and mobile topbar is `display:none` on desktop → no way to restore.
+- Fix: persistent `.nav-restore` button rendered only when hidden, visible at `min-width:1024px`; clicking sets navMode back to `full`. Verified in browser: visible → hidden → restore works.
+- Root cause colors: 101 declarations used `hsl(var(--b1))` etc. DaisyUI v4 tokens are OKLCH (`100% 0 0`), so `hsl()` was invalid and `.glass`/`.card-apple`/sidebar backgrounds computed to `rgba(0,0,0,0)`.
+- Fix: replaced `hsl(var(--…))` → `oklch(var(--…))` across affected CSS/Svelte files. Verified: glass surfaces now compute to translucent color in both apple-light and apple-dark; Focus/Workspace rails also correct.

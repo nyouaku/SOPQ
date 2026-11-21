@@ -75,7 +75,7 @@
 	.focus-root {
 		position: relative;
 		min-height: 100dvh;
-		background: hsl(var(--b2));
+		background: oklch(var(--b2));
 	}
 	.focus-minibar {
 		position: fixed;
@@ -104,11 +104,11 @@
 		height: 1.9rem;
 		border-radius: 9999px;
 		border: 0;
-		background: hsl(var(--bc) / 0.06);
-		color: hsl(var(--bc));
+		background: oklch(var(--bc) / 0.06);
+		color: oklch(var(--bc));
 		cursor: pointer;
 	}
-	.mini-btn:hover { background: hsl(var(--bc) / 0.12); }
+	.mini-btn:hover { background: oklch(var(--bc) / 0.12); }
 	.mini-btn svg { width: 1rem; height: 1rem; }
 
 	.focus-menu {
@@ -132,18 +132,18 @@
 		padding: 0.5rem;
 		border-radius: 0.6rem;
 		font-size: 0.78rem;
-		color: hsl(var(--bc) / 0.8);
+		color: oklch(var(--bc) / 0.8);
 		text-decoration: none;
 	}
-	.focus-menu__item:hover { background: hsl(var(--bc) / 0.08); }
-	.focus-menu__item.active { background: hsl(var(--p) / 0.14); color: hsl(var(--p)); }
+	.focus-menu__item:hover { background: oklch(var(--bc) / 0.08); }
+	.focus-menu__item.active { background: oklch(var(--p) / 0.14); color: oklch(var(--p)); }
 	.focus-menu__item svg { width: 0.95rem; height: 0.95rem; flex: none; }
 	.focus-menu__user {
 		grid-column: 1 / -1;
 		padding: 0.4rem 0.5rem;
 		font-size: 0.7rem;
-		color: hsl(var(--bc) / 0.5);
-		border-top: 1px solid hsl(var(--bc) / 0.1);
+		color: oklch(var(--bc) / 0.5);
+		border-top: 1px solid oklch(var(--bc) / 0.1);
 	}
 
 	.focus-main { min-height: 100dvh; }

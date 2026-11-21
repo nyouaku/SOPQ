@@ -94,8 +94,8 @@
 		align-items: center;
 		justify-content: center;
 		gap: 1.25rem;
-		background: hsl(var(--b1));
-		color: hsl(var(--bc));
+		background: oklch(var(--b1));
+		color: oklch(var(--bc));
 		transition: opacity 320ms ease;
 	}
 
@@ -113,7 +113,7 @@
 
 	.preloader__sub {
 		font-size: 0.8125rem;
-		color: hsl(var(--bc) / 0.55);
+		color: oklch(var(--bc) / 0.55);
 		margin: -0.75rem 0 0;
 	}
 
@@ -122,7 +122,7 @@
 		position: relative;
 		width: 84px;
 		height: 84px;
-		color: hsl(var(--p));
+		color: oklch(var(--p));
 		overflow: hidden;
 	}
 	.preloader__scan svg {
@@ -135,8 +135,8 @@
 		right: 8%;
 		height: 2px;
 		top: 12%;
-		background: hsl(var(--p));
-		box-shadow: 0 0 12px hsl(var(--p));
+		background: oklch(var(--p));
+		box-shadow: 0 0 12px oklch(var(--p));
 		animation: scan-move 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 	}
 
@@ -150,7 +150,7 @@
 		position: absolute;
 		inset: 0;
 		border-radius: 9999px;
-		border: 2px solid hsl(var(--p) / 0.55);
+		border: 2px solid oklch(var(--p) / 0.55);
 		animation: ring-pulse 1.8s ease-out infinite;
 	}
 	.preloader__rings span:nth-child(2) {
@@ -170,7 +170,7 @@
 	}
 	.preloader__boxes span {
 		border-radius: 8px;
-		background: hsl(var(--p));
+		background: oklch(var(--p));
 		animation: box-flip 1.4s ease-in-out infinite;
 	}
 	.preloader__boxes span:nth-child(2) {
@@ -196,13 +196,13 @@
 		position: absolute;
 		inset: 32%;
 		border-radius: 9999px;
-		background: hsl(var(--p) / 0.25);
+		background: oklch(var(--p) / 0.25);
 	}
 	.preloader__orbit-dot {
 		position: absolute;
 		inset: 0;
 		border-radius: 9999px;
-		border: 1px dashed hsl(var(--p) / 0.4);
+		border: 1px dashed oklch(var(--p) / 0.4);
 		animation: orbit-spin 2.4s linear infinite;
 	}
 	.preloader__orbit-dot::after {
@@ -213,7 +213,7 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 9999px;
-		background: hsl(var(--p));
+		background: oklch(var(--p));
 	}
 
 	/* 5. skeleton */
@@ -229,9 +229,9 @@
 		border-radius: 6px;
 		background: linear-gradient(
 			90deg,
-			hsl(var(--bc) / 0.06) 0%,
-			hsl(var(--bc) / 0.16) 50%,
-			hsl(var(--bc) / 0.06) 100%
+			oklch(var(--bc) / 0.06) 0%,
+			oklch(var(--bc) / 0.16) 50%,
+			oklch(var(--bc) / 0.06) 100%
 		);
 		background-size: 200% 100%;
 		animation: skel 1.3s linear infinite;

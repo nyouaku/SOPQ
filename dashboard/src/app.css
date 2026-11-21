@@ -71,20 +71,20 @@
 @layer components {
   /* Translucent frosted panel (pola terbukti di BottomBar.svelte). */
   .glass {
-    background: color-mix(in srgb, hsl(var(--b1)) 72%, transparent);
+    background: color-mix(in srgb, oklch(var(--b1)) 72%, transparent);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
-    border: 1px solid color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(var(--bc)) 10%, transparent);
   }
 
   /* Kartu premium: rounded, soft shadow lembut (bukan border tebal). */
   .card-apple {
-    background: hsl(var(--b1));
+    background: oklch(var(--b1));
     border-radius: 1rem;
-    border: 1px solid color-mix(in srgb, hsl(var(--bc)) 8%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(var(--bc)) 8%, transparent);
     box-shadow:
-      0 1px 2px hsl(var(--bc) / 0.04),
-      0 8px 24px hsl(var(--bc) / 0.06);
+      0 1px 2px oklch(var(--bc) / 0.04),
+      0 8px 24px oklch(var(--bc) / 0.06);
     transition:
       transform 250ms var(--ease-apple),
       box-shadow 250ms var(--ease-apple);
@@ -92,16 +92,16 @@
   .card-apple--hover:hover {
     transform: translateY(-3px);
     box-shadow:
-      0 2px 4px hsl(var(--bc) / 0.05),
-      0 16px 40px hsl(var(--bc) / 0.1);
+      0 2px 4px oklch(var(--bc) / 0.05),
+      0 16px 40px oklch(var(--bc) / 0.1);
   }
 
   /* Garis pemisah hairline (bukan border tebal). */
   .hairline {
-    border-color: color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+    border-color: color-mix(in srgb, oklch(var(--bc)) 10%, transparent);
   }
   .hairline-b {
-    border-bottom: 1px solid color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, oklch(var(--bc)) 10%, transparent);
   }
 
   /* Tekanan tombol ala iOS. */

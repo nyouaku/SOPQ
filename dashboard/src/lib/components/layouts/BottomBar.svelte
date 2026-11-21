@@ -152,12 +152,12 @@
 		list-style: none;
 		margin: 0;
 		padding: 0.35rem;
-		background: color-mix(in srgb, hsl(var(--b2)) 82%, transparent);
+		background: color-mix(in srgb, oklch(var(--b2)) 82%, transparent);
 		backdrop-filter: saturate(180%) blur(20px);
 		-webkit-backdrop-filter: saturate(180%) blur(20px);
-		border: 1px solid hsl(var(--b3));
+		border: 1px solid oklch(var(--b3));
 		border-radius: 1.1rem;
-		box-shadow: 0 8px 32px hsl(var(--bc) / 0.18);
+		box-shadow: 0 8px 32px oklch(var(--bc) / 0.18);
 	}
 
 	.bottombar__item {
@@ -172,7 +172,7 @@
 		border-radius: 0.85rem;
 		border: 0;
 		background: transparent;
-		color: hsl(var(--bc) / 0.55);
+		color: oklch(var(--bc) / 0.55);
 		text-decoration: none;
 		cursor: pointer;
 		transition:
@@ -184,12 +184,12 @@
 
 	.bottombar__item:hover,
 	.bottombar__item:focus-visible {
-		color: hsl(var(--bc));
-		background: hsl(var(--bc) / 0.06);
+		color: oklch(var(--bc));
+		background: oklch(var(--bc) / 0.06);
 	}
 
 	.bottombar__item:focus-visible {
-		outline: 2px solid hsl(var(--p));
+		outline: 2px solid oklch(var(--p));
 		outline-offset: 2px;
 	}
 
@@ -199,7 +199,7 @@
 	}
 
 	.bottombar__item--active {
-		color: hsl(var(--p));
+		color: oklch(var(--p));
 	}
 
 	.bottombar__item--active::after {
@@ -211,7 +211,7 @@
 		width: 0.9rem;
 		height: 3px;
 		border-radius: 9999px;
-		background: hsl(var(--p));
+		background: oklch(var(--p));
 	}
 
 	.bottombar__icon {
@@ -253,11 +253,11 @@
 		width: 100%;
 		max-width: 22rem;
 		border-radius: 1.1rem;
-		border: 1px solid hsl(var(--b3));
-		background: color-mix(in srgb, hsl(var(--b2)) 92%, transparent);
+		border: 1px solid oklch(var(--b3));
+		background: color-mix(in srgb, oklch(var(--b2)) 92%, transparent);
 		backdrop-filter: saturate(180%) blur(20px);
 		-webkit-backdrop-filter: saturate(180%) blur(20px);
-		box-shadow: 0 12px 40px hsl(var(--bc) / 0.22);
+		box-shadow: 0 12px 40px oklch(var(--bc) / 0.22);
 	}
 
 	.more-sheet__item {
@@ -266,17 +266,17 @@
 		gap: 0.65rem;
 		padding: 0.7rem 0.85rem;
 		border-radius: 0.8rem;
-		color: hsl(var(--bc) / 0.8);
+		color: oklch(var(--bc) / 0.8);
 		text-decoration: none;
 		font-size: 0.875rem;
 	}
 	.more-sheet__item:hover,
 	.more-sheet__item:focus-visible {
-		background: hsl(var(--bc) / 0.06);
-		color: hsl(var(--bc));
+		background: oklch(var(--bc) / 0.06);
+		color: oklch(var(--bc));
 	}
 	.more-sheet__item--active {
-		color: hsl(var(--p));
+		color: oklch(var(--p));
 		font-weight: 600;
 	}
 	.more-sheet__emoji {
@@ -290,7 +290,7 @@
 		z-index: 44;
 		border: 0;
 		padding: 0;
-		background: hsl(var(--bc) / 0.25);
+		background: oklch(var(--bc) / 0.25);
 		cursor: default;
 	}
 

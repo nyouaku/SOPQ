@@ -96,7 +96,7 @@
 <style>
 	.workspace-root {
 		min-height: 100dvh;
-		background: hsl(var(--b2));
+		background: oklch(var(--b2));
 	}
 	.rail {
 		position: fixed;
@@ -118,7 +118,7 @@
 		display: grid;
 		place-items: center;
 		font-weight: 800;
-		color: hsl(var(--p));
+		color: oklch(var(--p));
 	}
 	.rail__nav {
 		flex: 1;
@@ -137,12 +137,12 @@
 		border: 0;
 		border-radius: 0.75rem;
 		background: transparent;
-		color: hsl(var(--bc) / 0.6);
+		color: oklch(var(--bc) / 0.6);
 		cursor: pointer;
 		text-decoration: none;
 	}
-	.rail__btn:hover { background: hsl(var(--bc) / 0.08); color: hsl(var(--bc)); }
-	.rail__btn.active { background: hsl(var(--p) / 0.14); color: hsl(var(--p)); }
+	.rail__btn:hover { background: oklch(var(--bc) / 0.08); color: oklch(var(--bc)); }
+	.rail__btn.active { background: oklch(var(--p) / 0.14); color: oklch(var(--p)); }
 	.rail__btn svg { width: 1.1rem; height: 1.1rem; }
 	.rail__foot {
 		width: 2rem;
@@ -150,8 +150,8 @@
 		display: grid;
 		place-items: center;
 		border-radius: 9999px;
-		background: hsl(var(--p) / 0.16);
-		color: hsl(var(--p));
+		background: oklch(var(--p) / 0.16);
+		color: oklch(var(--p));
 		font-size: 0.75rem;
 		font-weight: 700;
 	}
@@ -197,12 +197,12 @@
 		padding: 0.75rem;
 		font-size: 0.8rem;
 		font-weight: 700;
-		border-bottom: 1px solid hsl(var(--bc) / 0.1);
+		border-bottom: 1px solid oklch(var(--bc) / 0.1);
 	}
 	.context__head button {
 		border: 0;
 		background: transparent;
-		color: hsl(var(--bc) / 0.5);
+		color: oklch(var(--bc) / 0.5);
 		cursor: pointer;
 	}
 	.context__body { flex: 1; overflow-y: auto; padding: 0.75rem; }

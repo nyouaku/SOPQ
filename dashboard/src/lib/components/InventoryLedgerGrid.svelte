@@ -288,15 +288,15 @@
 <style>
 	.spreadsheet-table { border-collapse: separate; border-spacing: 0; }
 	.spreadsheet-table th, .spreadsheet-table td {
-		white-space: nowrap; padding: 0.3rem 0.5rem; border-bottom: 1px solid hsl(var(--bc) / 0.08);
+		white-space: nowrap; padding: 0.3rem 0.5rem; border-bottom: 1px solid oklch(var(--bc) / 0.08);
 	}
-	.spreadsheet-table tbody tr:hover td { background: hsl(var(--bc) / 0.04); }
+	.spreadsheet-table tbody tr:hover td { background: oklch(var(--bc) / 0.04); }
 	.grid-cell {
 		width: 3.5rem; border: 0; background: transparent; color: inherit;
 		font-family: 'JetBrains Mono', monospace; text-align: center; outline: none;
 	}
-	.grid-cell:focus { background: hsl(var(--p) / 0.12); box-shadow: inset 0 0 0 1px hsl(var(--p)); }
-	.grid-cell-out:focus { background: hsl(var(--er) / 0.12); box-shadow: inset 0 0 0 1px hsl(var(--er)); }
-	.grid-cell-ret:focus { background: hsl(var(--warning) / 0.12); box-shadow: inset 0 0 0 1px hsl(var(--warning)); }
+	.grid-cell:focus { background: oklch(var(--p) / 0.12); box-shadow: inset 0 0 0 1px oklch(var(--p)); }
+	.grid-cell-out:focus { background: oklch(var(--er) / 0.12); box-shadow: inset 0 0 0 1px oklch(var(--er)); }
+	.grid-cell-ret:focus { background: oklch(var(--warning) / 0.12); box-shadow: inset 0 0 0 1px oklch(var(--warning)); }
 	input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>

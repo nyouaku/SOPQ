@@ -49,7 +49,7 @@
 		justify-content: center;
 		width: var(--size);
 		height: var(--size);
-		color: hsl(var(--p));
+		color: oklch(var(--p));
 		flex: none;
 	}
 

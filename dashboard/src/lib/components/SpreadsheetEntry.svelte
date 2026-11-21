@@ -439,7 +439,7 @@
 		position: fixed;
 		inset: 0;
 		z-index: 20; /* AppleLayout sidebar = 30, bottombar = 40 */
-		background: hsl(var(--b2) / 0.97);
+		background: oklch(var(--b2) / 0.97);
 		backdrop-filter: saturate(160%) blur(12px);
 		-webkit-backdrop-filter: saturate(160%) blur(12px);
 		padding: 3.75rem 1rem 5.5rem;
@@ -464,7 +464,7 @@
 		padding: 0.6rem 0.75rem;
 		margin: -0.6rem -0.75rem 0.75rem;
 		border-radius: 0.9rem;
-		background: hsl(var(--b1) / 0.9);
+		background: oklch(var(--b1) / 0.9);
 		backdrop-filter: blur(10px);
 	}
 	.exit-fullscreen {
@@ -473,13 +473,13 @@
 		bottom: 5.5rem;
 		z-index: 21;
 		border-radius: 9999px;
-		box-shadow: 0 8px 24px hsl(var(--bc) / 0.18);
+		box-shadow: 0 8px 24px oklch(var(--bc) / 0.18);
 	}
 	@media (min-width: 1024px) {
 		.exit-fullscreen { bottom: 1.5rem; }
 	}
 
 	.spreadsheet-row:nth-child(even) {
-		background-color: color-mix(in srgb, hsl(var(--b1)) 70%, transparent);
+		background-color: color-mix(in srgb, oklch(var(--b1)) 70%, transparent);
 	}
 </style>

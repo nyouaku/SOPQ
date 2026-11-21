@@ -187,6 +187,20 @@
 		</div>
 	</aside>
 
+	{#if navMode === 'hidden'}
+		<!-- Tombol pemulih tetap terlihat di desktop saat sidebar disembunyikan. -->
+		<button
+			class="nav-restore glass press"
+			aria-label="Tampilkan navigasi"
+			title="Tampilkan navigasi"
+			on:click={() => setNavMode('full')}
+		>
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+				<path d="M4 6h16M4 12h16M4 18h16" /><path d="M9 6v12" />
+			</svg>
+		</button>
+	{/if}
+
 	<!-- Main content -->
 	<main class="apple-main">
 		<div class="apple-main__inner" in:fly={{ y: 8, duration: 360, easing: cubicOut }}>
@@ -206,8 +220,8 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		background: hsl(var(--b2));
-		color: hsl(var(--bc));
+		background: oklch(var(--b2));
+		color: oklch(var(--bc));
 	}
 
 	/* Ambient gradient — dua blob blur besar, bergerak sangat lambat. */
@@ -230,7 +244,7 @@
 		height: 42rem;
 		top: -12rem;
 		right: -10rem;
-		background: hsl(var(--p) / 0.25);
+		background: oklch(var(--p) / 0.25);
 		animation: floatA 24s var(--ease-apple) infinite alternate;
 	}
 	.ambient__blob--b {
@@ -238,7 +252,7 @@
 		height: 34rem;
 		bottom: -12rem;
 		left: -10rem;
-		background: hsl(var(--s) / 0.18);
+		background: oklch(var(--s) / 0.18);
 		animation: floatB 30s var(--ease-apple) infinite alternate;
 	}
 	@keyframes floatA {
@@ -279,7 +293,7 @@
 		width: 2.25rem;
 		height: 2.25rem;
 		border-radius: 0.7rem;
-		color: hsl(var(--bc));
+		color: oklch(var(--bc));
 	}
 	.iconbtn svg {
 		width: 1.25rem;
@@ -319,7 +333,7 @@
 	}
 	.brandsub {
 		font-size: 0.72rem;
-		color: hsl(var(--bc) / 0.55);
+		color: oklch(var(--bc) / 0.55);
 		margin-top: 0.1rem;
 	}
 	.switchapp {
@@ -331,12 +345,12 @@
 		border-radius: 0.6rem;
 		font-size: 0.76rem;
 		font-weight: 500;
-		background: hsl(var(--p) / 0.1);
-		color: hsl(var(--p));
+		background: oklch(var(--p) / 0.1);
+		color: oklch(var(--p));
 		transition: background var(--dur-hover) var(--ease-apple);
 	}
 	.switchapp:hover {
-		background: hsl(var(--p) / 0.18);
+		background: oklch(var(--p) / 0.18);
 	}
 	.switchapp svg {
 		width: 0.95rem;
@@ -357,16 +371,16 @@
 		gap: 0.7rem;
 		padding: 0.6rem 0.75rem;
 		border-radius: 0.7rem;
-		color: hsl(var(--bc) / 0.8);
+		color: oklch(var(--bc) / 0.8);
 		transition: background var(--dur-hover) var(--ease-apple), color var(--dur-hover) var(--ease-apple);
 	}
 	.navitem:hover {
-		background: hsl(var(--bc) / 0.06);
-		color: hsl(var(--bc));
+		background: oklch(var(--bc) / 0.06);
+		color: oklch(var(--bc));
 	}
 	.navitem--active {
-		background: hsl(var(--p) / 0.14);
-		color: hsl(var(--p));
+		background: oklch(var(--p) / 0.14);
+		color: oklch(var(--p));
 		font-weight: 600;
 	}
 	.navitem__icon {
@@ -384,7 +398,7 @@
 		gap: 0.6rem;
 	}
 	.hairline-t {
-		border-top: 1px solid color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
+		border-top: 1px solid color-mix(in srgb, oklch(var(--bc)) 10%, transparent);
 	}
 	.usercard {
 		display: flex;
@@ -398,8 +412,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: hsl(var(--p) / 0.16);
-		color: hsl(var(--p));
+		background: oklch(var(--p) / 0.16);
+		color: oklch(var(--p));
 		font-weight: 600;
 		font-size: 0.85rem;
 		flex-shrink: 0;
@@ -413,7 +427,7 @@
 	}
 	.usercard__role {
 		font-size: 0.72rem;
-		color: hsl(var(--bc) / 0.55);
+		color: oklch(var(--bc) / 0.55);
 		text-transform: capitalize;
 	}
 	.logout {
@@ -423,11 +437,11 @@
 		padding: 0.5rem 0.7rem;
 		border-radius: 0.6rem;
 		font-size: 0.85rem;
-		color: hsl(var(--bc) / 0.7);
+		color: oklch(var(--bc) / 0.7);
 	}
 	.logout:hover {
-		background: hsl(var(--er) / 0.12);
-		color: hsl(var(--er));
+		background: oklch(var(--er) / 0.12);
+		color: oklch(var(--er));
 	}
 	.logout svg {
 		width: 1.05rem;
@@ -480,7 +494,7 @@
 		margin-left: auto;
 		border: 0;
 		background: transparent;
-		color: hsl(var(--bc) / 0.5);
+		color: oklch(var(--bc) / 0.5);
 		font-size: 1rem;
 		line-height: 1;
 		padding: 0.15rem 0.3rem;
@@ -488,8 +502,8 @@
 		cursor: pointer;
 	}
 	.nav-collapse:hover {
-		background: hsl(var(--bc) / 0.1);
-		color: hsl(var(--bc));
+		background: oklch(var(--bc) / 0.1);
+		color: oklch(var(--bc));
 	}
 
 	/* Ikon-saja: sembunyikan label & teks, sempitkan sidebar */
@@ -504,6 +518,27 @@
 	/* Sembunyikan penuh: sidebar hilang; BottomBar tak di-render saat hidden */
 	.apple-root.nav-hidden .sidebar { display: none; }
 	.apple-root.nav-hidden .apple-main { padding-left: 0; }
+
+	/* Tombol pemulih navigasi: hanya desktop; mobile memakai topbar. */
+	.nav-restore {
+		display: none;
+		position: fixed;
+		top: 1rem;
+		left: 1rem;
+		z-index: 60;
+		width: 2.6rem;
+		height: 2.6rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.75rem;
+		color: oklch(var(--bc));
+		cursor: pointer;
+	}
+	.nav-restore svg { width: 1.2rem; height: 1.2rem; }
+
+	@media (min-width: 1024px) {
+		.apple-root.nav-hidden .nav-restore { display: flex; }
+	}
 
 	@media (min-width: 1024px) {
 		.apple-root.nav-icons .sidebar { width: 4.2rem; }

@@ -49,24 +49,24 @@
 		gap: 0.5rem;
 		padding: 0.625rem 0.75rem;
 		border-radius: 0.85rem;
-		border: 1px solid hsl(var(--b3));
-		background: color-mix(in srgb, hsl(var(--b2)) 94%, transparent);
+		border: 1px solid oklch(var(--b3));
+		background: color-mix(in srgb, oklch(var(--b2)) 94%, transparent);
 		backdrop-filter: blur(12px);
 		-webkit-backdrop-filter: blur(12px);
-		box-shadow: 0 10px 30px hsl(var(--bc) / 0.18);
+		box-shadow: 0 10px 30px oklch(var(--bc) / 0.18);
 		font-size: 0.8125rem;
 		line-height: 1.35;
-		color: hsl(var(--bc));
+		color: oklch(var(--bc));
 		animation: toast-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
 	}
 
 	.toast-item--success {
-		border-color: hsl(var(--su) / 0.5);
-		color: hsl(var(--su));
+		border-color: oklch(var(--su) / 0.5);
+		color: oklch(var(--su));
 	}
 	.toast-item--error {
-		border-color: hsl(var(--er) / 0.5);
-		color: hsl(var(--er));
+		border-color: oklch(var(--er) / 0.5);
+		color: oklch(var(--er));
 	}
 
 	.toast-close {
