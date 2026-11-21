@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
 	import { EDITORIAL_ICONS, editorialIconFor } from './editorial-icons';
@@ -13,13 +14,18 @@
 			?.label ?? (activeApp === 'inventory' ? 'Inventory' : 'Stock Opname');
 	$: user = $authStore.user;
 
-	let category = 'all';
 	let mobileNav = false;
 	let searchOpen = false;
+	let searchQuery = '';
 	let today = '';
 	$: if (currentPath) mobileNav = false;
 
-	$: filtered = category === 'all' ? visible : visible.filter((i) => i.href.includes(category));
+	function searchSubmit(e: Event) {
+		e.preventDefault();
+		if (!searchQuery.trim()) return;
+		goto('/products');
+		searchOpen = false;
+	}
 
 	onMount(() => {
 		today = new Date().toLocaleDateString('id-ID', {
@@ -51,11 +57,12 @@
 	</header>
 
 	{#if searchOpen}
-		<div class="search-strip">
+		<form class="search-strip" on:submit={searchSubmit}>
 			<svg viewBox="0 0 24 24" class="ed-ico"><path d={EDITORIAL_ICONS.search} /></svg>
-			<input placeholder="Cari di edisi ini…" aria-label="Cari" />
-			<button class="press" aria-label="Tutup pencarian" title="Tutup" on:click={() => (searchOpen = false)}>✕</button>
-		</div>
+			<input bind:value={searchQuery} placeholder="Cari produk… (Enter membuka Products)" aria-label="Cari" />
+			<button type="submit" class="press">Cari</button>
+			<button type="button" class="press" aria-label="Tutup pencarian" title="Tutup" on:click={() => (searchOpen = false)}>✕</button>
+		</form>
 	{/if}
 
 	<!-- ===== EDITORIAL NAVIGATION ===== -->

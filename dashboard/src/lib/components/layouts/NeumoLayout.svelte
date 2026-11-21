@@ -40,9 +40,9 @@
 			<span class="n-pill outline">{visible.length} MODUL</span>
 		</div>
 		<div class="n-top-right">
-			<button class="n-icon press" aria-label="Notifikasi" title="Notifikasi">
+			<a href="/activity" class="n-icon press" aria-label="Aktivitas & notifikasi" title="Aktivitas & notifikasi">
 				<svg viewBox="0 0 24 24" class="n-ico"><path d={NEUMO_ICONS.bell} /></svg>
-			</button>
+			</a>
 			<a href="/settings" class="n-icon press" aria-label="Pengaturan" title="Pengaturan">
 				<svg viewBox="0 0 24 24" class="n-ico"><path d={NEUMO_ICONS.settings} /></svg>
 			</a>

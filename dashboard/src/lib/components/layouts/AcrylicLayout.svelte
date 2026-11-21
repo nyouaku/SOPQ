@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
 	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
@@ -23,8 +24,9 @@
 
 	function searchSubmit(e: Event) {
 		e.preventDefault();
-		// Pencarian global tidak diubah di layout: untuk saat ini fokus ke halaman.
-		// TODO: sambungkan ke endpoint pencarian bila tersedia.
+		// Halaman Products sudah punya field search; arahkan ke sana.
+		// (Layout tidak boleh mengubah logika pencarian bisnis.)
+		goto('/products');
 	}
 
 	onMount(() => {
@@ -76,12 +78,12 @@
 			<svg viewBox="0 0 24 24" class="acr-ico"><path d={ACRYLIC_ICONS.search} /></svg>
 			<input bind:value={search} placeholder="Cari modul, produk, sesi…" aria-label="Pencarian" />
 			<span class="cmd-hint">⌘ K</span>
-			<button type="button" class="cmd-icon" aria-label="Notifikasi" title="Notifikasi">
+			<a href="/activity" class="cmd-icon" aria-label="Aktivitas & notifikasi" title="Aktivitas & notifikasi">
 				<svg viewBox="0 0 24 24" class="acr-ico"><path d={ACRYLIC_ICONS.bell} /></svg>
-			</button>
-			<button type="button" class="cmd-icon" aria-label="Profil" title="Profil">
+			</a>
+			<a href="/settings" class="cmd-icon" aria-label="Profil & pengaturan" title="Profil & pengaturan">
 				<svg viewBox="0 0 24 24" class="acr-ico"><path d={ACRYLIC_ICONS.profile} /></svg>
-			</button>
+			</a>
 		</form>
 
 		<!-- layered workspace -->
@@ -273,7 +275,8 @@
 	}
 	.acr-command input::placeholder { color: rgba(255,255,255,0.55); }
 	.cmd-hint { font-size: 0.65rem; padding: 0.15rem 0.4rem; border: 1px solid var(--a-line); border-radius: 0.4rem; }
-	.cmd-icon { border: 0; background: transparent; color: rgba(255,255,255,0.8); cursor: pointer; padding: 0.2rem; }
+	.cmd-icon { display: inline-flex; align-items: center; border: 0; background: transparent; color: rgba(255,255,255,0.8); cursor: pointer; padding: 0.2rem; text-decoration: none; }
+	.cmd-icon:hover { color: #fff; }
 
 	.acr-workspace {
 		display: grid;
