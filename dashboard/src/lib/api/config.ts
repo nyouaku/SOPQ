@@ -58,6 +58,7 @@ export const API_ENDPOINTS = {
 	// Stock Ledger (kartu stok)
 	stockLedgerProduct: (productId: string, warehouseId: string) =>
 		`/stock-ledger/product/${productId}/${warehouseId}`,
+	stockLedgerSummary: '/stock-ledger/summary',
 	stockLedgerWarehouse: (warehouseId: string) =>
 		`/stock-ledger/warehouse/${warehouseId}`,
 	stockLedgerRange: '/stock-ledger/range',

@@ -5,16 +5,17 @@
 	import Loader from '$lib/components/Loader.svelte';
 	import SpreadsheetEntry from '$lib/components/SpreadsheetEntry.svelte';
 	import QuickEntry from '$lib/components/QuickEntry.svelte';
+	import InventoryLedgerGrid from '$lib/components/InventoryLedgerGrid.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { API_ENDPOINTS } from '$lib/api/config';
 	import { toastStore } from '$lib/stores/toast';
 	import { localMonth } from '$lib/utils/date';
 
-	/** Tampilan input harian: Spreadsheet (tabel ala Excel, utama) atau Cepat (form per-transaksi). */
-	type ViewMode = 'spreadsheet' | 'quick';
+	/** Tampilan input harian: Ledger (model Excel), Spreadsheet, atau Cepat. */
+	type ViewMode = 'ledger' | 'spreadsheet' | 'quick';
 	const SETTINGS_KEY = 'stock-opname-inventory-settings';
 
-	let viewMode: ViewMode = 'spreadsheet';
+	let viewMode: ViewMode = 'ledger';
 	let direction: 'out' | 'in' = 'out';
 	let warehouseId = '';
 	let month = localMonth();
@@ -35,7 +36,7 @@
 		if (!raw) return;
 		try {
 			const s = JSON.parse(raw);
-			if (s.gridEntryMode === 'quick' || s.gridEntryMode === 'spreadsheet') {
+			if (s.gridEntryMode === 'quick' || s.gridEntryMode === 'spreadsheet' || s.gridEntryMode === 'ledger') {
 				viewMode = s.gridEntryMode;
 			}
 			if (s.defaultMode === 'in' || s.defaultMode === 'out') direction = s.defaultMode;
@@ -105,7 +106,10 @@
 				<input type="month" class="input input-bordered input-sm" bind:value={month} aria-label="Bulan" />
 
 				<!-- Tab tampilan -->
-				<div class="ml-auto grid grid-cols-2 gap-1 rounded-xl bg-base-300 p-1" role="tablist">
+				<div class="ml-auto grid grid-cols-3 gap-1 rounded-xl bg-base-300 p-1" role="tablist">
+					<button role="tab" aria-selected={viewMode === 'ledger'}
+						class="rounded-lg px-3 py-1.5 text-sm font-medium {viewMode === 'ledger' ? 'bg-base-100 shadow-sm' : 'opacity-60'}"
+						on:click={() => onViewModeChange('ledger')}>📒 Ledger</button>
 					<button role="tab" aria-selected={viewMode === 'spreadsheet'}
 						class="rounded-lg px-3 py-1.5 text-sm font-medium {viewMode === 'spreadsheet' ? 'bg-base-100 shadow-sm' : 'opacity-60'}"
 						on:click={() => onViewModeChange('spreadsheet')}>📊 Spreadsheet</button>
@@ -126,8 +130,10 @@
 			</div>
 		{:else if viewMode === 'quick'}
 			<QuickEntry {warehouseId} {direction} {month} />
-		{:else}
+		{:else if viewMode === 'spreadsheet'}
 			<SpreadsheetEntry {warehouseId} {month} />
+		{:else}
+			<InventoryLedgerGrid {warehouseId} {month} />
 		{/if}
 	</div>
 </LayoutWrapper>
