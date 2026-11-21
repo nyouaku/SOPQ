@@ -9,8 +9,8 @@ body {
 	margin: 0;
 	padding: 0;
 	font-family: 'Inter', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-	background-color: hsl(var(--b2));
-	color: hsl(var(--bc));
+	background-color: oklch(var(--b2));
+	color: oklch(var(--bc));
 }
 
 /* Angka & metrik: monospace + tabular agar kolom sejajar */
@@ -26,14 +26,14 @@ pre {
 /* Scrollbar tipis, mengikuti token DaisyUI */
 * {
 	scrollbar-width: thin;
-	scrollbar-color: hsl(var(--bc) / 0.25) transparent;
+	scrollbar-color: oklch(var(--bc) / 0.25) transparent;
 }
 *::-webkit-scrollbar {
 	width: 8px;
 	height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-	background-color: hsl(var(--bc) / 0.25);
+	background-color: oklch(var(--bc) / 0.25);
 	border-radius: 9999px;
 }
 *::-webkit-scrollbar-track {
@@ -43,7 +43,7 @@ pre {
 /* Focus ring terlihat (WCAG 2.2 AA, kontras ≥ 3:1).
    Jangan pakai `outline: none` tanpa pengganti. */
 :focus-visible {
-	outline: 2px solid hsl(var(--p));
+	outline: 2px solid oklch(var(--p));
 	outline-offset: 2px;
 }
 

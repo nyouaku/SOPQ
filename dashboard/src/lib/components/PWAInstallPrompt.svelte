@@ -10,16 +10,30 @@
 
 	let deferredPrompt: BeforeInstallPromptEvent | null = null;
 	let showBanner = false;
+	let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function scheduleHide() {
+		if (hideTimer) clearTimeout(hideTimer);
+		hideTimer = setTimeout(() => {
+			showBanner = false;
+			hideTimer = null;
+		}, 5000);
+	}
 
 	function onBeforeInstallPrompt(e: Event) {
 		e.preventDefault();
 		deferredPrompt = e as BeforeInstallPromptEvent;
 		const dismissed = localStorage.getItem('pwa-install-dismissed');
-		if (!dismissed) showBanner = true;
+		if (!dismissed) {
+			showBanner = true;
+			scheduleHide();
+		}
 	}
 
 	function onAppInstalled() {
 		deferredPrompt = null;
+		if (hideTimer) clearTimeout(hideTimer);
+		hideTimer = null;
 		showBanner = false;
 	}
 
@@ -37,11 +51,14 @@
 	}
 
 	function dismiss() {
+		if (hideTimer) clearTimeout(hideTimer);
+		hideTimer = null;
 		showBanner = false;
 		localStorage.setItem('pwa-install-dismissed', '1');
 	}
 
 	onDestroy(() => {
+		if (hideTimer) clearTimeout(hideTimer);
 		window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
 		window.removeEventListener('appinstalled', onAppInstalled);
 	});

@@ -146,8 +146,8 @@
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		background: hsl(var(--b2));
-		color: hsl(var(--bc));
+		background: oklch(var(--b2));
+		color: oklch(var(--bc));
 	}
 	.ambient {
 		position: fixed;
@@ -166,7 +166,7 @@
 		height: 40rem;
 		top: -14rem;
 		left: -8rem;
-		background: hsl(var(--p) / 0.3);
+		background: oklch(var(--p) / 0.3);
 		animation: floatA 26s var(--ease-apple) infinite alternate;
 	}
 	.ambient__blob--b {
@@ -174,7 +174,7 @@
 		height: 36rem;
 		bottom: -12rem;
 		right: -10rem;
-		background: hsl(var(--s) / 0.22);
+		background: oklch(var(--s) / 0.22);
 		animation: floatB 32s var(--ease-apple) infinite alternate;
 	}
 	@keyframes floatA {
@@ -209,8 +209,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: hsl(var(--p) / 0.16);
-		color: hsl(var(--p));
+		background: oklch(var(--p) / 0.16);
+		color: oklch(var(--p));
 		font-weight: 700;
 		flex-shrink: 0;
 	}
@@ -222,7 +222,7 @@
 	}
 	.userchip__role {
 		font-size: 0.74rem;
-		color: hsl(var(--bc) / 0.55);
+		color: oklch(var(--bc) / 0.55);
 		text-transform: capitalize;
 	}
 	.sel-actions {
@@ -237,7 +237,7 @@
 		width: 2.4rem;
 		height: 2.4rem;
 		border-radius: 0.75rem;
-		color: hsl(var(--bc));
+		color: oklch(var(--bc));
 	}
 	.iconbtn svg {
 		width: 1.3rem;
@@ -247,12 +247,12 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0.35rem 0.65rem;
-		border: 1px solid hsl(var(--bc) / 0.2);
+		border: 1px solid oklch(var(--bc) / 0.2);
 		border-radius: 9999px;
 		font-size: 0.65rem;
 		font-weight: 800;
 		letter-spacing: 0.08em;
-		color: hsl(var(--bc));
+		color: oklch(var(--bc));
 		text-decoration: none;
 	}
 
@@ -275,7 +275,7 @@
 	.sel-sub {
 		margin-top: 0.4rem;
 		font-size: 1rem;
-		color: hsl(var(--bc) / 0.6);
+		color: oklch(var(--bc) / 0.6);
 	}
 
 	.cards {
@@ -298,7 +298,7 @@
 		padding: 2rem 1.5rem;
 		border-radius: 1.5rem;
 		text-decoration: none;
-		color: hsl(var(--bc));
+		color: oklch(var(--bc));
 		transition:
 			transform 280ms var(--ease-apple),
 			box-shadow 280ms var(--ease-apple);
@@ -306,8 +306,8 @@
 	.appcard:hover {
 		transform: translateY(-6px) scale(1.02);
 		box-shadow:
-			0 4px 8px hsl(var(--bc) / 0.06),
-			0 24px 56px hsl(var(--bc) / 0.14);
+			0 4px 8px oklch(var(--bc) / 0.06),
+			0 24px 56px oklch(var(--bc) / 0.14);
 	}
 	.appcard__icon {
 		width: 4.5rem;
@@ -317,7 +317,7 @@
 		align-items: center;
 		justify-content: center;
 		background: color-mix(in srgb, var(--accent) 16%, transparent);
-		color: color-mix(in srgb, var(--accent) 90%, hsl(var(--bc)));
+		color: color-mix(in srgb, var(--accent) 90%, oklch(var(--bc)));
 		transition: transform 280ms var(--ease-apple);
 	}
 	.appcard:hover .appcard__icon {
@@ -336,13 +336,13 @@
 	.appcard__desc {
 		font-size: 0.85rem;
 		line-height: 1.45;
-		color: hsl(var(--bc) / 0.6);
+		color: oklch(var(--bc) / 0.6);
 		max-width: 18rem;
 	}
 	.sel-note {
 		margin-top: 2rem;
 		font-size: 0.8rem;
-		color: hsl(var(--bc) / 0.5);
+		color: oklch(var(--bc) / 0.5);
 	}
 
 	@media (max-width: 640px) {

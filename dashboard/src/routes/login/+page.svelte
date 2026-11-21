@@ -118,8 +118,8 @@
 		align-items: center;
 		justify-content: center;
 		padding: 1.5rem;
-		background: hsl(var(--b2));
-		color: hsl(var(--bc));
+		background: oklch(var(--b2));
+		color: oklch(var(--bc));
 	}
 	.ambient {
 		position: absolute;
@@ -137,7 +137,7 @@
 		height: 38rem;
 		top: -12rem;
 		left: -10rem;
-		background: hsl(var(--p) / 0.35);
+		background: oklch(var(--p) / 0.35);
 		animation: floatA 22s var(--ease-apple) infinite alternate;
 	}
 	.ambient__blob--b {
@@ -145,7 +145,7 @@
 		height: 32rem;
 		bottom: -10rem;
 		right: -8rem;
-		background: hsl(var(--s) / 0.3);
+		background: oklch(var(--s) / 0.3);
 		animation: floatB 28s var(--ease-apple) infinite alternate;
 	}
 	.ambient__blob--c {
@@ -153,7 +153,7 @@
 		height: 22rem;
 		top: 40%;
 		left: 45%;
-		background: hsl(var(--a) / 0.18);
+		background: oklch(var(--a) / 0.18);
 		animation: floatC 26s var(--ease-apple) infinite alternate;
 	}
 	@keyframes floatA {
@@ -177,8 +177,8 @@
 		border-radius: 1.5rem;
 		padding: 2.25rem 2rem 2rem;
 		box-shadow:
-			0 2px 4px hsl(var(--bc) / 0.05),
-			0 24px 64px hsl(var(--bc) / 0.12);
+			0 2px 4px oklch(var(--bc) / 0.05),
+			0 24px 64px oklch(var(--bc) / 0.12);
 	}
 	.brand {
 		text-align: center;
@@ -192,8 +192,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: hsl(var(--p) / 0.14);
-		color: hsl(var(--p));
+		background: oklch(var(--p) / 0.14);
+		color: oklch(var(--p));
 	}
 	.brand__mark svg {
 		width: 2rem;
@@ -207,7 +207,7 @@
 	.brand__sub {
 		margin-top: 0.2rem;
 		font-size: 0.82rem;
-		color: hsl(var(--bc) / 0.55);
+		color: oklch(var(--bc) / 0.55);
 	}
 
 	.field {
@@ -218,22 +218,22 @@
 		font-size: 0.8rem;
 		font-weight: 500;
 		margin-bottom: 0.4rem;
-		color: hsl(var(--bc) / 0.7);
+		color: oklch(var(--bc) / 0.7);
 	}
 	.field input {
 		width: 100%;
 		padding: 0.7rem 0.85rem;
 		border-radius: 0.75rem;
-		background: hsl(var(--b2) / 0.7);
-		border: 1px solid color-mix(in srgb, hsl(var(--bc)) 10%, transparent);
-		color: hsl(var(--bc));
+		background: oklch(var(--b2) / 0.7);
+		border: 1px solid color-mix(in srgb, oklch(var(--bc)) 10%, transparent);
+		color: oklch(var(--bc));
 		font-size: 0.95rem;
 		transition: border-color var(--dur-hover) var(--ease-apple), box-shadow var(--dur-hover) var(--ease-apple);
 	}
 	.field input:focus {
 		outline: none;
-		border-color: hsl(var(--p) / 0.6);
-		box-shadow: 0 0 0 4px hsl(var(--p) / 0.12);
+		border-color: oklch(var(--p) / 0.6);
+		box-shadow: 0 0 0 4px oklch(var(--p) / 0.12);
 	}
 	.field input:disabled {
 		opacity: 0.6;
@@ -246,15 +246,15 @@
 		margin-bottom: 1rem;
 		padding: 0.65rem 0.85rem;
 		border-radius: 0.7rem;
-		background: hsl(var(--er) / 0.1);
-		color: hsl(var(--er));
+		background: oklch(var(--er) / 0.1);
+		color: oklch(var(--er));
 		font-size: 0.85rem;
 	}
 	.err__dot {
 		width: 0.45rem;
 		height: 0.45rem;
 		border-radius: 50%;
-		background: hsl(var(--er));
+		background: oklch(var(--er));
 		flex-shrink: 0;
 	}
 
@@ -265,8 +265,8 @@
 		border-radius: 0.85rem;
 		font-size: 0.95rem;
 		font-weight: 600;
-		background: hsl(var(--p));
-		color: hsl(var(--pc, 0 0% 100%));
+		background: oklch(var(--p));
+		color: oklch(var(--pc, 1 0 0));
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -295,7 +295,7 @@
 		right: 0;
 		text-align: center;
 		font-size: 0.72rem;
-		color: hsl(var(--bc) / 0.45);
+		color: oklch(var(--bc) / 0.45);
 		letter-spacing: 0.04em;
 	}
 </style>
