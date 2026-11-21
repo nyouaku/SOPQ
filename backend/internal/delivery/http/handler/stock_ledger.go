@@ -173,3 +173,39 @@ func (h *StockLedgerHandler) GetLedgerByDateRange(c *gin.Context) {
 		"limit":  limit,
 	})
 }
+
+// GetLedgerSummary godoc
+// @Summary Ringkasan mutasi stok per produk
+// @Description Saldo awal, masuk, keluar, saldo akhir per produk di satu gudang & periode. Derived dari stock_ledger.
+// @Tags stock-ledger
+// @Produce json
+// @Security BearerAuth
+// @Param warehouse_id query string true "Warehouse ID"
+// @Param from query string true "Tanggal mulai (YYYY-MM-DD)"
+// @Param to query string true "Tanggal akhir eksklusif (YYYY-MM-DD)"
+// @Success 200 {object} utils.SuccessResponse
+// @Router /api/v1/stock-ledger/summary [get]
+func (h *StockLedgerHandler) GetLedgerSummary(c *gin.Context) {
+	warehouseID, err := uuid.Parse(c.Query("warehouse_id"))
+	if err != nil {
+		utils.RespondBadRequest(c, "warehouse_id tidak valid")
+		return
+	}
+	from, err := time.Parse("2006-01-02", c.Query("from"))
+	if err != nil {
+		utils.RespondBadRequest(c, "from harus YYYY-MM-DD")
+		return
+	}
+	to, err := time.Parse("2006-01-02", c.Query("to"))
+	if err != nil {
+		utils.RespondBadRequest(c, "to harus YYYY-MM-DD")
+		return
+	}
+
+	rows, err := h.ledgerUsecase.GetLedgerSummary(c.Request.Context(), warehouseID, from, to)
+	if err != nil {
+		utils.RespondInternalError(c, err.Error())
+		return
+	}
+	utils.RespondOK(c, gin.H{"rows": rows})
+}

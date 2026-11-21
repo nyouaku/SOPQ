@@ -51,6 +51,14 @@ Format response standar:
 | GET | `/notifications` | semua | Notifikasi user (paginated) |
 | PATCH | `/notifications/:id/read` | semua | Tandai sudah dibaca |
 
+## Stock Ledger & Inventory Ledger
+| Method | Endpoint | Role | Deskripsi |
+|---|---|---|---|
+| GET | `/stock-ledger/product/:product_id/:warehouse_id` | supervisor, admin | Kartu stok satu produk di satu gudang |
+| GET | `/stock-ledger/warehouse/:warehouse_id` | supervisor, admin | Riwayat ledger satu gudang |
+| GET | `/stock-ledger/range` | supervisor, admin | Riwayat ledger rentang tanggal |
+| GET | `/stock-ledger/summary?warehouse_id=&from=&to=` | supervisor, admin | Saldo awal/masuk/keluar/akhir per produk, derived dari ledger |
+
 ## Konvensi
 - Semua endpoint list mendukung `?page=&limit=&sort=`
 - Semua field tanggal filter format ISO 8601, contoh `?date_from=2026-08-01&date_to=2026-08-07`

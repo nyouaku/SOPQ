@@ -18,6 +18,21 @@ type Stock struct {
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
+// LedgerSummaryRow — ringkasan mutasi satu produk dalam satu gudang pada periode tertentu.
+// Semua angka dihitung dari stock_ledger (bukan stok live) supaya histori stabil.
+type LedgerSummaryRow struct {
+	ProductID     uuid.UUID `json:"product_id"`
+	ProductCode   string    `json:"product_code"`
+	ProductName   string    `json:"product_name"`
+	Unit          string    `json:"unit"`
+	Opening       int       `json:"opening"`        // saldo sebelum `from`
+	TotalIn       int       `json:"total_in"`       // jumlah masuk dalam [from,to)
+	TotalOut      int       `json:"total_out"`      // jumlah keluar dalam [from,to)
+	Closing       int       `json:"closing"`        // opening + in - out
+	ValueIn       float64   `json:"value_in"`       // nilai masuk (qty * unit_cost)
+	ValueOut      float64   `json:"value_out"`      // nilai keluar
+}
+
 func (Stock) TableName() string {
 	return "stock"
 }

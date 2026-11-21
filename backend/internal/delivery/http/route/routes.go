@@ -284,6 +284,7 @@ func SetupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			stockLedger.GET("/product/:product_id/:warehouse_id", stockLedgerHandler.GetProductLedger)
 			stockLedger.GET("/warehouse/:warehouse_id", stockLedgerHandler.GetWarehouseLedger)
 			stockLedger.GET("/range", stockLedgerHandler.GetLedgerByDateRange)
+			stockLedger.GET("/summary", stockLedgerHandler.GetLedgerSummary)
 		}
 
 		// Manual stock adjustment (admin & supervisor)

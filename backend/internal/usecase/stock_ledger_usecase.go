@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,8 @@ type StockLedgerUsecase interface {
 	GetWarehouseLedger(ctx context.Context, warehouseID uuid.UUID, limit, offset int) ([]domain.StockLedger, int64, error)
 	// GetLedgerByDateRange mengembalikan riwayat ledger antar tanggal.
 	GetLedgerByDateRange(ctx context.Context, warehouseID *uuid.UUID, from, to time.Time, limit, offset int) ([]domain.StockLedger, int64, error)
+	// GetLedgerSummary mengembalikan saldo awal/masuk/keluar/akhir per produk.
+	GetLedgerSummary(ctx context.Context, warehouseID uuid.UUID, from, to time.Time) ([]domain.LedgerSummaryRow, error)
 	// RecordEntry mencatat satu entri ledger baru (untuk integrasi dari modul lain).
 	RecordEntry(ctx context.Context, input RecordLedgerInput) (*domain.StockLedger, error)
 }
@@ -93,4 +96,14 @@ func (u *stockLedgerUsecase) GetWarehouseLedger(ctx context.Context, warehouseID
 
 func (u *stockLedgerUsecase) GetLedgerByDateRange(ctx context.Context, warehouseID *uuid.UUID, from, to time.Time, limit, offset int) ([]domain.StockLedger, int64, error) {
 	return u.ledgerRepo.ListByDateRange(ctx, warehouseID, from, to, limit, offset)
+}
+
+func (u *stockLedgerUsecase) GetLedgerSummary(ctx context.Context, warehouseID uuid.UUID, from, to time.Time) ([]domain.LedgerSummaryRow, error) {
+	if warehouseID == uuid.Nil {
+		return nil, fmt.Errorf("warehouse_id wajib diisi")
+	}
+	if !to.After(from) {
+		return nil, fmt.Errorf("rentang tanggal tidak valid")
+	}
+	return u.ledgerRepo.LedgerSummary(ctx, warehouseID, from, to)
 }

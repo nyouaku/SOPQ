@@ -24,6 +24,9 @@ type StockLedgerRepository interface {
 	GetBalance(ctx context.Context, productID, warehouseID uuid.UUID) (int, error)
 	// ListByDateRange mengembalikan riwayat ledger dalam rentang tanggal.
 	ListByDateRange(ctx context.Context, warehouseID *uuid.UUID, from, to time.Time, limit, offset int) ([]domain.StockLedger, int64, error)
+	// LedgerSummary menghitung saldo awal, total masuk, total keluar, dan saldo akhir
+	// per produk di satu gudang untuk periode [from, to) — murni derived dari ledger.
+	LedgerSummary(ctx context.Context, warehouseID uuid.UUID, from, to time.Time) ([]domain.LedgerSummaryRow, error)
 }
 
 type stockLedgerRepository struct {
@@ -97,6 +100,56 @@ func (r *stockLedgerRepository) GetBalance(ctx context.Context, productID, wareh
 }
 
 // ListByDateRange mengembalikan riwayat ledger dalam rentang tanggal.
+// LedgerSummary menghitung saldo awal, total masuk/keluar, dan saldo akhir per produk
+// untuk satu gudang pada periode [from, to). Semua dihitung dari stock_ledger —
+// bukan stock live — supaya angka historis tidak berubah saat transaksi baru masuk.
+func (r *stockLedgerRepository) LedgerSummary(ctx context.Context, warehouseID uuid.UUID, from, to time.Time) ([]domain.LedgerSummaryRow, error) {
+	var rows []domain.LedgerSummaryRow
+	err := r.db.WithContext(ctx).Raw(`
+		WITH scope AS (
+			SELECT sl.*
+			FROM stock_ledger sl
+			WHERE sl.warehouse_id = ? AND sl.created_at < ?
+		),
+		per_product AS (
+			SELECT
+				product_id,
+				COALESCE(SUM(quantity_in - quantity_out) FILTER (WHERE created_at < ?), 0)::int AS opening,
+				COALESCE(SUM(quantity_in) FILTER (WHERE created_at >= ? AND created_at < ?), 0)::int AS total_in,
+				COALESCE(SUM(quantity_out) FILTER (WHERE created_at >= ? AND created_at < ?), 0)::int AS total_out,
+				COALESCE(SUM(quantity_in * unit_cost) FILTER (WHERE created_at >= ? AND created_at < ?), 0)::numeric AS value_in,
+				COALESCE(SUM(quantity_out * unit_cost) FILTER (WHERE created_at >= ? AND created_at < ?), 0)::numeric AS value_out
+			FROM scope
+			GROUP BY product_id
+		)
+		SELECT
+			p.id AS product_id,
+			p.product_code AS product_code,
+			p.name AS product_name,
+			p.unit AS unit,
+			pp.opening AS opening,
+			pp.total_in AS total_in,
+			pp.total_out AS total_out,
+			(pp.opening + pp.total_in - pp.total_out)::int AS closing,
+			pp.value_in AS value_in,
+			pp.value_out AS value_out
+		FROM per_product pp
+		JOIN products p ON p.id = pp.product_id
+		WHERE p.deleted_at IS NULL
+		ORDER BY p.name ASC`,
+		warehouseID, to,
+		from,
+		from, to,
+		from, to,
+		from, to,
+		from, to,
+	).Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to load ledger summary: %w", err)
+	}
+	return rows, nil
+}
+
 func (r *stockLedgerRepository) ListByDateRange(ctx context.Context, warehouseID *uuid.UUID, from, to time.Time, limit, offset int) ([]domain.StockLedger, int64, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 50
