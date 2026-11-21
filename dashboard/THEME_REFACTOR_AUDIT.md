@@ -1,6 +1,6 @@
 # Theme Audit — Penyebab Masalah
 
-Tanggal: 2026-11-21 · Audit statis (browser automation tidak tersedia).
+Tanggal: 2026-11-21 · Audit awal statis; verifikasi visual lanjutan dengan Playwright Chromium.
 
 ## Temuan utama
 
@@ -49,4 +49,6 @@ Catatan: screenshot sebelum/sesudah **tidak tersedia** (no browser automation). 
 - `ScanTimeline.svelte`: `text-white` → `text-base-100`.
 - `scan/+page.svelte`: `bg-black` pada viewfinder kamera didokumentasikan sebagai pengecualian kontras decoder.
 - `npm run check`: 0 error, 0 warning. `npm run build`: sukses.
-- Visual/browser regression: **NOT TESTED** (tidak ada browser automation di environment ini).
+- Browser visual verification: Playwright Chromium, 1440×900. Full sweep: 28 routes × 5 layouts = 140 screenshots, 0 contrast failures.
+- Root cause cascade fix: `html[data-ui='…']` token selectors outrank `[data-theme='apple-dark']`; added `--b3` per layout so `bg-base-300` no longer inherits apple-dark on Retro/Neo/Neumo/Editorial/Acrylic.
+- Contrast regression: all five layouts pass computed-token check. Temporary screenshots and test scripts removed after verification.

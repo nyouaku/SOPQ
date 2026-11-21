@@ -270,11 +270,11 @@
    utility bg-base-* / text-base-* mengikuti layout aktif; token ditulis
    sekali di sini, bukan diduplikasi di masing-masing layout component. */
 :root { --b2: 98% 0.005 250; --b1: 100% 0 0; --bc: 22% 0.02 255; --p: 60% 0.14 255; }
-[data-ui='retro'] { --b2: 86% 0.035 80; --b1: 91% 0.03 85; --bc: 25% 0.02 70; --p: 42% 0.06 120; }
-[data-ui='neo'] { --b2: 96% 0.12 100; --b1: 100% 0 0; --bc: 12% 0 0; --p: 58% 0.19 265; }
-[data-ui='acrylic'] { --b2: 19% 0.05 270; --b1: 24% 0.06 270; --bc: 96% 0.01 230; --p: 82% 0.11 225; }
-[data-ui='neumo'] { --b2: 91% 0.008 275; --b1: 94% 0.006 275; --bc: 32% 0.03 275; --p: 62% 0.08 275; }
-[data-ui='editorial'] { --b2: 97% 0.012 85; --b1: 99% 0.008 85; --bc: 15% 0.01 60; --p: 38% 0.1 15; }
+html[data-ui='retro'] { --b2: 86% 0.035 80; --b1: 91% 0.03 85; --b3: 78% 0.035 80; --bc: 25% 0.02 70; --p: 42% 0.06 120; }
+html[data-ui='neo'] { --b2: 96% 0.12 100; --b1: 100% 0 0; --b3: 88% 0.14 100; --bc: 12% 0 0; --p: 58% 0.19 265; }
+html[data-ui='acrylic'] { --b2: 19% 0.05 270; --b1: 24% 0.06 270; --b3: 30% 0.05 270; --bc: 96% 0.01 230; --p: 82% 0.11 225; }
+html[data-ui='neumo'] { --b2: 91% 0.008 275; --b1: 94% 0.006 275; --b3: 87% 0.008 275; --bc: 32% 0.03 275; --p: 62% 0.08 275; }
+html[data-ui='editorial'] { --b2: 97% 0.012 85; --b1: 99% 0.008 85; --b3: 93% 0.012 85; --bc: 15% 0.01 60; --p: 38% 0.1 15; }
 
 /* Nested containers & sections ikut surface tema */
 [data-ui] :is(.bg-base-100, .bg-base-200, .bg-base-300) { color: var(--ui-text); }
