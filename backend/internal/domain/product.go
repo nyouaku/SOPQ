@@ -46,6 +46,7 @@ type Product struct {
 	LocationID   *uuid.UUID `json:"location_id,omitempty" gorm:"type:uuid"`
 	Location     *Location  `json:"location,omitempty" gorm:"foreignKey:LocationID"`
 	MinimumStock int        `json:"minimum_stock" gorm:"default:0"`
+	CostPrice    float64    `json:"cost_price" gorm:"type:numeric(14,2);not null;default:0"`
 	SupplierID   *uuid.UUID `json:"supplier_id,omitempty" gorm:"type:uuid"`
 	Supplier     *Supplier  `json:"supplier,omitempty" gorm:"foreignKey:SupplierID"`
 	PhotoURL     string     `json:"photo_url"`

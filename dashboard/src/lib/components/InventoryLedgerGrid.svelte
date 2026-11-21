@@ -20,6 +20,7 @@
 		product_code: string;
 		product_name: string;
 		unit: string;
+		cost_price: number;
 		opening: number;
 		total_in: number;
 		total_out: number;
@@ -27,7 +28,7 @@
 		value_in: number;
 		value_out: number;
 	};
-	type Cell = { m: number; k: number };
+	type Cell = { m: number; k: number; r: number };
 
 	let loading = true;
 	let saving = false;
@@ -67,11 +68,11 @@
 			]);
 			const next: Record<string, Record<number, Cell>> = {};
 			for (const c of (inRes.data?.cells || [])) {
-				(next[c.product_id] ||= {})[c.day] ||= { m: 0, k: 0 };
+				(next[c.product_id] ||= {})[c.day] ||= { m: 0, k: 0, r: 0 };
 				next[c.product_id][c.day].m = c.in_qty || 0;
 			}
 			for (const c of (outRes.data?.cells || [])) {
-				(next[c.product_id] ||= {})[c.day] ||= { m: 0, k: 0 };
+				(next[c.product_id] ||= {})[c.day] ||= { m: 0, k: 0, r: 0 };
 				next[c.product_id][c.day].k = c.out_qty || 0;
 			}
 			cells = next;
@@ -85,12 +86,12 @@
 	}
 
 	function cellFor(pid: string, day: number): Cell {
-		return cells[pid]?.[day] || { m: 0, k: 0 };
+		return cells[pid]?.[day] || { m: 0, k: 0, r: 0 };
 	}
 
-	function setCell(pid: string, day: number, field: 'm' | 'k', raw: string) {
+	function setCell(pid: string, day: number, field: 'm' | 'k' | 'r', raw: string) {
 		const n = Math.max(0, parseInt(raw, 10) || 0);
-		(cells[pid] ||= {})[day] ||= { m: 0, k: 0 };
+		(cells[pid] ||= {})[day] ||= { m: 0, k: 0, r: 0 };
 		cells[pid][day][field] = n;
 		dirty = true;
 		cells = cells; // trigger reactivity
@@ -105,13 +106,17 @@
 
 	$: days = month ? Array.from({ length: monthRange(month).days }, (_, i) => i + 1) : [];
 
-	// Rekap dari isian grid (M/K) — bukan dari saldo live.
+	// Rekap dari isian grid (M/K/R) — bukan dari saldo live.
 	function totalsFor(r: SummaryRow) {
-		let m = 0, k = 0;
+		let m = 0, k = 0, ret = 0;
 		for (const d of Object.values(cells[r.product_id] || {})) {
-			m += d.m; k += d.k;
+			m += d.m; k += d.k; ret += d.r || 0;
 		}
-		return { m, k, retur: 0, closing: r.opening + m - k };
+		const cost = r.cost_price || 0;
+		return {
+			m, k, retur: ret, valueIn: m * cost, valueOut: k * cost,
+			closing: r.opening + m - k + ret
+		};
 	}
 
 	async function save() {
@@ -123,12 +128,15 @@
 		try {
 			const inEntries: any[] = [];
 			const outEntries: any[] = [];
+			const retEntries: any[] = [];
 			for (const r of rows) {
 				for (const [dayStr, c] of Object.entries(cells[r.product_id] || {})) {
 					const day = Number(dayStr);
 					const date = `${month}-${String(day).padStart(2, '0')}`;
-					if (c.m > 0) inEntries.push({ product_id: r.product_id, date, quantity: c.m, unit_cost: 0 });
-					if (c.k > 0) outEntries.push({ product_id: r.product_id, date, quantity: c.k, unit_cost: 0 });
+					const cost = r.cost_price || 0;
+					if (c.m > 0) inEntries.push({ product_id: r.product_id, date, quantity: c.m, unit_cost: cost });
+					if (c.k > 0) outEntries.push({ product_id: r.product_id, date, quantity: c.k, unit_cost: cost });
+					if ((c.r || 0) > 0) retEntries.push({ product_id: r.product_id, date, quantity: c.r, unit_cost: cost });
 				}
 			}
 			const post = (entries: any[], type: 'in' | 'out', sub: string) =>
@@ -142,6 +150,10 @@
 			if (outEntries.length) {
 				const res = await post(outEntries, 'out', 'sale');
 				if (!res.success) throw new Error(res.error?.message || 'Gagal simpan keluar');
+			}
+			if (retEntries.length) {
+				const res = await post(retEntries, 'in', 'return');
+				if (!res.success) throw new Error(res.error?.message || 'Gagal simpan retur');
 			}
 			toastStore.success('Grid tersimpan');
 			await load();
@@ -215,17 +227,18 @@
 							<td class="sticky left-32 z-10 bg-base-200 min-w-[12rem] truncate">{r.product_name}</td>
 							<td>{r.unit || '-'}</td>
 							<td class="text-right metric">{fmt(r.opening)}</td>
-							<td class="text-right metric text-base-content/60">-</td>
-							<td class="text-right metric">{fmt(t.m)}</td>
-							<td class="text-right metric">{fmt(t.k)}</td>
+							<td class="text-right metric text-base-content/60">{fmtRp(r.cost_price || 0)}</td>
+							<td class="text-right metric">{fmt(t.m)} <span class="text-base-content/40">({fmtRp(t.valueIn)})</span></td>
+							<td class="text-right metric">{fmt(t.k)} <span class="text-base-content/40">({fmtRp(t.valueOut)})</span></td>
 							<td class="text-right metric text-base-content/50">{t.retur}</td>
 							<td class="text-right metric font-semibold {t.closing < 0 ? 'text-error' : 'text-success'}">{fmt(t.closing)}</td>
 							{#each days as d}
+								{@const c = cellFor(r.product_id, d)}
 								<td class="p-0">
 									<input
 										class="grid-cell"
 										type="number" min="0"
-										value={cellFor(r.product_id, d).m || ''}
+										value={c.m || ''}
 										on:input={(e) => setCell(r.product_id, d, 'm', e.currentTarget.value)}
 									/>
 								</td>
@@ -233,11 +246,27 @@
 									<input
 										class="grid-cell grid-cell-out"
 										type="number" min="0"
-										value={cellFor(r.product_id, d).k || ''}
+										value={c.k || ''}
 										on:input={(e) => setCell(r.product_id, d, 'k', e.currentTarget.value)}
 									/>
 								</td>
 							{/each}
+							<!-- RETUR per produk (bukan per tanggal), satu input ringkas -->
+							<td class="p-0">
+								<input
+									class="grid-cell grid-cell-ret"
+									type="number" min="0"
+									value={totalsFor(r).retur || ''}
+									title="Retur produk (qty)"
+									on:input={(e) => {
+										const v = Math.max(0, parseInt(e.currentTarget.value, 10) || 0);
+										(cells[r.product_id] ||= {})[1] ||= { m: 0, k: 0, r: 0 };
+										cells[r.product_id][1].r = v;
+										dirty = true;
+										cells = cells;
+									}}
+								/>
+							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -246,9 +275,9 @@
 						<td colspan="6">TOTAL</td>
 						<td class="text-right metric">{fmt(rows.reduce((s, r) => s + totalsFor(r).m, 0))}</td>
 						<td class="text-right metric">{fmt(rows.reduce((s, r) => s + totalsFor(r).k, 0))}</td>
-						<td class="text-right">0</td>
+						<td class="text-right metric">{fmt(rows.reduce((s, r) => s + totalsFor(r).retur, 0))}</td>
 						<td class="text-right metric">{fmt(rows.reduce((s, r) => s + totalsFor(r).closing, 0))}</td>
-						<td colspan={days.length * 2}></td>
+						<td colspan={days.length * 2 + 1}></td>
 					</tr>
 				</tfoot>
 			</table>
@@ -268,5 +297,6 @@
 	}
 	.grid-cell:focus { background: hsl(var(--p) / 0.12); box-shadow: inset 0 0 0 1px hsl(var(--p)); }
 	.grid-cell-out:focus { background: hsl(var(--er) / 0.12); box-shadow: inset 0 0 0 1px hsl(var(--er)); }
+	.grid-cell-ret:focus { background: hsl(var(--warning) / 0.12); box-shadow: inset 0 0 0 1px hsl(var(--warning)); }
 	input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>

@@ -46,6 +46,7 @@ type CreateProductRequest struct {
 	Unit         string     `json:"unit" validate:"required"`
 	LocationID   *uuid.UUID `json:"location_id"`
 	MinimumStock int        `json:"minimum_stock"`
+	CostPrice    float64    `json:"cost_price"`
 	SupplierID   *uuid.UUID `json:"supplier_id"`
 	Status       string     `json:"status"`
 	// Stok awal (opsional): bila diisi, buat baris stock di gudang tsb.
@@ -61,6 +62,7 @@ type UpdateProductRequest struct {
 	Unit         string     `json:"unit" validate:"required"`
 	LocationID   *uuid.UUID `json:"location_id"`
 	MinimumStock int        `json:"minimum_stock"`
+	CostPrice    float64    `json:"cost_price"`
 	SupplierID   *uuid.UUID `json:"supplier_id"`
 	Status       string     `json:"status"`
 }
@@ -103,6 +105,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		Unit:         req.Unit,
 		LocationID:   req.LocationID,
 		MinimumStock: req.MinimumStock,
+		CostPrice:    req.CostPrice,
 		SupplierID:   req.SupplierID,
 		Status:       req.Status,
 	}
@@ -251,6 +254,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	product.Unit = req.Unit
 	product.LocationID = req.LocationID
 	product.MinimumStock = req.MinimumStock
+	product.CostPrice = req.CostPrice
 	product.SupplierID = req.SupplierID
 	if req.Status != "" {
 		product.Status = req.Status

@@ -25,6 +25,7 @@ type LedgerSummaryRow struct {
 	ProductCode   string    `json:"product_code"`
 	ProductName   string    `json:"product_name"`
 	Unit          string    `json:"unit"`
+	CostPrice     float64   `json:"cost_price"`
 	Opening       int       `json:"opening"`        // saldo sebelum `from`
 	TotalIn       int       `json:"total_in"`       // jumlah masuk dalam [from,to)
 	TotalOut      int       `json:"total_out"`      // jumlah keluar dalam [from,to)

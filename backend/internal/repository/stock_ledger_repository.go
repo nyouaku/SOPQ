@@ -127,6 +127,7 @@ func (r *stockLedgerRepository) LedgerSummary(ctx context.Context, warehouseID u
 			p.product_code AS product_code,
 			p.name AS product_name,
 			p.unit AS unit,
+			p.cost_price AS cost_price,
 			pp.opening AS opening,
 			pp.total_in AS total_in,
 			pp.total_out AS total_out,
