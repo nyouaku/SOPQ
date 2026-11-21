@@ -4,14 +4,14 @@
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref } from './menu';
 	import { ACRYLIC_ICONS, acrylicIconFor } from './acrylic-icons';
 
 	$: currentPath = $page.url.pathname;
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory' : 'Stock Opname');
 	$: user = $authStore.user;
 	$: initial = (user?.full_name || user?.username || '?')?.[0]?.toUpperCase() ?? '?';
@@ -61,7 +61,7 @@
 				<a
 					href={item.href}
 					class="rail-btn"
-					class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+					class:active={activeMenuHref(currentPath, visible) === item.href}
 					title={item.label}
 					aria-label={item.label}
 				>
@@ -165,7 +165,7 @@
 			<div class="sheet-handle" aria-hidden="true"></div>
 			<div class="sheet-title">MENU / {activeApp.toUpperCase()}</div>
 			{#each visible as item (item.href)}
-				<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}>
+				<a href={item.href} class:active={activeMenuHref(currentPath, visible) === item.href}>
 					<svg viewBox="0 0 24 24" class="acr-ico"><path d={acrylicIconFor(item.href)} /></svg>
 					{item.label}
 				</a>
@@ -203,7 +203,7 @@
 
 	<nav class="acr-mobile-nav acrylic" aria-label="Navigasi bawah">
 		{#each visible.slice(0, 5) as item (item.href)}
-			<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))} aria-label={item.label} title={item.label}>
+			<a href={item.href} class:active={activeMenuHref(currentPath, visible) === item.href} aria-label={item.label} title={item.label}>
 				<svg viewBox="0 0 24 24" class="acr-ico"><path d={acrylicIconFor(item.href)} /></svg>
 			</a>
 		{/each}

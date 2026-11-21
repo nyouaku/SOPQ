@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { authStore } from '$lib/stores/auth';
-	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref } from './menu';
 	import { NEUMO_ICONS, neumoIconFor } from './neumo-icons';
 
 	$: currentPath = $page.url.pathname;
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory' : 'Stock Opname');
 	$: user = $authStore.user;
 	$: initial = (user?.full_name || user?.username || '?')?.[0]?.toUpperCase() ?? '?';
@@ -58,7 +58,7 @@
 				<a
 					href={item.href}
 					class="dock-btn press"
-					class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+					class:active={activeMenuHref(currentPath, visible) === item.href}
 					title={item.label}
 					aria-label={item.label}
 				>
@@ -143,7 +143,7 @@
 	{#if mobileMenu}
 		<nav class="n-mobile-menu soft-raise" aria-label="Menu">
 			{#each visible as item (item.href)}
-				<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}>
+				<a href={item.href} class:active={activeMenuHref(currentPath, visible) === item.href}>
 					<svg viewBox="0 0 24 24" class="n-ico"><path d={neumoIconFor(item.href)} /></svg>
 					{item.label}
 				</a>
@@ -174,7 +174,7 @@
 
 	<nav class="n-mobile-dock soft-raise" aria-label="Navigasi bawah">
 		{#each visible.slice(0, 5) as item (item.href)}
-			<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))} aria-label={item.label} title={item.label}>
+			<a href={item.href} class:active={activeMenuHref(currentPath, visible) === item.href} aria-label={item.label} title={item.label}>
 				<svg viewBox="0 0 24 24" class="n-ico"><path d={neumoIconFor(item.href)} /></svg>
 			</a>
 		{/each}

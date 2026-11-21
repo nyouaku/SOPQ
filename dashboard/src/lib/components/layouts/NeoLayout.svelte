@@ -3,14 +3,14 @@
 	import { page } from '$app/stores';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref } from './menu';
 	import { NEO_ICONS, neoIconFor } from './neo-icons';
 
 	$: currentPath = $page.url.pathname;
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'INVENTORY' : 'STOCK OPNAME');
 	$: user = $authStore.user;
 	$: initial = (user?.full_name || user?.username || '?')?.[0]?.toUpperCase() ?? '?';
@@ -45,7 +45,7 @@
 				<a
 					href={item.href}
 					class="neo-nav__item press"
-					class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+					class:active={activeMenuHref(currentPath, visible) === item.href}
 				>
 					<svg viewBox="0 0 24 24" class="neo-ico"><path d={neoIconFor(item.href)} /></svg>
 					<span>{item.label}</span>
@@ -146,7 +146,7 @@
 	{#if menuOpen}
 		<nav class="neo-mobile-menu" aria-label="Menu">
 			{#each visible as item (item.href)}
-				<a href={item.href} class="press" class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}>
+				<a href={item.href} class="press" class:active={activeMenuHref(currentPath, visible) === item.href}>
 					<svg viewBox="0 0 24 24" class="neo-ico"><path d={neoIconFor(item.href)} /></svg>
 					{item.label}
 				</a>
@@ -191,7 +191,7 @@
 
 	<nav class="neo-mobile-nav" aria-label="Navigasi bawah">
 		{#each visible.slice(0, 5) as item (item.href)}
-			<a href={item.href} class="press" class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))} aria-label={item.label} title={item.label}>
+			<a href={item.href} class="press" class:active={activeMenuHref(currentPath, visible) === item.href} aria-label={item.label} title={item.label}>
 				<svg viewBox="0 0 24 24" class="neo-ico"><path d={neoIconFor(item.href)} /></svg>
 			</a>
 		{/each}

@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { writable, get } from 'svelte/store';
 	import { page as pageStore } from '$app/stores';
-	import { replaceState } from '$app/navigation';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import Loader from '$lib/components/Loader.svelte';
 	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
@@ -32,7 +31,7 @@
 
 		// Sinkron filter ke URL: tautan bisa dibagikan, refresh tidak mereset filter.
 		onMount(() =>
-			applied.subscribe((p) => replaceState(`${window.location.pathname}?${p.toString()}`, {}))
+			applied.subscribe((p) => history.replaceState(history.state, '', `${window.location.pathname}?${p.toString()}`))
 		);
 	
 	const report = stockOpnameReportQuery(applied);

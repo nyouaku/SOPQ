@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, activeAppFor, type AppId } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref, type AppId } from './menu';
 	import { iconFor } from './icons';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import BottomBar from './BottomBar.svelte';
@@ -16,7 +16,7 @@
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname');
 
 	// Aplikasi lain untuk tombol pindah (hanya manager; staff tak punya akses inventory).
@@ -159,7 +159,7 @@
 				<a
 					href={item.href}
 					class="navitem press"
-					class:navitem--active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+					class:navitem--active={activeMenuHref(currentPath, visible) === item.href}
 				>
 					<svg class="navitem__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 						stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">

@@ -41,6 +41,15 @@ export function isInventoryPath(path: string): boolean {
 export function activeAppFor(path: string): AppId {
 	return isInventoryPath(path) ? 'inventory' : 'opname';
 }
+
+/** Resolve one active nav item; prefer exact match, then longest route prefix. */
+export function activeMenuHref(path: string, items: MenuItem[]): string | undefined {
+	const exact = items.find((item) => item.href === path);
+	if (exact) return exact.href;
+	return items
+		.filter((item) => item.href !== '/' && path.startsWith(`${item.href}/`))
+		.sort((a, b) => b.href.length - a.href.length)[0]?.href;
+}
 export type AccessLevel = 'view' | 'full';
 
 const MANAGER = ['admin', 'supervisor'];

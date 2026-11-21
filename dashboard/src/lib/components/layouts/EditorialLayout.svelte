@@ -3,14 +3,14 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
-	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref } from './menu';
 	import { EDITORIAL_ICONS, editorialIconFor } from './editorial-icons';
 
 	$: currentPath = $page.url.pathname;
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory' : 'Stock Opname');
 	$: user = $authStore.user;
 
@@ -70,7 +70,7 @@
 		{#each visible.slice(0, 8) as item (item.href)}
 			<a
 				href={item.href}
-				class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+				class:active={activeMenuHref(currentPath, visible) === item.href}
 			>{item.label}</a>
 		{/each}
 		<span class="ed-nav__end">{activeApp === 'inventory' ? 'INVENTORY' : 'STOCK OPNAME'}</span>
@@ -144,7 +144,7 @@
 	{#if mobileNav}
 		<nav class="ed-mobile-tabs" aria-label="Kategori">
 			{#each visible as item (item.href)}
-				<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}>{item.label}</a>
+				<a href={item.href} class:active={activeMenuHref(currentPath, visible) === item.href}>{item.label}</a>
 			{/each}
 		</nav>
 	{/if}
@@ -172,7 +172,7 @@
 
 	<nav class="ed-mobile-nav" aria-label="Navigasi bawah">
 		{#each visible.slice(0, 5) as item (item.href)}
-			<a href={item.href} class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))} aria-label={item.label} title={item.label}>
+			<a href={item.href} class:active={activeMenuHref(currentPath, visible) === item.href} aria-label={item.label} title={item.label}>
 				<svg viewBox="0 0 24 24" class="ed-ico"><path d={editorialIconFor(item.href)} /></svg>
 			</a>
 		{/each}

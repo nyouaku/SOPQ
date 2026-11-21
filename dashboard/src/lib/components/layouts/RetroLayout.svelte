@@ -3,14 +3,14 @@
 	import { page } from '$app/stores';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref } from './menu';
 	import { RETRO_ICONS, retroIconFor } from './retro-icons';
 
 	$: currentPath = $page.url.pathname;
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname');
 	$: user = $authStore.user;
 
@@ -105,7 +105,7 @@
 				<a
 					href={item.href}
 					class="nav-item press"
-					class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+					class:active={activeMenuHref(currentPath, visible) === item.href}
 				>
 					<svg viewBox="0 0 16 16" class="px"><path d={retroIconFor(item.href)} /></svg>
 					<span>{item.label}</span>
@@ -215,7 +215,7 @@
 
 	<nav class="mobile-dock" aria-label="Navigasi cepat">
 		{#each visible.slice(0, 5) as item (item.href)}
-			<a href={item.href} class="dock-item press" class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))} aria-label={item.label} title={item.label}>
+			<a href={item.href} class="dock-item press" class:active={activeMenuHref(currentPath, visible) === item.href} aria-label={item.label} title={item.label}>
 				<svg viewBox="0 0 16 16" class="px"><path d={retroIconFor(item.href)} /></svg>
 			</a>
 		{/each}

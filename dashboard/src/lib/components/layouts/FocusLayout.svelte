@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref } from './menu';
 	import { iconFor } from './icons';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import { page } from '$app/stores';
@@ -12,7 +12,7 @@
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname');
 	$: user = $authStore.user;
 
@@ -51,7 +51,7 @@
 	{#if showMenu}
 		<div class="focus-menu glass" transition:fly={{ y: -8, duration: 200 }}>
 			{#each visible as item (item.href)}
-				<a href={item.href} class="focus-menu__item press" class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}>
+				<a href={item.href} class="focus-menu__item press" class:active={activeMenuHref(currentPath, visible) === item.href}>
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
 						<path d={iconFor(item.href)} />
 					</svg>

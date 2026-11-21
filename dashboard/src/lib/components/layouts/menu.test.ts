@@ -40,6 +40,14 @@ describe('pemisahan aplikasi SO vs Inventory', () => {
 		expect(src).toMatch(/href: '\/opname\/warehouses'.*app: 'opname'/);
 	});
 
+	it('marks only the most specific matching menu route active', async () => {
+		const { activeMenuHref, MENU_ITEMS } = await import('./menu');
+		expect(activeMenuHref('/inventory/entry', MENU_ITEMS)).toBe('/inventory/entry');
+		expect(activeMenuHref('/inventory/movements', MENU_ITEMS)).toBe('/inventory/movements');
+		expect(activeMenuHref('/inventory', MENU_ITEMS)).toBe('/inventory');
+		expect(activeMenuHref('/', MENU_ITEMS)).toBe('/');
+	});
+
 	it('activeAppFor memetakan path ke aplikasi benar', async () => {
 		const { activeAppFor } = await import('./menu');
 		expect(activeAppFor('/inventory')).toBe('inventory');

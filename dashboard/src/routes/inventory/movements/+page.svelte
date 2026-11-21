@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { writable } from 'svelte/store';
 	import { page as pageStore } from '$app/stores';
-	import { replaceState } from '$app/navigation';
 	import LayoutWrapper from '$lib/components/layouts/LayoutWrapper.svelte';
 	import TableSkeleton from '$lib/components/skeletons/TableSkeleton.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -24,7 +23,7 @@
 	let applied = writable(buildParams(page));
 
 	onMount(() =>
-		applied.subscribe((p) => replaceState(`${window.location.pathname}?${p.toString()}`, {}))
+		applied.subscribe((p) => history.replaceState(history.state, '', `${window.location.pathname}?${p.toString()}`))
 	);
 
 	const movements = inventoryQuery(applied);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
-	import { MENU_ITEMS, menuForApp, activeAppFor, type AppId } from './menu';
+	import { MENU_ITEMS, menuForApp, activeAppFor, activeMenuHref, type AppId } from './menu';
 	import { iconFor } from './icons';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import { page } from '$app/stores';
@@ -14,7 +14,7 @@
 	$: activeApp = activeAppFor(currentPath);
 	$: visible = menuForApp(MENU_ITEMS, activeApp, $authStore.user?.role?.name);
 	$: activeLabel =
-		visible.find((i) => currentPath === i.href || (i.href !== '/' && currentPath.startsWith(i.href)))
+		visible.find((i) => i.href === activeMenuHref(currentPath, visible))
 			?.label ?? (activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname');
 	$: user = $authStore.user;
 	$: initial = (user?.full_name || user?.username || '?')?.[0]?.toUpperCase() ?? '?';
@@ -46,7 +46,7 @@
 				<a
 					href={item.href}
 					class="rail__btn press"
-					class:active={currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href))}
+					class:active={activeMenuHref(currentPath, visible) === item.href}
 					title={item.label}
 					aria-label={item.label}
 				>
