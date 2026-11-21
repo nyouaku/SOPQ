@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type ThemeLayout = 'apple';
+export type ThemeLayout = 'apple' | 'focus' | 'workspace';
 export type ThemeColor =
 	| 'apple-light'
 	| 'apple-dark'
@@ -197,15 +197,26 @@ function applyTheme(theme: Theme) {
 
 export const themeStore = createThemeStore();
 
-// Satu-satunya layout aktif. Dua layout baru akan ditambahkan setelah desain
-// disetujui — daftar ini sengaja minimal supaya selector tak menawarkan opsi
-// yang belum terimplementasi.
+// Layout yang tersedia. 5 layout berikutnya (Retro, Neobrutalism, Acrylic,
+// Neumorphism, Editorial) mengantre — mulai hanya setelah prompt khusus user.
 export const THEME_LAYOUTS = [
 	{
 		id: 'apple' as ThemeLayout,
 		name: 'Apple',
 		description: 'Glass sidebar, Apple-inspired premium',
 		icon: '🍎'
+	},
+	{
+		id: 'focus' as ThemeLayout,
+		name: 'Focus',
+		description: 'Canvas mode tanpa sidebar — fokus penuh pada kerja',
+		icon: '🎯'
+	},
+	{
+		id: 'workspace' as ThemeLayout,
+		name: 'Workspace',
+		description: 'Rail ikon + panel konteks untuk operasi harian',
+		icon: '🗂️'
 	}
 ] as const;
 
