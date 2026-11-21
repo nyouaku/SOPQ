@@ -3,6 +3,7 @@
 	import { MENU_ITEMS, menuForApp, activeAppFor } from './menu';
 
 	export let currentPath: string = '';
+	export let iconsOnly: boolean = false;
 
 	// Tampilan bottom bar hanya muat 5 slot di layar sempit.
 	// 4 menu utama tampil langsung; sisanya masuk panel "Lainnya".
@@ -54,7 +55,7 @@
   - Desktop: mengambang di bawah layar, rounded "pill" dengan shadow.
   Icon memakai SVG stroke (konsisten & tajam di semua DPI).
 -->
-<nav class="bottombar" aria-label="Navigasi utama">
+<nav class="bottombar" class:bottombar--icons={iconsOnly} aria-label="Navigasi utama">
 	<ul class="bottombar__list">
 		{#each primary as item}
 			{@const active = currentPath === item.href}
@@ -332,4 +333,8 @@
 			transition: none;
 		}
 	}
+	/* Mode ikon-saja: sembunyikan label, bar mengecil */
+	.bottombar--icons .bottombar__label { display: none; }
+	.bottombar--icons .bottombar__item { min-width: 2.5rem; gap: 0; padding: 0.4rem; }
+	.bottombar--icons .bottombar__list { width: auto; }
 </style>

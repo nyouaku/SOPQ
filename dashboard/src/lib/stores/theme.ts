@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type ThemeLayout = 'apple' | 'sidebar' | 'topnav' | 'command' | 'bottom';
+export type ThemeLayout = 'apple';
 export type ThemeColor =
 	| 'apple-light'
 	| 'apple-dark'
@@ -197,37 +197,15 @@ function applyTheme(theme: Theme) {
 
 export const themeStore = createThemeStore();
 
-// Theme metadata
+// Satu-satunya layout aktif. Dua layout baru akan ditambahkan setelah desain
+// disetujui — daftar ini sengaja minimal supaya selector tak menawarkan opsi
+// yang belum terimplementasi.
 export const THEME_LAYOUTS = [
 	{
 		id: 'apple' as ThemeLayout,
 		name: 'Apple',
 		description: 'Glass sidebar, Apple-inspired premium',
 		icon: '🍎'
-	},
-	{
-		id: 'sidebar' as ThemeLayout,
-		name: 'Classic Sidebar',
-		description: 'Traditional sidebar navigation',
-		icon: '📋'
-	},
-	{
-		id: 'topnav' as ThemeLayout,
-		name: 'Modern Top Nav',
-		description: 'Horizontal navigation bar',
-		icon: '🎯'
-	},
-	{
-		id: 'command' as ThemeLayout,
-		name: 'Command Center',
-		description: 'Split-panel ops layout',
-		icon: '🖥️'
-	},
-	{
-		id: 'bottom' as ThemeLayout,
-		name: 'Bottom Bar',
-		description: 'Bottom navigation, mobile-first modern',
-		icon: '📱'
 	}
 ] as const;
 

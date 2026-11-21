@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore } from '$lib/stores/theme';
 	import { MENU_ITEMS, menuForApp, activeAppFor, type AppId } from './menu';
@@ -32,6 +33,33 @@
 		drawerOpen = false;
 	}
 
+	// Preferensi navigasi: 'full' | 'icons' | 'hidden'.
+	// 'icons' = sidebar/BottomBar hanya ikon; 'hidden' = keduanya disembunyikan.
+	// Disimpan di localStorage agar pilihan bertahan antar refresh.
+	const NAV_KEY = 'sopq-nav-mode';
+	type NavMode = 'full' | 'icons' | 'hidden';
+	let navMode: NavMode = 'full';
+
+	function applyNavMode() {
+		try {
+			if (typeof document !== 'undefined') {
+				document.documentElement.dataset.nav = navMode;
+			}
+		} catch {
+			/* localStorage/WebGL diblokir — biarkan mode default */
+		}
+	}
+
+	function setNavMode(mode: NavMode) {
+		navMode = mode;
+		try {
+			localStorage.setItem(NAV_KEY, mode);
+		} catch {
+			/* abaikan */
+		}
+		applyNavMode();
+	}
+
 	$: user = $authStore.user;
 	$: initial = (user?.full_name || user?.username || '?')?.[0]?.toUpperCase() ?? '?';
 	$: roleName = user?.role?.name ?? '';
@@ -43,12 +71,22 @@
 	async function logout() {
 		await authStore.logout();
 	}
+
+	onMount(() => {
+		try {
+			const saved = localStorage.getItem(NAV_KEY) as NavMode | null;
+			if (saved === 'full' || saved === 'icons' || saved === 'hidden') navMode = saved;
+		} catch {
+			/* abaikan */
+		}
+		applyNavMode();
+	});
 </script>
 
 <!-- Apple-inspired layout: glass sidebar (desktop) / glass drawer (mobile),
      premium translucent top bar, soft shadows, hairline separators.
      Animasi transform/opacity saja (GPU-friendly); hormati prefers-reduced-motion. -->
-<div class="apple-root">
+<div class="apple-root" class:nav-icons={navMode === 'icons'} class:nav-hidden={navMode === 'hidden'}>
 	<!-- Ambient gradient background ( sangat halus, blur lembut). -->
 	<div class="ambient" aria-hidden="true">
 		<div class="ambient__blob ambient__blob--a"></div>
@@ -64,6 +102,22 @@
 		</button>
 		<div class="topbar__title">{activeLabel}</div>
 		<div class="topbar__actions">
+			<button class="iconbtn press" aria-label="Ubah tampilan navigasi" title="Ubah tampilan navigasi"
+				on:click={() => setNavMode(navMode === 'full' ? 'icons' : navMode === 'icons' ? 'hidden' : 'full')}>
+				{#if navMode === 'full'}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+						<path d="M4 6h16M4 12h16M4 18h16" /><path d="M9 6v12" />
+					</svg>
+				{:else if navMode === 'icons'}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+						<rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" />
+					</svg>
+				{:else}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+						<path d="M5 12h14M12 5l7 7-7 7" />
+					</svg>
+				{/if}
+			</button>
 			<NotificationBell />
 			<button class="iconbtn press" aria-label="Keluar" on:click={logout}>
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -85,6 +139,10 @@
 			<div class="brandsub">
 				{activeApp === 'inventory' ? 'Inventory Management' : 'Stock Opname'}
 			</div>
+			<button class="nav-collapse press" aria-label="Ubah tampilan navigasi" title="Ubah tampilan navigasi"
+				on:click={() => setNavMode(navMode === 'full' ? 'icons' : navMode === 'icons' ? 'hidden' : 'full')}>
+				{#if navMode === 'hidden'}›{:else if navMode === 'icons'}⇤{:else}⇥{/if}
+			</button>
 			{#if isManager}
 				<a href={otherApp.href} class="switchapp press" title="Buka {otherApp.label}">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
@@ -137,7 +195,9 @@
 	</main>
 
 	<!-- Bottom bar (mobile) -->
-	<BottomBar {currentPath} />
+	{#if navMode !== 'hidden'}
+		<BottomBar {currentPath} iconsOnly={navMode === 'icons'} />
+	{/if}
 </div>
 
 <style>
@@ -414,5 +474,40 @@
 		.apple-main__inner {
 			padding: 1.75rem 2rem 2rem;
 		}
+	}
+	/* ===== Toggle tampilan navigasi (hide / icons-only) ===== */
+	.nav-collapse {
+		margin-left: auto;
+		border: 0;
+		background: transparent;
+		color: hsl(var(--bc) / 0.5);
+		font-size: 1rem;
+		line-height: 1;
+		padding: 0.15rem 0.3rem;
+		border-radius: 0.4rem;
+		cursor: pointer;
+	}
+	.nav-collapse:hover {
+		background: hsl(var(--bc) / 0.1);
+		color: hsl(var(--bc));
+	}
+
+	/* Ikon-saja: sembunyikan label & teks, sempitkan sidebar */
+	.apple-root.nav-icons .navitem__label { display: none; }
+	.apple-root.nav-icons .brandsub { display: none; }
+	.apple-root.nav-icons .brandmark { font-size: 0.85rem; }
+	.apple-root.nav-icons .switchapp span { display: none; }
+	.apple-root.nav-icons .switchapp svg { width: 1.1rem; }
+	.apple-root.nav-icons .usercard { justify-content: center; }
+	.apple-root.nav-icons .usercard__meta { display: none; }
+
+	/* Sembunyikan penuh: sidebar hilang; BottomBar tak di-render saat hidden */
+	.apple-root.nav-hidden .sidebar { display: none; }
+	.apple-root.nav-hidden .apple-main { padding-left: 0; }
+
+	@media (min-width: 1024px) {
+		.apple-root.nav-icons .sidebar { width: 4.2rem; }
+		.apple-root.nav-icons .apple-main { padding-left: 5rem; }
+		.apple-root.nav-hidden .apple-main { padding-left: 0; }
 	}
 </style>

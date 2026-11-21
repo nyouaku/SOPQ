@@ -254,10 +254,10 @@
 
 <svelte:window on:keydown={onTableKeydown} />
 
-<!-- Kontainer spreadsheet: fullscreen = fixed penuh layar -->
-<div class:spreadsheet-fullscreen={isFullscreen} class="spreadsheet-root">
+<!-- Kontainer spreadsheet: fullscreen = overlay di bawah chrome navigasi -->
+<div class="spreadsheet-root" class:spreadsheet-fullscreen={isFullscreen}>
 	<!-- Header -->
-	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+	<div class="mb-3 flex flex-wrap items-center justify-between gap-2" class:header-fullscreen={isFullscreen}>
 		<div class="flex items-center gap-3">
 			<h2 class="text-lg font-semibold">Keluar-Masuk Produk</h2>
 			<span class="text-xs text-base-content/60">{totalRows} baris</span>
@@ -271,9 +271,9 @@
 			</button>
 			<button class="btn btn-ghost btn-sm" on:click={toggleFullscreen} aria-label="Layar penuh">
 				{#if isFullscreen}
-					❌ Keluar layar penuh
+					⤢ Keluar layar penuh
 				{:else}
-					⛶ Layar penuh (F11)
+					⛶ Layar penuh
 				{/if}
 			</button>
 			<button class="btn btn-ghost btn-sm text-warning" on:click={clearAll} disabled={isSaving}>
@@ -414,9 +414,14 @@
 
 	<p class="mt-2 text-xs text-base-content/50">
 		Tips: Copy beberapa baris di Excel lalu klik di kolom Produk baris pertama di sini dan tekan
-		Ctrl+V — kolom name/qty/harga terisi otomatis. Tekan F11 saat tabel aktif untuk keluar dari
-		layar penuh.
+		Ctrl+V — kolom name/qty/harga terisi otomatis.
 	</p>
+
+	{#if isFullscreen}
+		<button class="btn btn-primary exit-fullscreen" on:click={toggleFullscreen} aria-label="Keluar layar penuh">
+			⤢ Keluar layar penuh
+		</button>
+	{/if}
 </div>
 
 <style>
@@ -428,17 +433,50 @@
 		max-height: 70vh;
 	}
 
+	/* Fullscreen mode: overlay di bawah chrome navigasi (sidebar/topbar/bottombar),
+	   supaya tombol hide/ikon masih bisa diklik saat grid sedang fullscreen. */
 	.spreadsheet-fullscreen {
 		position: fixed;
 		inset: 0;
-		z-index: 50;
-		background: hsl(var(--b2));
-		padding: 1rem;
+		z-index: 20; /* AppleLayout sidebar = 30, bottombar = 40 */
+		background: hsl(var(--b2) / 0.97);
+		backdrop-filter: saturate(160%) blur(12px);
+		-webkit-backdrop-filter: saturate(160%) blur(12px);
+		padding: 3.75rem 1rem 5.5rem;
 		overflow: auto;
 	}
 
+	/* Lebih lega di desktop */
+	@media (min-width: 1024px) {
+		.spreadsheet-fullscreen {
+			padding: 1.5rem 2rem;
+		}
+	}
+
 	.spreadsheet-fullscreen .spreadsheet-scroll {
-		max-height: calc(100vh - 12rem);
+		max-height: calc(100dvh - 13rem);
+	}
+
+	.header-fullscreen {
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		padding: 0.6rem 0.75rem;
+		margin: -0.6rem -0.75rem 0.75rem;
+		border-radius: 0.9rem;
+		background: hsl(var(--b1) / 0.9);
+		backdrop-filter: blur(10px);
+	}
+	.exit-fullscreen {
+		position: fixed;
+		right: 1rem;
+		bottom: 5.5rem;
+		z-index: 21;
+		border-radius: 9999px;
+		box-shadow: 0 8px 24px hsl(var(--bc) / 0.18);
+	}
+	@media (min-width: 1024px) {
+		.exit-fullscreen { bottom: 1.5rem; }
 	}
 
 	.spreadsheet-row:nth-child(even) {

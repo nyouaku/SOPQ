@@ -16,7 +16,7 @@
 	// Auth guard terpusat di src/routes/+layout.svelte.
 	// mode wajib diisi (Theme butuh itu); kalau kosong, ThemeSelector tak meng-highlight
 	// tombol mode mana pun dan blok auto-mode tak muncul saat render pertama.
-	let currentTheme: Theme = { layout: 'bottom', color: 'rack-room', mode: 'manual' };
+	let currentTheme: Theme = { layout: 'apple', color: 'rack-room', mode: 'manual' };
 	themeStore.subscribe((t) => (currentTheme = t));
 
 	// Reaktif: user baru terisi setelah checkAuth selesai (penting di mobile).
